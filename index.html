@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vidai to Mulai — Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/vtm.css">
+  <style>
+    .page-container { max-width: 1100px; margin: 0 auto; padding: 48px 24px 80px; }
+    .cover { background: var(--black); padding: 56px 48px 48px; border-bottom: 4px solid var(--red); }
+    .cover-eyebrow { font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--stone); font-family: var(--font-mono); margin-bottom: 14px; }
+    .cover h1 { font-family: var(--font-display); font-size: 3rem; font-weight: 600; color: var(--white); line-height: 1.1; margin-bottom: 10px; }
+    .cover h1 span { color: var(--red); }
+    .cover-sub { font-size: 13px; color: rgba(247,246,242,0.45); font-weight: 300; }
+    .cover-status { margin-top: 28px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.07); font-size: 11px; font-family: var(--font-mono); letter-spacing: 0.06em; color: var(--stone); }
+    .cover-status.ok  { color: var(--green); }
+    .cover-status.err { color: var(--red); }
+    .stats-strip { display: grid; grid-template-columns: repeat(4,1fr); background: var(--charcoal); border-bottom: 3px solid var(--black); }
+    .stat-cell { padding: 24px 28px; border-right: 1px solid rgba(255,255,255,0.06); text-align: center; }
+    .stat-cell:last-child { border-right: none; }
+    .stat-num { font-family: var(--font-display); font-size: 2.4rem; font-weight: 600; color: var(--white); line-height: 1; margin-bottom: 6px; transition: color 0.3s; }
+    .stat-num.loaded { color: var(--red); }
+    .stat-label { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(247,246,242,0.35); font-family: var(--font-mono); }
+    .section-head { margin: 48px 0 20px; display: flex; align-items: baseline; gap: 14px; }
+    .section-head-title { font-family: var(--font-display); font-size: 1.25rem; color: var(--black); }
+    .section-head-rule { flex: 1; height: 1px; background: #ccc; }
+    .tools-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap: 2px; }
+    .tool-card { background: var(--white); padding: 28px 28px 24px; text-decoration: none; color: inherit; display: flex; flex-direction: column; border-top: 3px solid var(--charcoal); transition: border-top-color 0.2s, transform 0.15s, box-shadow 0.15s; }
+    .tool-card:hover { border-top-color: var(--red); transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.07); }
+    .tool-card-code { font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--stone); margin-bottom: 10px; }
+    .tool-card h3 { font-family: var(--font-display); font-size: 1.2rem; font-weight: 600; color: var(--black); margin-bottom: 8px; }
+    .tool-card-desc { font-size: 12px; color: var(--mid); line-height: 1.6; flex: 1; margin-bottom: 20px; }
+    .tool-card-footer { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--light); padding-top: 12px; }
+    .tool-card-count { font-size: 11px; font-family: var(--font-mono); color: var(--stone); }
+    .tool-card-arrow { font-size: 13px; color: var(--stone); font-family: var(--font-mono); transition: color 0.2s, transform 0.2s; }
+    .tool-card:hover .tool-card-arrow { color: var(--red); transform: translateX(4px); }
+  </style>
+</head>
+<body>
+<header>
+  <div class="header-brand">Vidai <span>to</span> Mulai</div>
+  <div class="header-sub">Dashboard</div>
+</header>
+<div class="cover">
+  <div class="cover-eyebrow">Gig Evaluation Platform</div>
+  <h1>Vidai <span>to</span> Mulai</h1>
+  <div class="cover-sub">Pacer · Rover · Gig · Evaluate · Reward</div>
+  <div class="cover-status" id="coverStatus">Connecting to database…</div>
+</div>
+<div class="stats-strip">
+  <div class="stat-cell"><div class="stat-num" id="statPacers">—</div><div class="stat-label">Pacers</div></div>
+  <div class="stat-cell"><div class="stat-num" id="statRovers">—</div><div class="stat-label">Rovers</div></div>
+  <div class="stat-cell"><div class="stat-num" id="statGigs">—</div><div class="stat-label">Gigs</div></div>
+  <div class="stat-cell"><div class="stat-num" id="statEvals">—</div><div class="stat-label">Evaluations</div></div>
+</div>
+<div class="page-container">
+  <div class="section-head"><div class="section-head-title">Master Data</div><div class="section-head-rule"></div></div>
+  <div class="tools-grid">
+    <a href="create_pacer.html" class="tool-card">
+      <div class="tool-card-code">M · 01</div><h3>Pacers</h3>
+      <div class="tool-card-desc">Register and manage evaluators. Pacers create gigs, approve deliverables, and rate rover performance.</div>
+      <div class="tool-card-footer"><span class="tool-card-count" id="countPacers">— registered</span><span class="tool-card-arrow">→</span></div>
+    </a>
+    <a href="create_rover.html" class="tool-card">
+      <div class="tool-card-code">M · 02</div><h3>Rovers</h3>
+      <div class="tool-card-desc">Register and manage field agents. Rovers are matched to gigs and self-rate during evaluation.</div>
+      <div class="tool-card-footer"><span class="tool-card-count" id="countRovers">— registered</span><span class="tool-card-arrow">→</span></div>
+    </a>
+  </div>
+  <div class="section-head" style="margin-top:40px;"><div class="section-head-title">Gig Workflow</div><div class="section-head-rule"></div></div>
+  <div class="tools-grid">
+    <a href="create_gig.html" class="tool-card">
+      <div class="tool-card-code">W · 01</div><h3>Create Gig</h3>
+      <div class="tool-card-desc">Define a new work package. Set scope, budget, and deliverables. Assign a Rover and Pacer.</div>
+      <div class="tool-card-footer"><span class="tool-card-count" id="countGigs">— active</span><span class="tool-card-arrow">→</span></div>
+    </a>
+    <a href="gig_eval.html" class="tool-card">
+      <div class="tool-card-code">W · 02</div><h3>Evaluate Gig</h3>
+      <div class="tool-card-desc">Rate engagement (D2) and effectiveness (D3). Both Rover and Pacer score. System calculates reward.</div>
+      <div class="tool-card-footer"><span class="tool-card-count" id="countEvals">— completed</span><span class="tool-card-arrow">→</span></div>
+    </a>
+  </div>
+</div>
+<script type="module" src="index.js"></script>
+</body>
+</html>

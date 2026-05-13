@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gig Evaluation — Vidai to Mulai</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="assets/vtm.css">
+  <script src="assets/vtm.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="header-brand">Vidai <span>to</span> Mulai</div>
+  <div class="header-sub">Gig Evaluation · Discussion Session</div>
+</header>
+
+<main>
+
+  <!-- ── GIG PICKER ── -->
+  <div id="gigPickerSection" style="background:var(--black); padding:28px 48px; border-bottom:3px solid var(--red);">
+    <div style="font-size:9px; letter-spacing:0.18em; text-transform:uppercase; color:var(--stone); font-family:var(--font-mono); margin-bottom:16px;" id="pickerLabel">
+      Ready for Reflection — select a gig to begin
+    </div>
+    <div id="gigPickerGrid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px;"></div>
+    <div id="pickerEmpty" style="display:none; font-size:13px; color:var(--stone); padding:12px 0;">
+      No gigs ready for evaluation. Set a gig status to
+      <span style="font-family:var(--font-mono); color:rgba(247,246,242,0.5)">in_progress</span> or
+      <span style="font-family:var(--font-mono); color:rgba(247,246,242,0.5)">delivered</span> in Create Gig first.
+    </div>
+  </div>
+
+  <!-- ── LOADED GIG BANNER ── -->
+  <div class="load-gig-bar loaded" id="loadGigBar" style="display:none;">
+    <span class="load-gig-label">Loaded</span>
+    <span class="load-gig-hint" id="loadStatus" style="color:var(--white);"></span>
+    <button onclick="resetPicker()" style="margin-left:auto; background:none; border:1px solid rgba(255,255,255,0.2); color:rgba(255,255,255,0.6); padding:4px 12px; font-size:11px; cursor:pointer; letter-spacing:0.08em; text-transform:uppercase; font-family:var(--font-body);">Change Gig</button>
+  </div>
+
+  <!-- ── GIG META ── -->
+  <div class="gig-meta">
+    <div class="gig-meta-grid">
+      <div class="meta-label">Gig Code</div>
+      <input class="meta-input" id="gigCode" placeholder="G01" oninput="updateTitle()" />
+      <div class="meta-label">Date</div>
+      <input class="meta-input" id="gigDate" type="date" />
+      <div class="meta-label">Gig Name</div>
+      <input class="meta-input wide" id="gigName" placeholder="Short title of the gig" />
+      <div class="meta-label">Rover</div>
+      <input class="meta-input" id="roverDisplay" placeholder="Rover name / ID" readonly />
+      <div class="meta-label">Pacer</div>
+      <input class="meta-input" id="pacerDisplay" placeholder="Pacer name / ID" readonly />
+      <div class="meta-label">Description</div>
+      <textarea class="meta-input wide notes-input" id="gigDesc" placeholder="What was this gig about?" style="min-height:60px;"></textarea>
+    </div>
+  </div>
+
+  <!-- ── GIG TOGGLES ── -->
+  <div class="gig-toggles">
+    <div class="toggles-label">Gig Classification</div>
+    <div class="toggles-grid">
+      <div class="toggle-group">
+        <div class="toggle-group-label">Scale</div>
+        <div class="toggle-pair">
+          <input type="radio" name="tog-scale" id="tog-minor" value="minor" onchange="calcScores()" checked />
+          <label for="tog-minor">Minor</label>
+          <input type="radio" name="tog-scale" id="tog-major" value="major" onchange="calcScores()" />
+          <label for="tog-major">Major</label>
+        </div>
+      </div>
+      <div class="toggle-group">
+        <div class="toggle-group-label">Cadence</div>
+        <div class="toggle-pair">
+          <input type="radio" name="tog-cadence" id="tog-oneoff" value="oneoff" onchange="calcScores()" checked />
+          <label for="tog-oneoff">One-off</label>
+          <input type="radio" name="tog-cadence" id="tog-recurring" value="recurring" onchange="calcScores()" />
+          <label for="tog-recurring">Recurring</label>
+        </div>
+      </div>
+      <div class="toggle-group">
+        <div class="toggle-group-label">Setting</div>
+        <div class="toggle-pair">
+          <input type="radio" name="tog-setting" id="tog-field" value="field" onchange="onSettingChange(); calcScores()" checked />
+          <label for="tog-field">Field</label>
+          <input type="radio" name="tog-setting" id="tog-desk" value="desk" onchange="onSettingChange(); calcScores()" />
+          <label for="tog-desk">Desk</label>
+        </div>
+      </div>
+      <div class="toggle-group">
+        <div class="toggle-group-label">Skill Level</div>
+        <div class="toggle-pair">
+          <input type="radio" name="tog-skill" id="tog-unskilled" value="unskilled" onchange="calcScores()" checked />
+          <label for="tog-unskilled">Unskilled</label>
+          <input type="radio" name="tog-skill" id="tog-skilled" value="skilled" onchange="calcScores()" />
+          <label for="tog-skilled">Skilled</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DIMENSION 2: ENGAGEMENT ── -->
+  <div class="section-head">
+    <div class="section-num">D2</div>
+    <div>
+      <div class="section-title">Engagement</div>
+      <div class="section-weight">50% of Final Score</div>
+    </div>
+  </div>
+
+  <table class="eval-table">
+    <thead>
+      <tr>
+        <th style="width:35%">Attribute</th>
+        <th style="width:10%" class="center">Weight</th>
+        <th style="width:22%" class="center"><span class="col-badge rover-badge">Rover</span><br/>Self-Rating</th>
+        <th style="width:22%" class="center"><span class="col-badge pacer-badge">Pacer</span><br/>Rating</th>
+        <th style="width:11%" class="center">Score<br/>(Pacer)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr id="d2-row-planning">
+        <td><div class="attr-name">Planning</div><div class="attr-desc">Ability to foresee needs, think long term</div></td>
+        <td style="text-align:center;">33%</td>
+        <td class="rover-col"><div class="rating-cell"><div class="stars"><input type="radio" name="d2p1rover" value="5" onchange="syncSlider('d2p1rover',5);calcScores()"><label>★</label><input type="radio" name="d2p1rover" value="4" onchange="syncSlider('d2p1rover',4);calcScores()"><label>★</label><input type="radio" name="d2p1rover" value="3" onchange="syncSlider('d2p1rover',3);calcScores()"><label>★</label><input type="radio" name="d2p1rover" value="2" onchange="syncSlider('d2p1rover',2);calcScores()"><label>★</label><input type="radio" name="d2p1rover" value="1" onchange="syncSlider('d2p1rover',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d2p1rover" min="1" max="5" step="1" value="1" oninput="syncStars('d2p1rover',this.value);calcScores()"></div></td>
+        <td class="pacer-col"><div class="rating-cell"><div class="stars"><input type="radio" name="d2p1pacer" value="5" onchange="syncSlider('d2p1pacer',5);calcScores()"><label>★</label><input type="radio" name="d2p1pacer" value="4" onchange="syncSlider('d2p1pacer',4);calcScores()"><label>★</label><input type="radio" name="d2p1pacer" value="3" onchange="syncSlider('d2p1pacer',3);calcScores()"><label>★</label><input type="radio" name="d2p1pacer" value="2" onchange="syncSlider('d2p1pacer',2);calcScores()"><label>★</label><input type="radio" name="d2p1pacer" value="1" onchange="syncSlider('d2p1pacer',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d2p1pacer" min="1" max="5" step="1" value="1" oninput="syncStars('d2p1pacer',this.value);calcScores()"></div></td>
+        <td class="score-cell" id="d2p1score">—</td>
+      </tr>
+      <tr id="d2-row-execution">
+        <td><div class="attr-name">Execution</div><div class="attr-desc">Relationships maintained · Partnerships built</div></td>
+        <td style="text-align:center;">33%</td>
+        <td class="rover-col"><div class="rating-cell"><div class="stars"><input type="radio" name="d2p2rover" value="5" onchange="syncSlider('d2p2rover',5);calcScores()"><label>★</label><input type="radio" name="d2p2rover" value="4" onchange="syncSlider('d2p2rover',4);calcScores()"><label>★</label><input type="radio" name="d2p2rover" value="3" onchange="syncSlider('d2p2rover',3);calcScores()"><label>★</label><input type="radio" name="d2p2rover" value="2" onchange="syncSlider('d2p2rover',2);calcScores()"><label>★</label><input type="radio" name="d2p2rover" value="1" onchange="syncSlider('d2p2rover',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d2p2rover" min="1" max="5" step="1" value="1" oninput="syncStars('d2p2rover',this.value);calcScores()"></div></td>
+        <td class="pacer-col"><div class="rating-cell"><div class="stars"><input type="radio" name="d2p2pacer" value="5" onchange="syncSlider('d2p2pacer',5);calcScores()"><label>★</label><input type="radio" name="d2p2pacer" value="4" onchange="syncSlider('d2p2pacer',4);calcScores()"><label>★</label><input type="radio" name="d2p2pacer" value="3" onchange="syncSlider('d2p2pacer',3);calcScores()"><label>★</label><input type="radio" name="d2p2pacer" value="2" onchange="syncSlider('d2p2pacer',2);calcScores()"><label>★</label><input type="radio" name="d2p2pacer" value="1" onchange="syncSlider('d2p2pacer',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d2p2pacer" min="1" max="5" step="1" value="1" oninput="syncStars('d2p2pacer',this.value);calcScores()"></div></td>
+        <td class="score-cell" id="d2p2score">—</td>
+      </tr>
+      <tr id="d2-row-reflection">
+        <td><div class="attr-name">Reflection</div><div class="attr-desc">Learnings documented · Improvement opportunities identified</div></td>
+        <td style="text-align:center;">34%</td>
+        <td class="rover-col"><div class="rating-cell"><div class="stars"><input type="radio" name="d2p3rover" value="5" onchange="syncSlider('d2p3rover',5);calcScores()"><label>★</label><input type="radio" name="d2p3rover" value="4" onchange="syncSlider('d2p3rover',4);calcScores()"><label>★</label><input type="radio" name="d2p3rover" value="3" onchange="syncSlider('d2p3rover',3);calcScores()"><label>★</label><input type="radio" name="d2p3rover" value="2" onchange="syncSlider('d2p3rover',2);calcScores()"><label>★</label><input type="radio" name="d2p3rover" value="1" onchange="syncSlider('d2p3rover',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d2p3rover" min="1" max="5" step="1" value="1" oninput="syncStars('d2p3rover',this.value);calcScores()"></div></td>
+        <td class="pacer-col"><div class="rating-cell"><div class="stars"><input type="radio" name="d2p3pacer" value="5" onchange="syncSlider('d2p3pacer',5);calcScores()"><label>★</label><input type="radio" name="d2p3pacer" value="4" onchange="syncSlider('d2p3pacer',4);calcScores()"><label>★</label><input type="radio" name="d2p3pacer" value="3" onchange="syncSlider('d2p3pacer',3);calcScores()"><label>★</label><input type="radio" name="d2p3pacer" value="2" onchange="syncSlider('d2p3pacer',2);calcScores()"><label>★</label><input type="radio" name="d2p3pacer" value="1" onchange="syncSlider('d2p3pacer',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d2p3pacer" min="1" max="5" step="1" value="1" oninput="syncStars('d2p3pacer',this.value);calcScores()"></div></td>
+        <td class="score-cell" id="d2p3score">—</td>
+      </tr>
+      <tr class="dim-score-row">
+        <td colspan="2" style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;">Engagement Score</td>
+        <td class="score-cell" id="d2rover-avg" style="background:var(--light);color:var(--charcoal);">—</td>
+        <td class="score-cell" id="d2pacer-avg" style="background:var(--light);color:var(--charcoal);">—</td>
+        <td class="score-cell" id="d2final">—</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ── DIMENSION 3: EFFECTIVENESS ── -->
+  <div class="section-head">
+    <div class="section-num">D3</div>
+    <div>
+      <div class="section-title">Effectiveness</div>
+      <div class="section-weight">50% of Final Score</div>
+    </div>
+  </div>
+
+  <table class="eval-table">
+    <thead>
+      <tr>
+        <th style="width:35%">Attribute</th>
+        <th style="width:10%" class="center">Weight</th>
+        <th style="width:22%" class="center"><span class="col-badge rover-badge">Rover</span><br/>Self-Rating</th>
+        <th style="width:22%" class="center"><span class="col-badge pacer-badge">Pacer</span><br/>Rating</th>
+        <th style="width:11%" class="center">Score<br/>(Pacer)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="cost-row" id="d3-row-cost">
+        <td><div class="attr-name">Cost</div><div class="attr-desc">Delivered within agreed budget</div></td>
+        <td style="text-align:center;" id="wCost">33%</td>
+        <td class="rover-col"><div class="rating-cell"><div class="stars"><input type="radio" name="d3p1rover" value="5" onchange="syncSlider('d3p1rover',5);calcScores()"><label>★</label><input type="radio" name="d3p1rover" value="4" onchange="syncSlider('d3p1rover',4);calcScores()"><label>★</label><input type="radio" name="d3p1rover" value="3" onchange="syncSlider('d3p1rover',3);calcScores()"><label>★</label><input type="radio" name="d3p1rover" value="2" onchange="syncSlider('d3p1rover',2);calcScores()"><label>★</label><input type="radio" name="d3p1rover" value="1" onchange="syncSlider('d3p1rover',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d3p1rover" min="1" max="5" step="1" value="1" oninput="syncStars('d3p1rover',this.value);calcScores()"></div></td>
+        <td class="pacer-col"><div class="rating-cell"><div class="stars"><input type="radio" name="d3p1pacer" value="5" onchange="syncSlider('d3p1pacer',5);calcScores()"><label>★</label><input type="radio" name="d3p1pacer" value="4" onchange="syncSlider('d3p1pacer',4);calcScores()"><label>★</label><input type="radio" name="d3p1pacer" value="3" onchange="syncSlider('d3p1pacer',3);calcScores()"><label>★</label><input type="radio" name="d3p1pacer" value="2" onchange="syncSlider('d3p1pacer',2);calcScores()"><label>★</label><input type="radio" name="d3p1pacer" value="1" onchange="syncSlider('d3p1pacer',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d3p1pacer" min="1" max="5" step="1" value="1" oninput="syncStars('d3p1pacer',this.value);calcScores()"></div></td>
+        <td class="score-cell" id="d3p1score">—</td>
+      </tr>
+      <tr>
+        <td><div class="attr-name">Quality</div><div class="attr-desc">Quality of deliverable meets agreed standard</div></td>
+        <td style="text-align:center;" id="wQuality">33%</td>
+        <td class="rover-col"><div class="rating-cell"><div class="stars"><input type="radio" name="d3p2rover" value="5" onchange="syncSlider('d3p2rover',5);calcScores()"><label>★</label><input type="radio" name="d3p2rover" value="4" onchange="syncSlider('d3p2rover',4);calcScores()"><label>★</label><input type="radio" name="d3p2rover" value="3" onchange="syncSlider('d3p2rover',3);calcScores()"><label>★</label><input type="radio" name="d3p2rover" value="2" onchange="syncSlider('d3p2rover',2);calcScores()"><label>★</label><input type="radio" name="d3p2rover" value="1" onchange="syncSlider('d3p2rover',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d3p2rover" min="1" max="5" step="1" value="1" oninput="syncStars('d3p2rover',this.value);calcScores()"></div></td>
+        <td class="pacer-col"><div class="rating-cell"><div class="stars"><input type="radio" name="d3p2pacer" value="5" onchange="syncSlider('d3p2pacer',5);calcScores()"><label>★</label><input type="radio" name="d3p2pacer" value="4" onchange="syncSlider('d3p2pacer',4);calcScores()"><label>★</label><input type="radio" name="d3p2pacer" value="3" onchange="syncSlider('d3p2pacer',3);calcScores()"><label>★</label><input type="radio" name="d3p2pacer" value="2" onchange="syncSlider('d3p2pacer',2);calcScores()"><label>★</label><input type="radio" name="d3p2pacer" value="1" onchange="syncSlider('d3p2pacer',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d3p2pacer" min="1" max="5" step="1" value="1" oninput="syncStars('d3p2pacer',this.value);calcScores()"></div></td>
+        <td class="score-cell" id="d3p2score">—</td>
+      </tr>
+      <tr>
+        <td><div class="attr-name">Timeline</div><div class="attr-desc">Delivered on time as agreed</div></td>
+        <td style="text-align:center;" id="wTimeline">34%</td>
+        <td class="rover-col"><div class="rating-cell"><div class="stars"><input type="radio" name="d3p3rover" value="5" onchange="syncSlider('d3p3rover',5);calcScores()"><label>★</label><input type="radio" name="d3p3rover" value="4" onchange="syncSlider('d3p3rover',4);calcScores()"><label>★</label><input type="radio" name="d3p3rover" value="3" onchange="syncSlider('d3p3rover',3);calcScores()"><label>★</label><input type="radio" name="d3p3rover" value="2" onchange="syncSlider('d3p3rover',2);calcScores()"><label>★</label><input type="radio" name="d3p3rover" value="1" onchange="syncSlider('d3p3rover',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d3p3rover" min="1" max="5" step="1" value="1" oninput="syncStars('d3p3rover',this.value);calcScores()"></div></td>
+        <td class="pacer-col"><div class="rating-cell"><div class="stars"><input type="radio" name="d3p3pacer" value="5" onchange="syncSlider('d3p3pacer',5);calcScores()"><label>★</label><input type="radio" name="d3p3pacer" value="4" onchange="syncSlider('d3p3pacer',4);calcScores()"><label>★</label><input type="radio" name="d3p3pacer" value="3" onchange="syncSlider('d3p3pacer',3);calcScores()"><label>★</label><input type="radio" name="d3p3pacer" value="2" onchange="syncSlider('d3p3pacer',2);calcScores()"><label>★</label><input type="radio" name="d3p3pacer" value="1" onchange="syncSlider('d3p3pacer',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d3p3pacer" min="1" max="5" step="1" value="1" oninput="syncStars('d3p3pacer',this.value);calcScores()"></div></td>
+        <td class="score-cell" id="d3p3score">—</td>
+      </tr>
+      <tr class="dim-score-row">
+        <td colspan="2" style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;">Effectiveness Score</td>
+        <td class="score-cell" id="d3rover-avg" style="background:var(--light);color:var(--charcoal);">—</td>
+        <td class="score-cell" id="d3pacer-avg" style="background:var(--light);color:var(--charcoal);">—</td>
+        <td class="score-cell" id="d3final">—</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ── BUDGET ── -->
+  <div id="budgetBlock">
+    <div class="section-head" style="margin-top:32px;">
+      <div class="section-num">Budget</div>
+      <div class="section-title">Actual vs Estimated</div>
+    </div>
+    <table class="budget-table">
+      <thead><tr><th>Description</th><th>Estimated (₹)</th><th>Actual (₹)</th><th>Notes</th><th></th></tr></thead>
+      <tbody id="budget-body"></tbody>
+      <tfoot><tr class="budget-total-row"><td><strong>Total</strong></td><td id="budget-total">₹ 0</td><td id="budget-total-actual">—</td><td></td><td></td></tr></tfoot>
+    </table>
+  </div>
+
+  <!-- ── FINAL SCORE ── -->
+  <div class="final-block">
+    <div class="final-item"><div class="final-label">Rover Final Score</div><div class="final-value red final-stars" id="finalStarsDisplay">— ★</div></div>
+    <div class="final-item"><div class="final-label">Gig Reward %</div><div class="final-value" id="finalPct">—%</div></div>
+    <div class="final-item"><div class="final-label">Gig Reward (₹)</div><div class="final-value red" id="finalRs">₹ —</div></div>
+  </div>
+
+  <!-- ── REFLECTION DATE ── -->
+  <div class="reflection-row">
+    <label>Reflection Session Date</label>
+    <input class="meta-input" id="reflectionDate" type="date" style="max-width:180px;" />
+    <label style="color:var(--stone);font-size:12px;text-transform:none;">Both parties must be present. Payout conditional on completed reflection.</label>
+  </div>
+
+  <!-- ── NOTES ── -->
+  <div class="notes-block">
+    <div class="notes-label">Discussion Notes</div>
+    <textarea class="notes-input" id="notes" placeholder="Key points from the discussion session — learnings, improvements, agreements..."></textarea>
+  </div>
+
+  <!-- ── SUBMIT ── -->
+  <div class="submit-block">
+    <p class="submit-note">Evaluation will be saved to database and downloaded as Excel. Gig will be marked as completed.</p>
+    <button class="btn-submit" id="submitBtn" onclick="submitEval()">Save Evaluation →</button>
+  </div>
+
+</main>
+
+<!-- ── PAGE SCRIPTS (non-module — uses vtm.js globals) ── -->
+<script>
+  function updateTitle() {
+    const code = document.getElementById('gigCode').value || 'Gig';
+    document.title = code + ' Evaluation — Vidai to Mulai';
+  }
+
+  // XLSX download — unchanged from original
+  function downloadEvalXLSX() {
+    const code    = document.getElementById('gigCode').value    || 'G00';
+    const name    = document.getElementById('gigName').value    || '';
+    const desc    = document.getElementById('gigDesc').value    || '';
+    const dt      = document.getElementById('gigDate').value    || '';
+    const ref     = document.getElementById('reflectionDate').value || '';
+    const notes   = document.getElementById('notes').value      || '';
+    const scale   = getToggle('tog-scale')   || '';
+    const cadence = getToggle('tog-cadence') || '';
+    const setting = getToggle('tog-setting') || '';
+    const skill   = getToggle('tog-skill')   || '';
+    const _t = id => document.getElementById(id)?.textContent || '';
+
+    const rows = [
+      ['Gig Code', code], ['Gig Name', name], ['Description', desc],
+      ['Date', dt], ['Reflection Date', ref], [],
+      ['Classification', 'Scale', scale, 'Cadence', cadence, 'Setting', setting, 'Skill', skill], [],
+      ['Dimension', 'Attribute', 'Weight', 'Rover Rating', 'Pacer Rating', 'Score (Pacer)'],
+      ['D2', 'Planning',   '33%', getVal('d2p1rover')||'', getVal('d2p1pacer')||'', _t('d2p1score')],
+      ['D2', 'Execution',  '33%', getVal('d2p2rover')||'', getVal('d2p2pacer')||'', _t('d2p2score')],
+      ['D2', 'Reflection', '34%', getVal('d2p3rover')||'', getVal('d2p3pacer')||'', _t('d2p3score')],
+      ['D2 Score (Weighted)', '', '', _t('d2rover-avg'), _t('d2pacer-avg'), _t('d2final')],
+      [],
+      ['D3', 'Cost',     setting==='desk' ? '—'   : '33%', getVal('d3p1rover')||'', getVal('d3p1pacer')||'', _t('d3p1score')],
+      ['D3', 'Quality',  setting==='desk' ? '50%' : '33%', getVal('d3p2rover')||'', getVal('d3p2pacer')||'', _t('d3p2score')],
+      ['D3', 'Timeline', setting==='desk' ? '50%' : '34%', getVal('d3p3rover')||'', getVal('d3p3pacer')||'', _t('d3p3score')],
+      ['D3 Score (Weighted)', '', '', _t('d3rover-avg'), _t('d3pacer-avg'), _t('d3final')],
+      [],
+      ['FINAL SCORE (Based on Pacer)', _t('finalStarsDisplay')],
+      ['REWARD %',   _t('finalPct')],
+      ['REWARD (₹)', _t('finalRs')],
+      [],
+      ['Discussion Notes', notes],
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, code);
+    XLSX.writeFile(wb, code + '_eval.xlsx');
+  }
+</script>
+
+<!-- ── SUPABASE MODULE ── -->
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+  const SUPABASE_URL = 'https://dbecwjhsewucqtfgoylv.supabase.co'
+  const SUPABASE_KEY = 'sb_publishable_aw39P_0nn4vB0yjfDqwEvw_mU-Hc1Sp'
+  const db = createClient(SUPABASE_URL, SUPABASE_KEY)
+
+  // ── EXPOSE db AND submitEval TO WINDOW ───────────────────────
+  window.db = db
+
+  // ── SUBMIT — save to DB + download XLSX ──────────────────────
+  window.submitEval = async function() {
+    if (!window.currentGigId) {
+      showToast('Please select a gig first', 'err'); return;
+    }
+
+    const _r = name => parseFloat(document.querySelector(`input[name="${name}"]:checked`)?.value || 0)
+    const _t = id   => parseFloat(document.getElementById(id)?.textContent) || null
+
+    const payload = {
+      gig_id:              window.currentGigId,
+      eval_date:           document.getElementById('gigDate').value || null,
+      d2_planning_rover:   _r('d2p1rover'),
+      d2_planning_pacer:   _r('d2p1pacer'),
+      d2_execution_rover:  _r('d2p2rover'),
+      d2_execution_pacer:  _r('d2p2pacer'),
+      d2_reflection_rover: _r('d2p3rover'),
+      d2_reflection_pacer: _r('d2p3pacer'),
+      d2_score:            _t('d2final'),
+      d3_cost_rover:       _r('d3p1rover'),
+      d3_cost_pacer:       _r('d3p1pacer'),
+      d3_quality_rover:    _r('d3p2rover'),
+      d3_quality_pacer:    _r('d3p2pacer'),
+      d3_timeline_rover:   _r('d3p3rover'),
+      d3_timeline_pacer:   _r('d3p3pacer'),
+      d3_score:            _t('d3final'),
+      final_score:         _t('finalStarsDisplay'),
+      reward_pct:          _t('finalPct'),
+      reward_rs:           _t('finalRs'),
+      discussion_notes:    document.getElementById('notes')?.value || null
+    }
+
+    const btn = document.getElementById('submitBtn')
+    btn.disabled = true
+    btn.textContent = 'Saving...'
+
+    // Save to evaluations table
+    const { error: evalError } = await db.from('evaluations').insert([payload])
+
+    if (evalError) {
+      showToast('Save failed — ' + evalError.message, 'err')
+      btn.disabled = false
+      btn.textContent = 'Save Evaluation →'
+      return
+    }
+
+    // Mark gig as completed
+    await db.from('gigs')
+      .update({ status: 'completed' })
+      .eq('gig_id', window.currentGigId)
+
+    // Download XLSX as backup
+    downloadEvalXLSX()
+
+    showToast('Evaluation saved. Gig marked completed.', 'ok')
+    btn.textContent = 'Saved'
+  }
+
+  // ── LOAD GIG PICKER ───────────────────────────────────────────
+  async function loadGigPicker() {
+    const { data, error } = await db
+      .from('gigs')
+      .select('gig_id, gig_code, title, category, status, date_due, pacer_id, rover_id')
+      .in('status', ['in_progress', 'delivered'])
+      .order('date_due', { ascending: true })
+
+    const grid  = document.getElementById('gigPickerGrid')
+    const empty = document.getElementById('pickerEmpty')
+    const label = document.getElementById('pickerLabel')
+
+    if (error || !data || !data.length) {
+      grid.style.display  = 'none'
+      empty.style.display = 'block'
+      if (error) label.textContent = 'Could not connect to database — check credentials'
+      return
+    }
+
+    label.textContent = `${data.length} gig${data.length !== 1 ? 's' : ''} ready for reflection — select one to begin`
+
+    grid.innerHTML = data.map(g => {
+      const due    = g.date_due ? _fmtDate(g.date_due) : 'No due date'
+      const status = g.status === 'delivered' ? 'Delivered' : 'In Progress'
+      const colour = g.status === 'delivered' ? 'var(--green)' : 'var(--red)'
+      return `
+        <div onclick="selectGig('${g.gig_id}')" style="
+          background:rgba(255,255,255,0.04);
+          border:1px solid rgba(255,255,255,0.08);
+          border-top:3px solid ${colour};
+          padding:16px 18px;
+          cursor:pointer;
+          transition:background 0.15s, transform 0.15s;"
+          onmouseover="this.style.background='rgba(255,255,255,0.09)';this.style.transform='translateY(-2px)'"
+          onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.transform='none'">
+          <div style="font-family:var(--font-mono);font-size:10px;color:${colour};letter-spacing:0.1em;margin-bottom:6px;">${g.gig_code}</div>
+          <div style="font-family:var(--font-display);font-size:1rem;font-weight:600;color:var(--white);line-height:1.2;margin-bottom:6px;">${_esc(g.title)}</div>
+          <div style="font-size:11px;color:rgba(247,246,242,0.4);margin-bottom:10px;">${_esc(g.category || 'Uncategorised')}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,0.07);padding-top:10px;">
+            <span style="font-size:10px;font-family:var(--font-mono);color:rgba(247,246,242,0.35);">Due ${due}</span>
+            <span style="font-size:9px;font-family:var(--font-mono);letter-spacing:0.08em;text-transform:uppercase;color:${colour};">${status}</span>
+          </div>
+        </div>`
+    }).join('')
+
+    window._gigPickerData = data
+  }
+
+  // ── SELECT A GIG CARD ─────────────────────────────────────────
+  window.selectGig = async function(gigId) {
+    const gig = window._gigPickerData?.find(g => g.gig_id === gigId)
+    if (!gig) return
+
+    // Store gig id for submitEval
+    window.currentGigId = gigId
+
+    // Fetch rover and pacer names
+    const [roverRes, pacerRes] = await Promise.all([
+      gig.rover_id ? db.from('rovers').select('name').eq('rover_id', gig.rover_id).single() : Promise.resolve({ data: null }),
+      gig.pacer_id ? db.from('pacers').select('name').eq('pacer_id', gig.pacer_id).single() : Promise.resolve({ data: null })
+    ])
+
+    document.getElementById('gigCode').value      = gig.gig_code || ''
+    document.getElementById('gigName').value      = gig.title    || ''
+    document.getElementById('gigDesc').value      = gig.description || ''
+    document.getElementById('gigDate').value      = new Date().toISOString().split('T')[0]
+    document.getElementById('roverDisplay').value = roverRes.data?.name || ''
+    document.getElementById('pacerDisplay').value = pacerRes.data?.name || ''
+
+    if (gig.setting) { const el = document.querySelector(`input[name="tog-setting"][value="${gig.setting}"]`); if (el) el.click() }
+    if (gig.scale)   { const el = document.querySelector(`input[name="tog-scale"][value="${gig.scale}"]`);     if (el) el.click() }
+
+    document.getElementById('gigPickerSection').style.display = 'none'
+    const bar = document.getElementById('loadGigBar')
+    bar.style.display = 'flex'
+    document.getElementById('loadStatus').textContent = `${gig.gig_code} · ${gig.title}`
+
+    if (typeof updateTitle  === 'function') updateTitle()
+    if (typeof calcScores   === 'function') calcScores()
+  }
+
+  // ── RESET TO PICKER ───────────────────────────────────────────
+  window.resetPicker = function() {
+    window.currentGigId = null
+    document.getElementById('gigPickerSection').style.display = 'block'
+    document.getElementById('loadGigBar').style.display = 'none'
+    document.getElementById('submitBtn').disabled = false
+    document.getElementById('submitBtn').textContent = 'Save Evaluation →'
+  }
+
+  // ── HELPERS ───────────────────────────────────────────────────
+  function _fmtDate(d) {
+    if (!d) return '—'
+    const [y,m,day] = d.split('-')
+    return parseInt(day) + ' ' + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m)-1]
+  }
+  function _esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+  }
+
+  loadGigPicker()
+</script>
+
+</body>
+</html>

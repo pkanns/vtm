@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Gig — Vidai to Mulai</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="assets/vtm.css">
+  <script src="assets/vtm.js"></script>
+  <style>
+    .form-container { max-width: 900px; margin: 0 auto; padding: 40px 24px 80px; }
+    .form-card { background: white; padding: 32px 36px; margin-bottom: 24px; border-top: 4px solid var(--red); }
+    .form-title { font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 24px; color: var(--black); }
+    .form-row { margin-bottom: 20px; }
+    .form-row label { display: block; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--stone); margin-bottom: 6px; font-weight: 500; }
+    .form-row input, .form-row select, .form-row textarea { width: 100%; padding: 10px 12px; background: var(--light); border: none; border-bottom: 1px solid #ccc; font-family: var(--font-body); font-size: 14px; color: var(--black); outline: none; transition: border-color 0.2s; }
+    .form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-bottom-color: var(--red); }
+    .two-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .action-buttons { display: flex; gap: 16px; justify-content: flex-end; margin-top: 32px; }
+    .btn-primary { background: var(--red); color: white; border: none; padding: 12px 28px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: background 0.2s; }
+    .btn-primary:hover { background: var(--red-dark); }
+    .btn-secondary { background: var(--charcoal); color: white; border: none; padding: 12px 28px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; }
+    #budgetBlock { display: none; }
+    .register-card { background: white; padding: 32px 36px; border-top: 4px solid var(--charcoal); }
+    .register-title { font-family: var(--font-display); font-size: 1.2rem; margin-bottom: 20px; color: var(--black); }
+    .register-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .register-table thead tr { background: var(--black); color: var(--white); }
+    .register-table th { padding: 10px 14px; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; text-align: left; }
+    .register-table td { padding: 12px 14px; border-bottom: 1px solid var(--light); vertical-align: middle; color: var(--charcoal); }
+    .register-table tr:hover td { background: var(--light); }
+    .status-pill { display: inline-block; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; font-weight: 600; }
+    .status-pill.placed      { background: #e8eef5; color: #2a5a8a; }
+    .status-pill.matched     { background: #f5eef8; color: #7b3fa0; }
+    .status-pill.aligned     { background: #fdf5e0; color: #8a6200; }
+    .status-pill.in_progress { background: #fceee8; color: var(--red); }
+    .status-pill.delivered   { background: #e8f5ee; color: var(--green); }
+    .status-pill.completed   { background: var(--light); color: var(--stone); }
+    .tbl-btn { background: none; border: 1px solid #ccc; color: var(--mid); padding: 4px 10px; font-size: 11px; cursor: pointer; font-family: var(--font-body); letter-spacing: 0.06em; margin-right: 4px; transition: all 0.2s; }
+    .tbl-btn:hover { border-color: var(--charcoal); color: var(--black); }
+    .tbl-btn.danger:hover { border-color: var(--red); color: var(--red); }
+    .empty-state { text-align: center; padding: 40px 0; color: var(--stone); font-size: 13px; }
+    .db-status { font-size: 11px; font-family: var(--font-mono); padding: 8px 0 20px; color: var(--stone); letter-spacing: 0.04em; }
+    .db-status.ok { color: var(--green); } .db-status.err { color: var(--red); }
+    .save-mode-bar { background: var(--light); border-left: 3px solid var(--green); padding: 10px 16px; font-size: 12px; color: var(--mid); margin-bottom: 20px; display: none; }
+    .save-mode-bar.visible { display: block; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="header-brand">Vidai <span>to</span> Mulai</div>
+  <div class="header-sub" id="headerSub">Create New Gig</div>
+</header>
+<main class="form-container">
+  <div class="form-card">
+    <div class="form-title" id="formTitle">Gig Details</div>
+    <input type="hidden" id="editingGigId">
+    <div class="save-mode-bar" id="editModeBanner">Editing existing gig — changes will update the database record.</div>
+
+    <div class="two-columns">
+      <div class="form-row"><label>Gig Code *</label><input type="text" id="gigCode" placeholder="e.g., G01"></div>
+      <div class="form-row"><label>Gig Name *</label><input type="text" id="gigName" placeholder="Short title"></div>
+    </div>
+    <div class="form-row"><label>Category</label><input type="text" id="gigCategory" placeholder="e.g., Field Survey"></div>
+    <div class="form-row"><label>Description</label><textarea id="gigDesc" rows="3" placeholder="Scope of this gig…"></textarea></div>
+    <div class="two-columns">
+      <div class="form-row"><label>Rover *</label><select id="gigRover"><option value="">-- Loading --</option></select></div>
+      <div class="form-row"><label>Pacer *</label><select id="gigPacer"><option value="">-- Loading --</option></select></div>
+    </div>
+    <div class="two-columns">
+      <div class="form-row"><label>Date Placed</label><input type="date" id="gigDatePlaced"></div>
+      <div class="form-row"><label>Date Start</label><input type="date" id="gigDateStart"></div>
+      <div class="form-row"><label>Date Due</label><input type="date" id="gigDateDue"></div>
+      <div class="form-row"><label>Status</label>
+        <select id="gigStatus">
+          <option value="placed">Placed</option>
+          <option value="matched">Matched</option>
+          <option value="aligned">Aligned</option>
+          <option value="in_progress">In Progress</option>
+          <option value="delivered">Delivered</option>
+          <option value="completed">Completed</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Classification Toggles -->
+    <div class="gig-toggles" style="margin-top:24px;">
+      <div class="toggles-label">Gig Classification</div>
+      <div class="toggles-grid">
+        <div class="toggle-group">
+          <div class="toggle-group-label">Scale</div>
+          <div class="toggle-pair">
+            <input type="radio" name="tog-scale" id="setup-tog-minor" value="minor" checked><label for="setup-tog-minor">Minor</label>
+            <input type="radio" name="tog-scale" id="setup-tog-major" value="major"><label for="setup-tog-major">Major</label>
+          </div>
+        </div>
+        <div class="toggle-group">
+          <div class="toggle-group-label">Cadence</div>
+          <div class="toggle-pair">
+            <input type="radio" name="tog-cadence" id="setup-tog-oneoff" value="oneoff" checked><label for="setup-tog-oneoff">One-off</label>
+            <input type="radio" name="tog-cadence" id="setup-tog-recurring" value="recurring"><label for="setup-tog-recurring">Recurring</label>
+          </div>
+        </div>
+        <div class="toggle-group">
+          <div class="toggle-group-label">Setting</div>
+          <div class="toggle-pair">
+            <input type="radio" name="tog-setting" id="setup-tog-field" value="field" checked onchange="toggleBudgetBlock()"><label for="setup-tog-field">Field</label>
+            <input type="radio" name="tog-setting" id="setup-tog-desk" value="desk" onchange="toggleBudgetBlock()"><label for="setup-tog-desk">Desk</label>
+          </div>
+        </div>
+        <div class="toggle-group">
+          <div class="toggle-group-label">Skill Level</div>
+          <div class="toggle-pair">
+            <input type="radio" name="tog-skill" id="setup-tog-unskilled" value="unskilled" checked><label for="setup-tog-unskilled">Unskilled</label>
+            <input type="radio" name="tog-skill" id="setup-tog-skilled" value="skilled"><label for="setup-tog-skilled">Skilled</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Budget -->
+    <div id="budgetBlock">
+      <div style="margin-top:24px;margin-bottom:16px;"><div class="toggles-label">Budget Items</div></div>
+      <table class="budget-table">
+        <thead><tr><th>Description</th><th>Estimated (₹)</th><th>Notes</th><th></th></tr></thead>
+        <tbody id="budget-body"></tbody>
+        <tfoot><tr class="budget-total-row"><td><strong>Total</strong></td><td id="budget-total">₹ 0</td><td></td><td></td></tr></tfoot>
+      </table>
+      <button type="button" class="add-row-btn" onclick="addBudgetRow()">+ Add Budget Item</button>
+    </div>
+
+    <!-- Deliverables -->
+    <div style="margin-top:24px;">
+      <div class="toggles-label">Deliverables</div>
+      <ul class="deliverables-list" id="deliverable-list"></ul>
+      <button type="button" class="add-row-btn" onclick="addDeliverable()">+ Add Deliverable</button>
+    </div>
+
+    <div class="form-row" style="margin-top:24px;"><label>Internal Notes</label><textarea id="gigNotes" rows="2"></textarea></div>
+
+    <div class="action-buttons">
+      <button type="button" class="btn-secondary" onclick="cancelGigEdit()">Reset</button>
+      <button type="button" class="btn-primary" onclick="saveGigForm()">Save Gig →</button>
+    </div>
+  </div>
+
+  <!-- Gig List -->
+  <div class="register-card">
+    <div class="register-title">Gig Register</div>
+    <div class="db-status" id="dbStatus">Connecting…</div>
+    <table class="register-table">
+      <thead><tr><th>Code</th><th>Title</th><th>Category</th><th>Setting</th><th>Status</th><th>Due</th><th></th></tr></thead>
+      <tbody id="gigTableBody"><tr><td colspan="7"><div class="empty-state">Loading…</div></td></tr></tbody>
+    </table>
+  </div>
+</main>
+<script type="module" src="create_gig.js"></script>
+</body>
+</html>

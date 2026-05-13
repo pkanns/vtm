@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pacer Register — Vidai to Mulai</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/vtm.css">
+  <style>
+    .form-container { max-width: 900px; margin: 0 auto; padding: 40px 24px 80px; }
+    .form-card { background: white; padding: 32px 36px; margin-bottom: 24px; border-top: 4px solid var(--red); }
+    .form-title { font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 24px; color: var(--black); }
+    .form-row { margin-bottom: 20px; }
+    .form-row label { display: block; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--stone); margin-bottom: 6px; font-weight: 500; }
+    .form-row input, .form-row select { width: 100%; padding: 10px 12px; background: var(--light); border: none; border-bottom: 1px solid #ccc; font-family: var(--font-body); font-size: 14px; color: var(--black); outline: none; transition: border-color 0.2s; }
+    .form-row input:focus, .form-row select:focus { border-bottom-color: var(--red); }
+    .two-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .action-buttons { display: flex; gap: 16px; justify-content: flex-end; margin-top: 32px; }
+    .btn-primary { background: var(--red); color: white; border: none; padding: 12px 28px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: background 0.2s; }
+    .btn-primary:hover { background: var(--red-dark); }
+    .btn-secondary { background: var(--charcoal); color: white; border: none; padding: 12px 28px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; }
+    .register-card { background: white; padding: 32px 36px; border-top: 4px solid var(--charcoal); }
+    .register-title { font-family: var(--font-display); font-size: 1.2rem; margin-bottom: 20px; color: var(--black); }
+    .register-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .register-table thead tr { background: var(--black); color: var(--white); }
+    .register-table th { padding: 10px 14px; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; text-align: left; }
+    .register-table td { padding: 12px 14px; border-bottom: 1px solid var(--light); vertical-align: middle; color: var(--charcoal); }
+    .register-table tr:hover td { background: var(--light); }
+    .status-pill { display: inline-block; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; font-weight: 600; }
+    .status-pill.active { background: #e8f5ee; color: var(--green); }
+    .status-pill.inactive { background: var(--light); color: var(--stone); }
+    .tbl-btn { background: none; border: 1px solid #ccc; color: var(--mid); padding: 4px 10px; font-size: 11px; cursor: pointer; font-family: var(--font-body); letter-spacing: 0.06em; margin-right: 4px; transition: all 0.2s; }
+    .tbl-btn:hover { border-color: var(--charcoal); color: var(--black); }
+    .tbl-btn.danger:hover { border-color: var(--red); color: var(--red); }
+    .empty-state { text-align: center; padding: 40px 0; color: var(--stone); font-size: 13px; }
+    .db-status { font-size: 11px; font-family: var(--font-mono); padding: 8px 0 20px; color: var(--stone); letter-spacing: 0.04em; }
+    .db-status.ok { color: var(--green); } .db-status.err { color: var(--red); }
+  </style>
+</head>
+<body>
+<header><div class="header-brand">Vidai <span>to</span> Mulai</div><div class="header-sub">Pacer Register</div></header>
+<main class="form-container">
+  <div class="form-card">
+    <div class="form-title" id="formTitle">Add New Pacer</div>
+    <input type="hidden" id="editingId">
+    <div class="two-columns">
+      <div class="form-row"><label>Full Name *</label><input type="text" id="pacerName" placeholder="e.g., Priya Nair"></div>
+      <div class="form-row"><label>Email *</label><input type="email" id="pacerEmail" placeholder="priya@example.com"></div>
+    </div>
+    <div class="two-columns">
+      <div class="form-row"><label>Phone</label><input type="tel" id="pacerPhone" placeholder="+91 98765 43210"></div>
+      <div class="form-row"><label>Status</label>
+        <select id="pacerActive"><option value="true">Active</option><option value="false">Inactive</option></select>
+      </div>
+    </div>
+    <div class="action-buttons">
+      <button type="button" class="btn-secondary" onclick="cancelEdit()">Reset</button>
+      <button type="button" class="btn-primary" onclick="savePacerForm()">Save Pacer →</button>
+    </div>
+  </div>
+  <div class="register-card">
+    <div class="register-title">Pacer Register</div>
+    <div class="db-status" id="dbStatus">Connecting…</div>
+    <table class="register-table">
+      <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Status</th><th>Added</th><th></th></tr></thead>
+      <tbody id="pacerTableBody"><tr><td colspan="6"><div class="empty-state">Loading…</div></td></tr></tbody>
+    </table>
+  </div>
+</main>
+<script type="module" src="create_pacer.js"></script>
+</body>
+</html>

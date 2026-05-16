@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create User — Vidai to Mulai</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/vtm.css">
+  <script src="assets/vtm.js"></script>
+  <style>
+    .header-nav { display: flex; align-items: center; gap: 24px; }
+    .header-nav a { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(247,246,242,0.45); text-decoration: none; transition: color 0.2s; }
+    .header-nav a:hover { color: var(--white); }
+    .header-nav a.active { color: var(--white); }
+    .header-nav .nav-sep { color: rgba(247,246,242,0.2); font-size: 11px; }
+
+    .page-container { max-width: 960px; margin: 0 auto; padding: 48px 24px 80px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+
+    /* ── Form card ── */
+    .form-card { background: var(--white); padding: 36px; border-top: 4px solid var(--red); }
+    .form-title { font-family: var(--font-display); font-size: 1.5rem; color: var(--black); margin-bottom: 4px; }
+    .form-subtitle { font-size: 11px; color: var(--stone); font-family: var(--font-mono); margin-bottom: 32px; letter-spacing: 0.04em; }
+
+    .form-row { margin-bottom: 22px; }
+    .form-row label { display: block; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--stone); margin-bottom: 6px; font-weight: 500; }
+    .form-row input, .form-row select {
+      width: 100%; padding: 10px 12px;
+      background: var(--light); border: none;
+      border-bottom: 2px solid #ccc;
+      font-family: var(--font-body); font-size: 14px;
+      color: var(--black); outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-row input:focus, .form-row select:focus { border-bottom-color: var(--red); }
+
+    /* ── Auth method toggle ── */
+    .auth-method-group { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 6px; }
+    .auth-method-btn {
+      padding: 10px 8px; background: var(--light);
+      border: 2px solid transparent; cursor: pointer;
+      font-family: var(--font-body); font-size: 11px;
+      font-weight: 500; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--stone);
+      transition: all 0.15s; text-align: center;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 6px;
+    }
+    .auth-method-btn:hover { border-color: var(--charcoal); color: var(--black); }
+    .auth-method-btn.active { border-color: var(--red); background: var(--white); color: var(--red); }
+    .auth-method-btn svg { width: 18px; height: 18px; }
+
+    /* ── Role pills ── */
+    .role-select option[value="admin"]  { background: var(--black); color: var(--white); }
+    .role-select option[value="pacer"]  { background: var(--red); color: var(--white); }
+    .role-select option[value="rover"]  { background: var(--green); color: var(--white); }
+
+    /* ── Submit ── */
+    .btn-submit {
+      width: 100%; background: var(--red); color: var(--white);
+      border: none; padding: 14px 24px;
+      font-family: var(--font-body); font-size: 12px;
+      font-weight: 500; letter-spacing: 0.1em;
+      text-transform: uppercase; cursor: pointer;
+      transition: background 0.2s, transform 0.15s;
+      margin-top: 8px;
+    }
+    .btn-submit:hover { background: var(--red-dark); transform: translateY(-1px); }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    /* ── Result bar ── */
+    .result-bar {
+      display: none; padding: 16px 20px;
+      margin-top: 20px; font-size: 12px;
+      line-height: 1.6; border-left: 3px solid var(--green);
+      background: #e8f5ee;
+    }
+    .result-bar.visible { display: block; }
+    .result-bar.err { border-left-color: var(--red); background: #fceee8; color: var(--red); }
+    .result-bar.ok  { color: var(--green); }
+    .result-bar strong { display: block; margin-bottom: 4px; }
+
+    .invite-link-box {
+      margin-top: 10px; padding: 10px 12px;
+      background: var(--white); border: 1px solid #ccc;
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--charcoal); word-break: break-all;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .invite-link-box:hover { background: var(--light); }
+    .invite-link-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--stone); margin-bottom: 4px; }
+
+    /* ── Users list card ── */
+    .users-card { background: var(--white); padding: 36px; border-top: 4px solid var(--charcoal); }
+    .users-title { font-family: var(--font-display); font-size: 1.2rem; color: var(--black); margin-bottom: 4px; }
+    .users-subtitle { font-size: 11px; color: var(--stone); font-family: var(--font-mono); margin-bottom: 20px; letter-spacing: 0.04em; }
+
+    .db-status { font-size: 11px; font-family: var(--font-mono); padding: 0 0 16px; color: var(--stone); }
+    .db-status.ok  { color: var(--green); }
+    .db-status.err { color: var(--red); }
+
+    .users-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .users-table thead tr { background: var(--black); color: var(--white); }
+    .users-table th { padding: 8px 12px; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; text-align: left; }
+    .users-table td { padding: 10px 12px; border-bottom: 1px solid var(--light); vertical-align: middle; color: var(--charcoal); }
+    .users-table tr:hover td { background: var(--light); }
+
+    .role-pill { display: inline-block; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 7px; font-weight: 600; font-family: var(--font-mono); }
+    .role-pill.admin { background: rgba(17,17,17,0.1); color: var(--black); }
+    .role-pill.pacer { background: #fceee8; color: var(--red); }
+    .role-pill.rover { background: #e8f5ee; color: var(--green); }
+
+    .linked-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; }
+    .linked-dot.yes { background: var(--green); }
+    .linked-dot.no  { background: #ccc; }
+
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(247,246,242,0.3); border-top-color: var(--white); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 8px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty-state { text-align: center; padding: 32px 0; color: var(--stone); font-size: 13px; }
+
+    /* ── OAuth note ── */
+    .oauth-note { font-size: 11px; color: var(--stone); background: var(--light); padding: 12px 14px; margin-top: 16px; line-height: 1.6; border-left: 2px solid #ccc; display: none; }
+    .oauth-note.visible { display: block; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-brand">Vidai <span>to</span> Mulai</div>
+  <nav class="header-nav">
+    <a href="index.html">← Home</a>
+    <span class="nav-sep">|</span>
+    <a href="create_user.html" class="active">Manage Users</a>
+  </nav>
+</header>
+
+<main class="page-container">
+
+  <!-- LEFT: Create form -->
+  <div class="form-card">
+    <div class="form-title">New User</div>
+    <div class="form-subtitle">Invite a Lead, Doer or Admin to the platform</div>
+
+    <div class="form-row">
+      <label>Full Name *</label>
+      <input type="text" id="userName" placeholder="e.g. Priya Nair">
+    </div>
+
+    <div class="form-row">
+      <label>Email *</label>
+      <input type="email" id="userEmail" placeholder="priya@example.com">
+    </div>
+
+    <div class="form-row">
+      <label>Role *</label>
+      <select id="userRole" class="role-select">
+        <option value="">— Select Role —</option>
+        <option value="admin">Admin</option>
+        <option value="pacer">Lead (Pacer)</option>
+        <option value="rover">Doer (Rover)</option>
+      </select>
+    </div>
+
+    <div class="form-row">
+      <label>Authentication Method *</label>
+      <div class="auth-method-group">
+        <button type="button" class="auth-method-btn active" data-method="email" onclick="setAuthMethod('email')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          Email
+        </button>
+        <button type="button" class="auth-method-btn" data-method="google" onclick="setAuthMethod('google')">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+          </svg>
+          Google
+        </button>
+        <button type="button" class="auth-method-btn" data-method="microsoft" onclick="setAuthMethod('microsoft')">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M11.4 2H2v9.4h9.4V2z" fill="#F25022"/>
+            <path d="M22 2h-9.4v9.4H22V2z" fill="#7FBA00"/>
+            <path d="M11.4 12.6H2V22h9.4v-9.4z" fill="#00A4EF"/>
+            <path d="M22 12.6h-9.4V22H22v-9.4z" fill="#FFB900"/>
+          </svg>
+          Microsoft
+        </button>
+      </div>
+    </div>
+
+    <!-- OAuth note -->
+    <div class="oauth-note" id="oauthNote">
+      For Google or Microsoft — no invite email is sent. The user record is created and the account will be linked automatically on their first OAuth login. Make sure they use the exact email address above.
+    </div>
+
+    <button class="btn-submit" id="submitBtn" onclick="createUser()">
+      Create User &amp; Send Invite →
+    </button>
+
+    <!-- Result -->
+    <div class="result-bar" id="resultBar">
+      <strong id="resultTitle"></strong>
+      <span id="resultMsg"></span>
+      <div id="inviteLinkWrap" style="display:none">
+        <div class="invite-link-label">Invite Link — click to copy</div>
+        <div class="invite-link-box" id="inviteLinkBox" onclick="copyInviteLink()"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Users list -->
+  <div class="users-card">
+    <div class="users-title">Platform Users</div>
+    <div class="users-subtitle">All registered users</div>
+    <div class="db-status" id="dbStatus">Loading…</div>
+    <table class="users-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Role</th>
+          <th>Auth</th>
+        </tr>
+      </thead>
+      <tbody id="usersTableBody">
+        <tr><td colspan="3"><div class="empty-state">Loading…</div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</main>
+
+<script type="module" src="create_user.js"></script>
+</body>
+</html>

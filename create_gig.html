@@ -5,57 +5,132 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Create Gig — Vidai to Mulai</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
   <link rel="stylesheet" href="assets/vtm.css">
   <script src="assets/vtm.js"></script>
   <style>
+    .header-nav { display: flex; align-items: center; gap: 24px; }
+    .header-nav a { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(247,246,242,0.45); text-decoration: none; transition: color 0.2s; }
+    .header-nav a:hover { color: var(--white); }
+    .header-nav a.active { color: var(--white); }
+    .header-nav .nav-sep { color: rgba(247,246,242,0.2); font-size: 11px; }
+
+    .flow-strip { background: var(--white); border-bottom: 2px solid var(--light); overflow-x: auto; }
+    .flow-inner { display: flex; align-items: stretch; max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+    .flow-step { display: flex; align-items: center; flex: 1; min-width: 0; text-decoration: none; color: inherit; position: relative; }
+    .flow-step-body { flex: 1; padding: 12px 16px; display: flex; flex-direction: column; gap: 2px; transition: background 0.15s; }
+    .flow-step:hover .flow-step-body { background: var(--light); }
+    .flow-step.active .flow-step-body { background: var(--light); }
+    .flow-step-num { font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.1em; color: var(--stone); }
+    .flow-step-name { font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--charcoal); white-space: nowrap; }
+    .flow-step-status { font-size: 10px; color: var(--stone); font-weight: 300; }
+    .flow-step::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: transparent; transition: background 0.15s; }
+    .flow-step:hover::after { background: var(--stone); }
+    .flow-step.active::after { background: var(--red); }
+    .flow-step.active .flow-step-name { color: var(--red); }
+    .flow-step.active .flow-step-num  { color: var(--red); }
+    .flow-arrow { color: #ccc; font-size: 11px; padding: 0 2px; flex-shrink: 0; align-self: center; font-family: var(--font-mono); }
+
     .form-container { max-width: 900px; margin: 0 auto; padding: 40px 24px 80px; }
     .form-card { background: white; padding: 32px 36px; margin-bottom: 24px; border-top: 4px solid var(--red); }
-    .form-title { font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 24px; color: var(--black); }
+    .form-title { font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 4px; color: var(--black); }
+    .form-subtitle { font-size: 11px; color: var(--stone); font-family: var(--font-mono); margin-bottom: 28px; letter-spacing: 0.04em; }
     .form-row { margin-bottom: 20px; }
     .form-row label { display: block; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--stone); margin-bottom: 6px; font-weight: 500; }
     .form-row input, .form-row select, .form-row textarea { width: 100%; padding: 10px 12px; background: var(--light); border: none; border-bottom: 1px solid #ccc; font-family: var(--font-body); font-size: 14px; color: var(--black); outline: none; transition: border-color 0.2s; }
     .form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-bottom-color: var(--red); }
     .two-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    .action-buttons { display: flex; gap: 16px; justify-content: flex-end; margin-top: 32px; }
-    .btn-primary { background: var(--red); color: white; border: none; padding: 12px 28px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: background 0.2s; }
-    .btn-primary:hover { background: var(--red-dark); }
-    .btn-secondary { background: var(--charcoal); color: white; border: none; padding: 12px 28px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; }
+    .three-columns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+    .action-buttons { display: flex; gap: 16px; justify-content: flex-end; margin-top: 32px; align-items: center; }
+    .btn-primary { background: var(--red); color: white; border: none; padding: 12px 28px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: background 0.2s, transform 0.15s; font-family: var(--font-body); }
+    .btn-primary:hover { background: var(--red-dark); transform: translateY(-1px); }
+    .btn-secondary { background: transparent; color: var(--stone); border: 1px solid #ccc; padding: 12px 28px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; font-family: var(--font-body); transition: border-color 0.2s, color 0.2s; }
+    .btn-secondary:hover { border-color: var(--charcoal); color: var(--black); }
+
+    .post-save-bar { display: none; background: var(--light); border-left: 4px solid var(--green); padding: 16px 24px; margin-top: 24px; align-items: center; justify-content: space-between; gap: 16px; }
+    .post-save-bar.visible { display: flex; }
+    .post-save-msg { font-size: 13px; color: var(--green); font-weight: 500; }
+    .post-save-code { font-family: var(--font-mono); font-weight: 600; }
+    .btn-match { background: var(--green); color: white; border: none; padding: 10px 22px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; font-family: var(--font-body); transition: opacity 0.2s; white-space: nowrap; }
+    .btn-match:hover { opacity: 0.85; }
+
+    .edit-banner { display: none; background: var(--light); border-left: 3px solid var(--charcoal); padding: 10px 16px; font-size: 12px; color: var(--mid); margin-bottom: 20px; }
+    .edit-banner.visible { display: block; }
+
     #budgetBlock { display: none; }
-    .register-card { background: white; padding: 32px 36px; border-top: 4px solid var(--charcoal); }
-    .register-title { font-family: var(--font-display); font-size: 1.2rem; margin-bottom: 20px; color: var(--black); }
-    .register-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .register-table thead tr { background: var(--black); color: var(--white); }
-    .register-table th { padding: 10px 14px; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; text-align: left; }
-    .register-table td { padding: 12px 14px; border-bottom: 1px solid var(--light); vertical-align: middle; color: var(--charcoal); }
-    .register-table tr:hover td { background: var(--light); }
-    .status-pill { display: inline-block; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; font-weight: 600; }
-    .status-pill.placed      { background: #e8eef5; color: #2a5a8a; }
-    .status-pill.matched     { background: #f5eef8; color: #7b3fa0; }
-    .status-pill.aligned     { background: #fdf5e0; color: #8a6200; }
-    .status-pill.in_progress { background: #fceee8; color: var(--red); }
-    .status-pill.delivered   { background: #e8f5ee; color: var(--green); }
-    .status-pill.completed   { background: var(--light); color: var(--stone); }
-    .tbl-btn { background: none; border: 1px solid #ccc; color: var(--mid); padding: 4px 10px; font-size: 11px; cursor: pointer; font-family: var(--font-body); letter-spacing: 0.06em; margin-right: 4px; transition: all 0.2s; }
-    .tbl-btn:hover { border-color: var(--charcoal); color: var(--black); }
-    .tbl-btn.danger:hover { border-color: var(--red); color: var(--red); }
-    .empty-state { text-align: center; padding: 40px 0; color: var(--stone); font-size: 13px; }
-    .db-status { font-size: 11px; font-family: var(--font-mono); padding: 8px 0 20px; color: var(--stone); letter-spacing: 0.04em; }
-    .db-status.ok { color: var(--green); } .db-status.err { color: var(--red); }
-    .save-mode-bar { background: var(--light); border-left: 3px solid var(--green); padding: 10px 16px; font-size: 12px; color: var(--mid); margin-bottom: 20px; display: none; }
-    .save-mode-bar.visible { display: block; }
   </style>
 </head>
 <body>
+
 <header>
   <div class="header-brand">Vidai <span>to</span> Mulai</div>
-  <div class="header-sub" id="headerSub">Create New Gig</div>
+  <nav class="header-nav">
+    <a href="index.html">← Home</a>
+    <span class="nav-sep">|</span>
+    <a href="gig_index.html">Gig Index</a>
+    <span class="nav-sep">|</span>
+    <a href="create_gig.html" class="active">Create Gig</a>
+  </nav>
 </header>
+
+<div class="flow-strip">
+  <div class="flow-inner">
+    <a class="flow-step active" href="gig_index.html?status=placed">
+      <div class="flow-step-body">
+        <div class="flow-step-num">01</div>
+        <div class="flow-step-name">Create</div>
+        <div class="flow-step-status">Placed</div>
+      </div>
+    </a>
+    <div class="flow-arrow">›</div>
+    <a class="flow-step" href="gig_index.html?status=matched">
+      <div class="flow-step-body">
+        <div class="flow-step-num">02</div>
+        <div class="flow-step-name">Assign</div>
+        <div class="flow-step-status">Matched</div>
+      </div>
+    </a>
+    <div class="flow-arrow">›</div>
+    <a class="flow-step" href="gig_index.html?status=aligned">
+      <div class="flow-step-body">
+        <div class="flow-step-num">03</div>
+        <div class="flow-step-name">Approve</div>
+        <div class="flow-step-status">Aligned</div>
+      </div>
+    </a>
+    <div class="flow-arrow">›</div>
+    <a class="flow-step" href="gig_index.html?status=in_progress">
+      <div class="flow-step-body">
+        <div class="flow-step-num">04</div>
+        <div class="flow-step-name">Deliver</div>
+        <div class="flow-step-status">In Progress</div>
+      </div>
+    </a>
+    <div class="flow-arrow">›</div>
+    <a class="flow-step" href="gig_index.html?status=delivered">
+      <div class="flow-step-body">
+        <div class="flow-step-num">05</div>
+        <div class="flow-step-name">Evaluate</div>
+        <div class="flow-step-status">Delivered</div>
+      </div>
+    </a>
+    <div class="flow-arrow">›</div>
+    <a class="flow-step" href="gig_index.html?status=completed">
+      <div class="flow-step-body">
+        <div class="flow-step-num">06</div>
+        <div class="flow-step-name">Close</div>
+        <div class="flow-step-status">Completed</div>
+      </div>
+    </a>
+  </div>
+</div>
+
 <main class="form-container">
   <div class="form-card">
-    <div class="form-title" id="formTitle">Gig Details</div>
+    <div class="form-title" id="formTitle">New Gig</div>
+    <div class="form-subtitle" id="formSubtitle">Create a new work package</div>
+    <div class="edit-banner" id="editBanner">Editing existing gig — save to update.</div>
     <input type="hidden" id="editingGigId">
-    <div class="save-mode-bar" id="editModeBanner">Editing existing gig — changes will update the database record.</div>
 
     <div class="two-columns">
       <div class="form-row"><label>Gig Code *</label><input type="text" id="gigCode" placeholder="e.g., G01"></div>
@@ -63,27 +138,31 @@
     </div>
     <div class="form-row"><label>Category</label><input type="text" id="gigCategory" placeholder="e.g., Field Survey"></div>
     <div class="form-row"><label>Description</label><textarea id="gigDesc" rows="3" placeholder="Scope of this gig…"></textarea></div>
+
     <div class="two-columns">
-      <div class="form-row"><label>Rover *</label><select id="gigRover"><option value="">-- Loading --</option></select></div>
-      <div class="form-row"><label>Pacer *</label><select id="gigPacer"><option value="">-- Loading --</option></select></div>
+      <div class="form-row"><label>Lead (Rover) *</label><select id="gigRover"><option value="">— Loading —</option></select></div>
+      <div class="form-row"><label>Doer (Pacer) *</label><select id="gigPacer"><option value="">— Loading —</option></select></div>
     </div>
-    <div class="two-columns">
+
+    <div class="three-columns">
       <div class="form-row"><label>Date Placed</label><input type="date" id="gigDatePlaced"></div>
       <div class="form-row"><label>Date Start</label><input type="date" id="gigDateStart"></div>
       <div class="form-row"><label>Date Due</label><input type="date" id="gigDateDue"></div>
-      <div class="form-row"><label>Status</label>
-        <select id="gigStatus">
-          <option value="placed">Placed</option>
-          <option value="matched">Matched</option>
-          <option value="aligned">Aligned</option>
-          <option value="in_progress">In Progress</option>
-          <option value="delivered">Delivered</option>
-          <option value="completed">Completed</option>
-        </select>
-      </div>
     </div>
 
-    <!-- Classification Toggles -->
+    <!-- Status — visible in edit mode only -->
+    <div class="form-row" id="statusRow" style="display:none">
+      <label>Status</label>
+      <select id="gigStatus">
+        <option value="placed">Placed</option>
+        <option value="matched">Matched</option>
+        <option value="aligned">Aligned</option>
+        <option value="in_progress">In Progress</option>
+        <option value="delivered">Delivered</option>
+        <option value="completed">Completed</option>
+      </select>
+    </div>
+
     <div class="gig-toggles" style="margin-top:24px;">
       <div class="toggles-label">Gig Classification</div>
       <div class="toggles-grid">
@@ -118,7 +197,6 @@
       </div>
     </div>
 
-    <!-- Budget -->
     <div id="budgetBlock">
       <div style="margin-top:24px;margin-bottom:16px;"><div class="toggles-label">Budget Items</div></div>
       <table class="budget-table">
@@ -129,31 +207,20 @@
       <button type="button" class="add-row-btn" onclick="addBudgetRow()">+ Add Budget Item</button>
     </div>
 
-    <!-- Deliverables -->
-    <div style="margin-top:24px;">
-      <div class="toggles-label">Deliverables</div>
-      <ul class="deliverables-list" id="deliverable-list"></ul>
-      <button type="button" class="add-row-btn" onclick="addDeliverable()">+ Add Deliverable</button>
-    </div>
-
     <div class="form-row" style="margin-top:24px;"><label>Internal Notes</label><textarea id="gigNotes" rows="2"></textarea></div>
 
     <div class="action-buttons">
-      <button type="button" class="btn-secondary" onclick="cancelGigEdit()">Reset</button>
-      <button type="button" class="btn-primary" onclick="saveGigForm()">Save Gig →</button>
+      <button type="button" class="btn-secondary" onclick="cancelEdit()">Reset</button>
+      <button type="button" class="btn-primary" id="saveBtn" onclick="saveGigForm()">Save Gig →</button>
+    </div>
+
+    <div class="post-save-bar" id="postSaveBar">
+      <div class="post-save-msg"><span class="post-save-code" id="postSaveCode"></span> saved successfully.</div>
+      <button type="button" class="btn-match" id="matchDoerBtn">Match Doer →</button>
     </div>
   </div>
-
-  <!-- Gig List -->
-  <div class="register-card">
-    <div class="register-title">Gig Register</div>
-    <div class="db-status" id="dbStatus">Connecting…</div>
-    <table class="register-table">
-      <thead><tr><th>Code</th><th>Title</th><th>Category</th><th>Setting</th><th>Status</th><th>Due</th><th></th></tr></thead>
-      <tbody id="gigTableBody"><tr><td colspan="7"><div class="empty-state">Loading…</div></td></tr></tbody>
-    </table>
-  </div>
 </main>
+
 <script type="module" src="create_gig.js"></script>
 </body>
 </html>

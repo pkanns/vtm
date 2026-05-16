@@ -13,7 +13,13 @@
 
 <header>
   <div class="header-brand">Vidai <span>to</span> Mulai</div>
-  <div class="header-sub">Gig Evaluation · Discussion Session</div>
+  <nav style="display:flex;align-items:center;gap:24px;">
+    <a href="index.html" style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(247,246,242,0.45);text-decoration:none;">← Home</a>
+    <span style="color:rgba(247,246,242,0.2);font-size:11px;">|</span>
+    <a href="gig_index.html" style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(247,246,242,0.45);text-decoration:none;">Gig Index</a>
+    <span style="color:rgba(247,246,242,0.2);font-size:11px;">|</span>
+    <span style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--white);">Evaluate</span>
+  </nav>
 </header>
 
 <main>
@@ -201,8 +207,13 @@
 
   <!-- SUBMIT -->
   <div class="submit-block">
-    <p class="submit-note">Evaluation saved to database. Gig marked completed. XLSX downloaded as backup.</p>
-    <button class="btn-submit" id="submitBtn" onclick="submitEval()">Save Evaluation →</button>
+    <p class="submit-note" id="submitNote">Evaluation saved to database. Gig marked completed.</p>
+    <!-- Doer (rover): self-rating only, does not complete gig -->
+    <button class="btn-submit" id="submitRoverBtn" style="display:none;background:var(--green);" onclick="submitRoverEval()">Save Self-Rating &rarr;</button>
+    <!-- Lead (pacer): rates Doer, completes gig -->
+    <button class="btn-submit" id="submitPacerBtn" style="display:none;" onclick="submitPacerEval()">Save Evaluation &rarr;</button>
+    <!-- Admin: everything in one shot -->
+    <button class="btn-submit" id="submitBtn" onclick="submitEval()">Save Evaluation &rarr;</button>
   </div>
 
 </main>

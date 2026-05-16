@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In — Vidai to Mulai</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --red:      #c0392b;
+      --red-dark: #8b1a10;
+      --green:    #2d5a3d;
+      --black:    #111111;
+      --charcoal: #2c2c2c;
+      --mid:      #555555;
+      --stone:    #8a8a8a;
+      --light:    #eeece6;
+      --white:    #f7f6f2;
+      --font-display: 'Playfair Display', serif;
+      --font-body:    'DM Sans', sans-serif;
+      --font-mono:    'DM Mono', monospace;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--black);
+      color: var(--white);
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    /* ── LEFT PANEL ── */
+    .left-panel {
+      background: var(--black);
+      padding: 64px 56px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-right: 1px solid rgba(255,255,255,0.06);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .left-panel::before {
+      content: '';
+      position: absolute;
+      top: -100px;
+      left: -100px;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(192,57,43,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .left-panel::after {
+      content: '';
+      position: absolute;
+      bottom: -80px;
+      right: -80px;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(45,90,61,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .brand {
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand-name {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      color: var(--white);
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+
+    .brand-name span { color: var(--red); }
+
+    .brand-sub {
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(247,246,242,0.25);
+      font-family: var(--font-mono);
+    }
+
+    .left-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .left-eyebrow {
+      font-size: 9px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--red);
+      font-family: var(--font-mono);
+      margin-bottom: 20px;
+    }
+
+    .left-heading {
+      font-family: var(--font-display);
+      font-size: 3rem;
+      line-height: 1.1;
+      color: var(--white);
+      margin-bottom: 24px;
+    }
+
+    .left-heading em {
+      color: var(--red);
+      font-style: italic;
+    }
+
+    .left-desc {
+      font-size: 13px;
+      color: rgba(247,246,242,0.4);
+      font-weight: 300;
+      line-height: 1.8;
+      max-width: 340px;
+    }
+
+    .pipeline {
+      position: relative;
+      z-index: 1;
+    }
+
+    .pipeline-label {
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(247,246,242,0.2);
+      font-family: var(--font-mono);
+      margin-bottom: 14px;
+    }
+
+    .pipeline-steps {
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+
+    .pipeline-step {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .pipeline-step-name {
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(247,246,242,0.3);
+      font-family: var(--font-mono);
+      white-space: nowrap;
+    }
+
+    .pipeline-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(247,246,242,0.15);
+    }
+
+    .pipeline-arrow {
+      color: rgba(247,246,242,0.1);
+      font-size: 10px;
+      padding: 0 8px;
+      padding-bottom: 0;
+      font-family: var(--font-mono);
+      align-self: flex-end;
+      margin-bottom: 1px;
+    }
+
+    /* ── RIGHT PANEL ── */
+    .right-panel {
+      background: var(--light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 64px 56px;
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 380px;
+    }
+
+    .login-title {
+      font-family: var(--font-display);
+      font-size: 1.8rem;
+      color: var(--black);
+      margin-bottom: 6px;
+    }
+
+    .login-sub {
+      font-size: 12px;
+      color: var(--stone);
+      margin-bottom: 40px;
+      font-weight: 300;
+    }
+
+    .oauth-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .oauth-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--white);
+      border: 1px solid #d0cec8;
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--charcoal);
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+      text-align: left;
+      width: 100%;
+    }
+
+    .oauth-btn:hover {
+      border-color: var(--charcoal);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      transform: translateY(-1px);
+    }
+
+    .oauth-btn svg {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    .oauth-btn.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .oauth-note {
+      font-size: 10px;
+      color: var(--stone);
+      font-family: var(--font-mono);
+      margin-left: auto;
+      letter-spacing: 0.06em;
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .divider-line {
+      flex: 1;
+      height: 1px;
+      background: #d0cec8;
+    }
+
+    .divider-text {
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--stone);
+      font-family: var(--font-mono);
+      white-space: nowrap;
+    }
+
+    .form-row {
+      margin-bottom: 20px;
+    }
+
+    .form-row label {
+      display: block;
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--stone);
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .form-row input {
+      width: 100%;
+      padding: 11px 14px;
+      background: var(--white);
+      border: 1px solid #d0cec8;
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--black);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-row input:focus {
+      border-color: var(--red);
+      box-shadow: 0 0 0 3px rgba(192,57,43,0.08);
+    }
+
+    .btn-signin {
+      width: 100%;
+      background: var(--red);
+      color: var(--white);
+      border: none;
+      padding: 13px 24px;
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s;
+      margin-top: 8px;
+    }
+
+    .btn-signin:hover {
+      background: var(--red-dark);
+      transform: translateY(-1px);
+    }
+
+    .btn-signin:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .login-error {
+      display: none;
+      background: #fceee8;
+      border-left: 3px solid var(--red);
+      padding: 10px 14px;
+      font-size: 12px;
+      color: var(--red);
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .login-error.visible { display: block; }
+
+    .login-success {
+      display: none;
+      background: #e8f5ee;
+      border-left: 3px solid var(--green);
+      padding: 10px 14px;
+      font-size: 12px;
+      color: var(--green);
+      margin-bottom: 20px;
+    }
+
+    .login-success.visible { display: block; }
+
+    .role-pill {
+      display: inline-block;
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    .role-pill.admin  { background: var(--black); color: var(--white); }
+    .role-pill.pacer  { background: var(--red);   color: var(--white); }
+    .role-pill.rover  { background: var(--green);  color: var(--white); }
+
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(247,246,242,0.3);
+      border-top-color: var(--white);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 768px) {
+      body { grid-template-columns: 1fr; }
+      .left-panel { display: none; }
+      .right-panel { padding: 48px 24px; background: var(--light); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Left panel -->
+<div class="left-panel">
+  <div class="brand">
+    <div class="brand-name">Vidai <span>to</span> Mulai</div>
+    <div class="brand-sub">Gig Evaluation Platform</div>
+  </div>
+
+  <div class="left-content">
+    <div class="left-eyebrow">Welcome back</div>
+    <div class="left-heading">
+      Lead.<br>
+      <em>Execute.</em><br>
+      Evaluate.
+    </div>
+    <div class="left-desc">
+      A platform for managing field and desk work packages. Track gigs through the full pipeline — from placement to reward.
+    </div>
+  </div>
+
+  <div class="pipeline">
+    <div class="pipeline-label">Gig Pipeline</div>
+    <div class="pipeline-steps">
+      <div class="pipeline-step">
+        <div class="pipeline-step-name">Create</div>
+        <div class="pipeline-dot" style="background:rgba(192,57,43,0.6)"></div>
+      </div>
+      <div class="pipeline-arrow">›</div>
+      <div class="pipeline-step">
+        <div class="pipeline-step-name">Assign</div>
+        <div class="pipeline-dot"></div>
+      </div>
+      <div class="pipeline-arrow">›</div>
+      <div class="pipeline-step">
+        <div class="pipeline-step-name">Approve</div>
+        <div class="pipeline-dot"></div>
+      </div>
+      <div class="pipeline-arrow">›</div>
+      <div class="pipeline-step">
+        <div class="pipeline-step-name">Deliver</div>
+        <div class="pipeline-dot"></div>
+      </div>
+      <div class="pipeline-arrow">›</div>
+      <div class="pipeline-step">
+        <div class="pipeline-step-name">Evaluate</div>
+        <div class="pipeline-dot"></div>
+      </div>
+      <div class="pipeline-arrow">›</div>
+      <div class="pipeline-step">
+        <div class="pipeline-step-name">Close</div>
+        <div class="pipeline-dot" style="background:rgba(45,90,61,0.6)"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Right panel -->
+<div class="right-panel">
+  <div class="login-box">
+
+    <div class="login-title">Sign in</div>
+    <div class="login-sub">Use your email and password to continue</div>
+
+    <div class="login-error" id="loginError"></div>
+    <div class="login-success" id="loginSuccess"></div>
+
+    <div class="oauth-buttons">
+      <button class="oauth-btn disabled" id="btnGoogle" onclick="signInGoogle()">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Continue with Google
+        <span class="oauth-note">Live only</span>
+      </button>
+
+      <button class="oauth-btn disabled" id="btnMicrosoft" onclick="signInMicrosoft()">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M11.4 2H2v9.4h9.4V2z" fill="#F25022"/>
+          <path d="M22 2h-9.4v9.4H22V2z" fill="#7FBA00"/>
+          <path d="M11.4 12.6H2V22h9.4v-9.4z" fill="#00A4EF"/>
+          <path d="M22 12.6h-9.4V22H22v-9.4z" fill="#FFB900"/>
+        </svg>
+        Continue with Microsoft
+        <span class="oauth-note">Live only</span>
+      </button>
+    </div>
+
+    <div class="divider">
+      <div class="divider-line"></div>
+      <div class="divider-text">or sign in with email</div>
+      <div class="divider-line"></div>
+    </div>
+
+    <div class="form-row">
+      <label>Email</label>
+      <input type="email" id="loginEmail" placeholder="your@email.com" autocomplete="email">
+    </div>
+    <div class="form-row">
+      <label>Password</label>
+      <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+    </div>
+
+    <button class="btn-signin" id="btnSignIn" onclick="signInEmail()">
+      Sign In →
+    </button>
+
+  </div>
+</div>
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+  const SUPABASE_URL = 'https://dbecwjhsewucqtfgoylv.supabase.co'
+  const SUPABASE_KEY = 'sb_publishable_aw39P_0nn4vB0yjfDqwEvw_mU-Hc1Sp'
+  const db = createClient(SUPABASE_URL, SUPABASE_KEY)
+
+  // ── EMAIL / PASSWORD SIGN IN ───────────────────────────────────────────
+  window.signInEmail = async function() {
+    const email    = document.getElementById('loginEmail').value.trim()
+    const password = document.getElementById('loginPassword').value
+    const btn      = document.getElementById('btnSignIn')
+
+    hideMessages()
+
+    if (!email)    { showError('Please enter your email address.'); return }
+    if (!password) { showError('Please enter your password.'); return }
+
+    btn.disabled   = true
+    btn.innerHTML  = '<span class="spinner"></span>Signing in…'
+
+    const { data: authData, error: authError } =
+      await db.auth.signInWithPassword({ email, password })
+
+    if (authError) {
+      btn.disabled  = false
+      btn.innerHTML = 'Sign In →'
+      showError(authError.message.includes('Invalid')
+        ? 'Incorrect email or password. Please try again.'
+        : authError.message)
+      return
+    }
+
+    // ── Resolve role from vtm_users ──────────────────────────────────────
+    const { data: vtmUser, error: roleError } = await db
+      .from('vtm_users')
+      .select('role, name, ref_id, user_id')
+      .eq('auth_user_id', authData.user.id)
+      .single()
+
+    if (roleError || !vtmUser) {
+      await db.auth.signOut()
+      btn.disabled  = false
+      btn.innerHTML = 'Sign In →'
+      showError('Your account is not registered on this platform. Contact your admin.')
+      return
+    }
+
+    // ── Store session ────────────────────────────────────────────────────
+    sessionStorage.setItem('vtm_role',    vtmUser.role)
+    sessionStorage.setItem('vtm_name',    vtmUser.name)
+    sessionStorage.setItem('vtm_user_id', vtmUser.user_id)
+    sessionStorage.setItem('vtm_ref_id',  vtmUser.ref_id || '')
+    sessionStorage.setItem('vtm_email',   email)
+
+    // ── Show success then redirect ───────────────────────────────────────
+    const roleLabel = { admin: 'Admin', pacer: 'Lead', rover: 'Doer' }
+    showSuccess(`Welcome, ${vtmUser.name}
+      <span class="role-pill ${vtmUser.role}">${roleLabel[vtmUser.role]}</span>
+      — redirecting…`)
+
+    setTimeout(() => {
+      window.location.href = 'index.html'
+    }, 1200)
+  }
+
+  // ── OAUTH (stubbed — live only) ────────────────────────────────────────
+  window.signInGoogle = async function() {
+    const { error } = await db.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin + '/index.html' }
+    })
+    if (error) showError(error.message)
+  }
+
+  window.signInMicrosoft = async function() {
+    const { error } = await db.auth.signInWithOAuth({
+      provider: 'azure',
+      options: { redirectTo: window.location.origin + '/index.html' }
+    })
+    if (error) showError(error.message)
+  }
+
+  // ── HELPERS ───────────────────────────────────────────────────────────
+  function showError(msg) {
+    const el = document.getElementById('loginError')
+    el.innerHTML = msg
+    el.classList.add('visible')
+  }
+
+  function showSuccess(msg) {
+    const el = document.getElementById('loginSuccess')
+    el.innerHTML = msg
+    el.classList.add('visible')
+  }
+
+  function hideMessages() {
+    document.getElementById('loginError').classList.remove('visible')
+    document.getElementById('loginSuccess').classList.remove('visible')
+  }
+
+  // ── ENTER KEY ─────────────────────────────────────────────────────────
+  document.getElementById('loginPassword')
+    .addEventListener('keydown', e => {
+      if (e.key === 'Enter') window.signInEmail()
+    })
+
+  // ── ALREADY LOGGED IN ─────────────────────────────────────────────────
+  const { data: { session } } = await db.auth.getSession()
+  if (session) {
+    const { data: vtmUser, error } = await db
+      .from('vtm_users')
+      .select('role, name, ref_id, user_id')
+      .eq('auth_user_id', session.user.id)
+      .single()
+
+    if (vtmUser && !error) {
+      // Valid user — repopulate sessionStorage and go to index
+      sessionStorage.setItem('vtm_role',    vtmUser.role)
+      sessionStorage.setItem('vtm_name',    vtmUser.name)
+      sessionStorage.setItem('vtm_user_id', vtmUser.user_id)
+      sessionStorage.setItem('vtm_ref_id',  vtmUser.ref_id || '')
+      sessionStorage.setItem('vtm_email',   session.user.email)
+      window.location.href = 'index.html'
+    } else {
+      // Session exists but no vtm_users record — sign out cleanly
+      await db.auth.signOut()
+      sessionStorage.clear()
+      // Stay on login page
+    }
+  }
+</script>
+</body>
+</html>

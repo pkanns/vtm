@@ -6,8 +6,10 @@
   <title>Vidai to Mulai — Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/vtm.css">
+  <script src="assets/vtm.js"></script>
   <style>
     .page-container { max-width: 1100px; margin: 0 auto; padding: 48px 24px 80px; }
+
     .cover { background: var(--black); padding: 56px 48px 48px; border-bottom: 4px solid var(--red); }
     .cover-eyebrow { font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--stone); font-family: var(--font-mono); margin-bottom: 14px; }
     .cover h1 { font-family: var(--font-display); font-size: 3rem; font-weight: 600; color: var(--white); line-height: 1.1; margin-bottom: 10px; }
@@ -16,15 +18,31 @@
     .cover-status { margin-top: 28px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.07); font-size: 11px; font-family: var(--font-mono); letter-spacing: 0.06em; color: var(--stone); }
     .cover-status.ok  { color: var(--green); }
     .cover-status.err { color: var(--red); }
+
     .stats-strip { display: grid; grid-template-columns: repeat(4,1fr); background: var(--charcoal); border-bottom: 3px solid var(--black); }
     .stat-cell { padding: 24px 28px; border-right: 1px solid rgba(255,255,255,0.06); text-align: center; }
     .stat-cell:last-child { border-right: none; }
     .stat-num { font-family: var(--font-display); font-size: 2.4rem; font-weight: 600; color: var(--white); line-height: 1; margin-bottom: 6px; transition: color 0.3s; }
     .stat-num.loaded { color: var(--red); }
     .stat-label { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(247,246,242,0.35); font-family: var(--font-mono); }
+
+    /* ── Flow strip ── */
+    .flow-strip { background: var(--white); border-bottom: 2px solid var(--light); overflow-x: auto; }
+    .flow-inner { display: flex; align-items: stretch; max-width: 1100px; margin: 0 auto; padding: 0 48px; }
+    .flow-step { display: flex; align-items: center; flex: 1; min-width: 0; text-decoration: none; color: inherit; position: relative; }
+    .flow-step-body { flex: 1; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; transition: background 0.15s; }
+    .flow-step:hover .flow-step-body { background: var(--light); }
+    .flow-step-num { font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.1em; color: var(--stone); }
+    .flow-step-name { font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--charcoal); white-space: nowrap; }
+    .flow-step-status { font-size: 10px; color: var(--stone); font-weight: 300; }
+    .flow-step::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: transparent; transition: background 0.15s; }
+    .flow-step:hover::after { background: var(--red); }
+    .flow-arrow { color: #ccc; font-size: 12px; padding: 0 2px; flex-shrink: 0; align-self: center; font-family: var(--font-mono); }
+
     .section-head { margin: 48px 0 20px; display: flex; align-items: baseline; gap: 14px; }
     .section-head-title { font-family: var(--font-display); font-size: 1.25rem; color: var(--black); }
     .section-head-rule { flex: 1; height: 1px; background: #ccc; }
+
     .tools-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap: 2px; }
     .tool-card { background: var(--white); padding: 28px 28px 24px; text-decoration: none; color: inherit; display: flex; flex-direction: column; border-top: 3px solid var(--charcoal); transition: border-top-color 0.2s, transform 0.15s, box-shadow 0.15s; }
     .tool-card:hover { border-top-color: var(--red); transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.07); }
@@ -38,50 +56,124 @@
   </style>
 </head>
 <body>
+
 <header>
   <div class="header-brand">Vidai <span>to</span> Mulai</div>
   <div class="header-sub">Dashboard</div>
 </header>
-<div class="cover">
-  <div class="cover-eyebrow">Gig Evaluation Platform</div>
-  <h1>Vidai <span>to</span> Mulai</h1>
-  <div class="cover-sub">Pacer · Rover · Gig · Evaluate · Reward</div>
-  <div class="cover-status" id="coverStatus">Connecting to database…</div>
+
+<!-- Flow strip -->
+<div class="flow-strip">
+  <div class="flow-inner">
+    <a class="flow-step" href="create_gig.html">
+      <div class="flow-step-body">
+        <div class="flow-step-num">01</div>
+        <div class="flow-step-name">Create</div>
+        <div class="flow-step-status">Placed</div>
+      </div>
+    </a>
+    <div class="flow-arrow">›</div>
+    <a class="flow-step" href="gig_index.html?status=matched">
+      <div class="flow-step-body">
+        <div class="flow-step-num">02</div>
+        <div class="flow-step-name">Assign</div>
+        <div class="flow-step-status">Matched</div>
+      </div>
+    </a>
+    <div class="flow-arrow">›</div>
+    <a class="flow-step" href="gig_index.html?status=aligned">
+      <div class="flow-step-body">
+        <div class="flow-step-num">03</div>
+        <div class="flow-step-name">Approve</div>
+        <div class="flow-step-status">Aligned</div>
+      </div>
+    </a>
+    <div class="flow-arrow">›</div>
+    <a class="flow-step" href="gig_index.html?status=in_progress">
+      <div class="flow-step-body">
+        <div class="flow-step-num">04</div>
+        <div class="flow-step-name">Deliver</div>
+        <div class="flow-step-status">In Progress</div>
+      </div>
+    </a>
+    <div class="flow-arrow">›</div>
+    <a class="flow-step" href="gig_index.html?status=delivered">
+      <div class="flow-step-body">
+        <div class="flow-step-num">05</div>
+        <div class="flow-step-name">Evaluate</div>
+        <div class="flow-step-status">Delivered</div>
+      </div>
+    </a>
+    <div class="flow-arrow">›</div>
+    <a class="flow-step" href="gig_index.html?status=completed">
+      <div class="flow-step-body">
+        <div class="flow-step-num">06</div>
+        <div class="flow-step-name">Close</div>
+        <div class="flow-step-status">Completed</div>
+      </div>
+    </a>
+  </div>
 </div>
+
+<!-- Stats -->
 <div class="stats-strip">
-  <div class="stat-cell"><div class="stat-num" id="statPacers">—</div><div class="stat-label">Pacers</div></div>
-  <div class="stat-cell"><div class="stat-num" id="statRovers">—</div><div class="stat-label">Rovers</div></div>
+  <div class="stat-cell"><div class="stat-num" id="statPacers">—</div><div class="stat-label">Doers</div></div>
+  <div class="stat-cell"><div class="stat-num" id="statRovers">—</div><div class="stat-label">Leads</div></div>
   <div class="stat-cell"><div class="stat-num" id="statGigs">—</div><div class="stat-label">Gigs</div></div>
   <div class="stat-cell"><div class="stat-num" id="statEvals">—</div><div class="stat-label">Evaluations</div></div>
 </div>
+
+<!-- Cover -->
+<div class="cover">
+  <div class="cover-eyebrow">Gig Evaluation Platform</div>
+  <h1>Vidai <span>to</span> Mulai</h1>
+  <div class="cover-sub">Lead · Doer · Gig · Evaluate · Reward</div>
+  <div class="cover-status" id="coverStatus">Connecting to database…</div>
+</div>
+
 <div class="page-container">
-  <div class="section-head"><div class="section-head-title">Master Data</div><div class="section-head-rule"></div></div>
+
+  <div class="section-head">
+    <div class="section-head-title">Master Data</div>
+    <div class="section-head-rule"></div>
+  </div>
   <div class="tools-grid">
     <a href="create_pacer.html" class="tool-card">
-      <div class="tool-card-code">M · 01</div><h3>Pacers</h3>
-      <div class="tool-card-desc">Register and manage evaluators. Pacers create gigs, approve deliverables, and rate rover performance.</div>
+      <div class="tool-card-code">M · 01</div><h3>Doers</h3>
+      <div class="tool-card-desc">Register and manage coordinators. Doers create gigs, approve work, and rate Lead performance after delivery.</div>
       <div class="tool-card-footer"><span class="tool-card-count" id="countPacers">— registered</span><span class="tool-card-arrow">→</span></div>
     </a>
     <a href="create_rover.html" class="tool-card">
-      <div class="tool-card-code">M · 02</div><h3>Rovers</h3>
-      <div class="tool-card-desc">Register and manage field agents. Rovers are matched to gigs and self-rate during evaluation.</div>
+      <div class="tool-card-code">M · 02</div><h3>Leads</h3>
+      <div class="tool-card-desc">Register and manage field agents. Leads are matched to gigs, submit cost estimates, and self-rate during evaluation.</div>
       <div class="tool-card-footer"><span class="tool-card-count" id="countRovers">— registered</span><span class="tool-card-arrow">→</span></div>
     </a>
   </div>
-  <div class="section-head" style="margin-top:40px;"><div class="section-head-title">Gig Workflow</div><div class="section-head-rule"></div></div>
+
+  <div class="section-head" style="margin-top:40px;">
+    <div class="section-head-title">Gig Workflow</div>
+    <div class="section-head-rule"></div>
+  </div>
   <div class="tools-grid">
     <a href="create_gig.html" class="tool-card">
       <div class="tool-card-code">W · 01</div><h3>Create Gig</h3>
-      <div class="tool-card-desc">Define a new work package. Set scope, budget, and deliverables. Assign a Rover and Pacer.</div>
+      <div class="tool-card-desc">Define a new work package. Set scope, budget, and classification. Assign a Lead and Doer. Status opens at Placed.</div>
       <div class="tool-card-footer"><span class="tool-card-count" id="countGigs">— active</span><span class="tool-card-arrow">→</span></div>
     </a>
+    <a href="gig_index.html" class="tool-card">
+      <div class="tool-card-code">W · 02</div><h3>Gig Index</h3>
+      <div class="tool-card-desc">View all gigs across every status. Track pipeline, edit gigs, and move them through the workflow.</div>
+      <div class="tool-card-footer"><span class="tool-card-count" id="countGigsIndex">— total</span><span class="tool-card-arrow">→</span></div>
+    </a>
     <a href="gig_eval.html" class="tool-card">
-      <div class="tool-card-code">W · 02</div><h3>Evaluate Gig</h3>
-      <div class="tool-card-desc">Rate engagement (D2) and effectiveness (D3). Both Rover and Pacer score. System calculates reward.</div>
+      <div class="tool-card-code">W · 03</div><h3>Evaluate Gig</h3>
+      <div class="tool-card-desc">Rate engagement (D2) and effectiveness (D3). Both Lead and Doer score. System calculates reward percentage and amount.</div>
       <div class="tool-card-footer"><span class="tool-card-count" id="countEvals">— completed</span><span class="tool-card-arrow">→</span></div>
     </a>
   </div>
+
 </div>
+
 <script type="module" src="index.js"></script>
 </body>
 </html>

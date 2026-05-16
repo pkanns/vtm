@@ -43,7 +43,8 @@
     .section-head-title { font-family: var(--font-display); font-size: 1.25rem; color: var(--black); }
     .section-head-rule { flex: 1; height: 1px; background: #ccc; }
 
-    .tools-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap: 2px; }
+    /* Updated grid to handle 3 cards elegantly */
+    .tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 2px; }
     .tool-card { background: var(--white); padding: 28px 28px 24px; text-decoration: none; color: inherit; display: flex; flex-direction: column; border-top: 3px solid var(--charcoal); transition: border-top-color 0.2s, transform 0.15s, box-shadow 0.15s; }
     .tool-card:hover { border-top-color: var(--red); transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.07); }
     .tool-card-code { font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--stone); margin-bottom: 10px; }
@@ -53,6 +54,12 @@
     .tool-card-count { font-size: 11px; font-family: var(--font-mono); color: var(--stone); }
     .tool-card-arrow { font-size: 13px; color: var(--stone); font-family: var(--font-mono); transition: color 0.2s, transform 0.2s; }
     .tool-card:hover .tool-card-arrow { color: var(--red); transform: translateX(4px); }
+    
+    /* Additional styling to ensure stats and data consistency */
+    .stat-num {
+      font-family: var(--font-display);
+      transition: all 0.2s ease;
+    }
   </style>
 </head>
 <body>
@@ -133,11 +140,22 @@
 
 <div class="page-container">
 
+  <!-- Master Data section: now includes Create User card as first item -->
   <div class="section-head">
     <div class="section-head-title">Master Data</div>
     <div class="section-head-rule"></div>
   </div>
   <div class="tools-grid">
+    <!-- NEW: Create User Card (M · 00) -->
+    <a href="create_user.html" class="tool-card">
+      <div class="tool-card-code">M · 00</div>
+      <h3>Create User</h3>
+      <div class="tool-card-desc">Unified user registration. Add new platform members (Leads, Doers, Admins). Central identity management for all roles.</div>
+      <div class="tool-card-footer">
+        <span class="tool-card-count">New registration</span>
+        <span class="tool-card-arrow">→</span>
+      </div>
+    </a>
     <a href="create_pacer.html" class="tool-card">
       <div class="tool-card-code">M · 01</div><h3>Doers</h3>
       <div class="tool-card-desc">Register and manage coordinators. Doers create gigs, approve work, and rate Lead performance after delivery.</div>
@@ -174,6 +192,178 @@
 
 </div>
 
-<script type="module" src="index.js"></script>
+<script type="module">
+  // Full dynamic module for dashboard stats and live counters (mocks, but fully functional)
+  import { db, loadData, saveData, STORES } from './assets/vtm.js';
+  
+  // Helper to refresh all counters using Dexie or fallback to localStorage simulation if needed
+  async function refreshDashboardStats() {
+    try {
+      // Attempt to use Dexie if available and db is defined, else fallback to localStorage
+      let pacerCount = 0, roverCount = 0, gigCount = 0, evalCount = 0;
+      let totalGigs = 0;
+      
+      if (db && db[STORES.PACERS]) {
+        pacerCount = await db[STORES.PACERS].count();
+        roverCount = await db[STORES.ROVERS].count();
+        gigCount = await db[STORES.GIGS].count();
+        // For evaluations count: look for gigs with status 'completed' or evaluation data exists
+        const allGigs = await db[STORES.GIGS].toArray();
+        totalGigs = allGigs.length;
+        const evaluatedGigs = allGigs.filter(g => g.evaluation && (g.evaluation.doerScore !== undefined || g.evaluation.leadScore !== undefined)).length;
+        evalCount = evaluatedGigs;
+        // For active gigs (not completed/cancelled) counter on "Create Gig" card: active = status not completed/cancelled
+        const activeGigs = allGigs.filter(g => g.status !== 'completed' && g.status !== 'cancelled').length;
+        
+        // Update DOM stats strip
+        const statPacersEl = document.getElementById('statPacers');
+        const statRoversEl = document.getElementById('statRovers');
+        const statGigsEl = document.getElementById('statGigs');
+        const statEvalsEl = document.getElementById('statEvals');
+        if (statPacersEl) { statPacersEl.innerText = pacerCount; statPacersEl.classList.add('loaded'); }
+        if (statRoversEl) { statRoversEl.innerText = roverCount; statRoversEl.classList.add('loaded'); }
+        if (statGigsEl) { statGigsEl.innerText = totalGigs; statGigsEl.classList.add('loaded'); }
+        if (statEvalsEl) { statEvalsEl.innerText = evalCount; statEvalsEl.classList.add('loaded'); }
+        
+        // Update specific card counters
+        const countPacersSpan = document.getElementById('countPacers');
+        const countRoversSpan = document.getElementById('countRovers');
+        const countGigsSpan = document.getElementById('countGigs');
+        const countGigsIndexSpan = document.getElementById('countGigsIndex');
+        const countEvalsSpan = document.getElementById('countEvals');
+        
+        if (countPacersSpan) countPacersSpan.innerText = `${pacerCount} registered`;
+        if (countRoversSpan) countRoversSpan.innerText = `${roverCount} registered`;
+        if (countGigsSpan) countGigsSpan.innerText = `${activeGigs} active`;
+        if (countGigsIndexSpan) countGigsIndexSpan.innerText = `${totalGigs} total`;
+        if (countEvalsSpan) countEvalsSpan.innerText = `${evalCount} completed`;
+        
+        // Update cover status
+        const coverStatusDiv = document.getElementById('coverStatus');
+        if (coverStatusDiv) {
+          coverStatusDiv.innerHTML = `✓ Database connected · ${new Date().toLocaleTimeString()} · ${pacerCount} Doers · ${roverCount} Leads · ${totalGigs} Gigs`;
+          coverStatusDiv.classList.add('ok');
+          coverStatusDiv.classList.remove('err');
+        }
+      } else {
+        // Fallback: use localStorage backup from legacy
+        const pacersRaw = localStorage.getItem('vtm_pacers');
+        const roversRaw = localStorage.getItem('vtm_rovers');
+        const gigsRaw = localStorage.getItem('vtm_gigs');
+        const pacers = pacersRaw ? JSON.parse(pacersRaw) : [];
+        const rovers = roversRaw ? JSON.parse(roversRaw) : [];
+        const gigs = gigsRaw ? JSON.parse(gigsRaw) : [];
+        pacerCount = pacers.length;
+        roverCount = rovers.length;
+        totalGigs = gigs.length;
+        const evaluatedGigs = gigs.filter(g => g.evaluation && (g.evaluation.doerScore !== undefined || g.evaluation.leadScore !== undefined)).length;
+        evalCount = evaluatedGigs;
+        const activeGigs = gigs.filter(g => g.status !== 'completed' && g.status !== 'cancelled').length;
+        
+        document.getElementById('statPacers').innerText = pacerCount;
+        document.getElementById('statRovers').innerText = roverCount;
+        document.getElementById('statGigs').innerText = totalGigs;
+        document.getElementById('statEvals').innerText = evalCount;
+        document.getElementById('countPacers').innerText = `${pacerCount} registered`;
+        document.getElementById('countRovers').innerText = `${roverCount} registered`;
+        document.getElementById('countGigs').innerText = `${activeGigs} active`;
+        document.getElementById('countGigsIndex').innerText = `${totalGigs} total`;
+        document.getElementById('countEvals').innerText = `${evalCount} completed`;
+        
+        const coverStatusDiv = document.getElementById('coverStatus');
+        if (coverStatusDiv) {
+          coverStatusDiv.innerHTML = `✓ localStorage mode · ${pacerCount} Doers · ${roverCount} Leads · ${totalGigs} Gigs`;
+          coverStatusDiv.classList.add('ok');
+          coverStatusDiv.classList.remove('err');
+        }
+      }
+    } catch (error) {
+      console.warn("Dashboard refresh warning:", error);
+      const coverStatusDiv = document.getElementById('coverStatus');
+      if (coverStatusDiv) {
+        coverStatusDiv.innerHTML = `⚠️ Using cached stats — ${error.message || 'offline mode'}`;
+        coverStatusDiv.classList.add('err');
+        coverStatusDiv.classList.remove('ok');
+      }
+      // fallback static numbers
+      const fallbackCounts = () => {
+        const pCount = localStorage.getItem('vtm_pacers') ? JSON.parse(localStorage.getItem('vtm_pacers')).length : 0;
+        const rCount = localStorage.getItem('vtm_rovers') ? JSON.parse(localStorage.getItem('vtm_rovers')).length : 0;
+        const gCount = localStorage.getItem('vtm_gigs') ? JSON.parse(localStorage.getItem('vtm_gigs')).length : 0;
+        const evCount = localStorage.getItem('vtm_gigs') ? JSON.parse(localStorage.getItem('vtm_gigs')).filter(g => g.evaluation && (g.evaluation.doerScore !== undefined)).length : 0;
+        if (document.getElementById('statPacers')) document.getElementById('statPacers').innerText = pCount;
+        if (document.getElementById('statRovers')) document.getElementById('statRovers').innerText = rCount;
+        if (document.getElementById('statGigs')) document.getElementById('statGigs').innerText = gCount;
+        if (document.getElementById('statEvals')) document.getElementById('statEvals').innerText = evCount;
+        if (document.getElementById('countPacers')) document.getElementById('countPacers').innerText = `${pCount} registered`;
+        if (document.getElementById('countRovers')) document.getElementById('countRovers').innerText = `${rCount} registered`;
+        const activeG = localStorage.getItem('vtm_gigs') ? JSON.parse(localStorage.getItem('vtm_gigs')).filter(g => g.status !== 'completed' && g.status !== 'cancelled').length : 0;
+        if (document.getElementById('countGigs')) document.getElementById('countGigs').innerText = `${activeG} active`;
+        if (document.getElementById('countGigsIndex')) document.getElementById('countGigsIndex').innerText = `${gCount} total`;
+        if (document.getElementById('countEvals')) document.getElementById('countEvals').innerText = `${evCount} completed`;
+      };
+      fallbackCounts();
+    }
+  }
+  
+  // Listen for storage events and refresh on any change (multi-tab sync)
+  window.addEventListener('storage', (e) => {
+    if (e.key && (e.key.includes('vtm_') || e.key.includes('dexie'))) {
+      refreshDashboardStats();
+    }
+  });
+  
+  // Also watch for custom event from other pages (if needed)
+  window.addEventListener('vtm-data-changed', () => refreshDashboardStats());
+  
+  // Override pushState and popstate to ensure refresh on navigation back (optional)
+  const originalPushState = history.pushState;
+  history.pushState = function() {
+    originalPushState.apply(this, arguments);
+    setTimeout(refreshDashboardStats, 100);
+  };
+  window.addEventListener('popstate', () => setTimeout(refreshDashboardStats, 150));
+  
+  // Initial load
+  refreshDashboardStats();
+  
+  // If Dexie is fully ready, also watch for liveQuery? Use setInterval as a robust backup but gentle.
+  setInterval(() => {
+    refreshDashboardStats();
+  }, 7000); // refresh every 7 seconds to keep counters accurate when other tabs update.
+  
+  // Additional: In case vtm.js exports db but not fully loaded, retry after 1s
+  setTimeout(() => {
+    refreshDashboardStats();
+  }, 600);
+  
+  // Also add a manual mutation observer on stats strip? not needed but ensures UI quick.
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refreshDashboardStats();
+  });
+</script>
+<script nomodule>
+  // Fallback for non-module environments: basic stats from localStorage
+  (function() {
+    try {
+      const p = JSON.parse(localStorage.getItem('vtm_pacers') || '[]');
+      const r = JSON.parse(localStorage.getItem('vtm_rovers') || '[]');
+      const g = JSON.parse(localStorage.getItem('vtm_gigs') || '[]');
+      const evals = g.filter(gig => gig.evaluation && (gig.evaluation.doerScore !== undefined)).length;
+      document.getElementById('statPacers') && (document.getElementById('statPacers').innerText = p.length);
+      document.getElementById('statRovers') && (document.getElementById('statRovers').innerText = r.length);
+      document.getElementById('statGigs') && (document.getElementById('statGigs').innerText = g.length);
+      document.getElementById('statEvals') && (document.getElementById('statEvals').innerText = evals);
+      document.getElementById('countPacers') && (document.getElementById('countPacers').innerText = p.length + ' registered');
+      document.getElementById('countRovers') && (document.getElementById('countRovers').innerText = r.length + ' registered');
+      const activeGigs = g.filter(gig => gig.status !== 'completed' && gig.status !== 'cancelled').length;
+      document.getElementById('countGigs') && (document.getElementById('countGigs').innerText = activeGigs + ' active');
+      document.getElementById('countGigsIndex') && (document.getElementById('countGigsIndex').innerText = g.length + ' total');
+      document.getElementById('countEvals') && (document.getElementById('countEvals').innerText = evals + ' completed');
+      const coverDiv = document.getElementById('coverStatus');
+      if(coverDiv) coverDiv.innerHTML = `✓ LocalStorage sync · ${p.length} Doers · ${r.length} Leads · ${g.length} Gigs`;
+    } catch(e) {}
+  })();
+</script>
 </body>
 </html>

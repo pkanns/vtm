@@ -1,9 +1,205 @@
 /**
  * vtm.js — Vidai to Mulai · Shared Behaviours
- * Single source of truth for: gig_setup.html, gig_eval.html
+ * Single source of truth for all pages.
+ *
+ * Sections:
+ *  0. AUTH GUARD + SESSION
+ *  1. STAR RATING + SLIDER SYNC
+ *  2. TOGGLE HELPERS
+ *  3. WEIGHTS + CONSTANTS
+ *  4. SETTING CHANGE
+ *  5. EVALUATION SCORING
+ *  6. BUDGET TABLE
+ *  7. DELIVERABLES LIST
+ *  8. TOAST NOTIFICATION
+ *  9. UTILITIES
+ * 10. INIT
  */
 
 'use strict';
+
+/* ═══════════════════════════════════════════════════════════════
+   0. AUTH GUARD + SESSION
+   ═══════════════════════════════════════════════════════════════ */
+
+// Pages that do NOT require authentication
+const _PUBLIC_PAGES = ['login.html'];
+
+// Role → UI label mapping
+const VTM_ROLE_LABELS = {
+  admin: 'Admin',
+  pacer: 'Lead',
+  rover: 'Doer',
+};
+
+// Role → pill colour class
+const VTM_ROLE_CLASS = {
+  admin: 'role-admin',
+  pacer: 'role-pacer',
+  rover: 'role-rover',
+};
+
+/**
+ * Returns the current session object from sessionStorage.
+ * { role, name, user_id, ref_id, email } or null
+ */
+function vtmGetSession() {
+  const role = sessionStorage.getItem('vtm_role');
+  if (!role) return null;
+  return {
+    role:    role,
+    name:    sessionStorage.getItem('vtm_name')    || '',
+    user_id: sessionStorage.getItem('vtm_user_id') || '',
+    ref_id:  sessionStorage.getItem('vtm_ref_id')  || '',
+    email:   sessionStorage.getItem('vtm_email')   || '',
+  };
+}
+
+/**
+ * Clears session and signs out of Supabase, then redirects to login.
+ * Called by the Sign out button.
+ */
+function vtmSignOut() {
+  sessionStorage.clear();
+  
+  // Sign out via Supabase client dynamically imported
+  import('https://esm.sh/@supabase/supabase-js@2').then(({ createClient }) => {
+    const db = createClient(
+      'https://dbecwjhsewucqtfgoylv.supabase.co',
+      'sb_publishable_aw39P_0nn4vB0yjfDqwEvw_mU-Hc1Sp'
+    );
+    db.auth.signOut().finally(() => {
+      window.location.href = 'login.html';
+    });
+  }).catch(() => {
+    // If import fails, still redirect
+    window.location.href = 'login.html';
+  });
+}
+
+/**
+ * Auth guard — injects header user info if session exists.
+ * Does NOT redirect — redirection is handled by each page's
+ * module JS after db.auth.getSession() resolves asynchronously.
+ * Safe to call multiple times — replaces existing header-user element.
+ */
+function vtmAuthGuard() {
+  const page = window.location.pathname.split('/').pop() || 'index.html';
+
+  // Skip entirely on public pages
+  if (_PUBLIC_PAGES.some(p => page.endsWith(p))) return;
+
+  const session = vtmGetSession();
+
+  // If session exists inject header — if not, module JS will redirect
+  if (session) {
+    _vtmInjectHeaderUser(session);
+  }
+}
+
+/**
+ * Injects role pill + name + logout into the header.
+ * Replaces .header-sub or .header-user if already present.
+ */
+function _vtmInjectHeaderUser(session) {
+  const header = document.querySelector('header');
+  if (!header) return;
+
+  // Remove any existing injected user element first
+  const existingUser = header.querySelector('.header-user');
+  if (existingUser) existingUser.remove();
+
+  // Also remove static subtitle if present
+  const existingSub = header.querySelector('.header-sub');
+
+  const roleLabel = VTM_ROLE_LABELS[session.role] || session.role;
+
+  const userEl = document.createElement('div');
+  userEl.className = 'header-user';
+  userEl.innerHTML = `
+    <span class="header-role-pill ${VTM_ROLE_CLASS[session.role]}">${roleLabel}</span>
+    <span class="header-user-name">${_esc(session.name)}</span>
+    <button class="header-logout" onclick="vtmSignOut()">Sign out</button>
+  `;
+
+  if (existingSub) {
+    existingSub.replaceWith(userEl);
+  } else {
+    header.appendChild(userEl);
+  }
+
+  // Inject styles once
+  if (!document.getElementById('vtm-auth-styles')) {
+    const style = document.createElement('style');
+    style.id = 'vtm-auth-styles';
+    style.textContent = `
+      .header-user {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .header-role-pill {
+        font-size: 9px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        padding: 3px 8px;
+        font-weight: 600;
+        font-family: var(--font-mono, monospace);
+      }
+      .role-admin { background: rgba(247,246,242,0.15); color: var(--white, #f7f6f2); }
+      .role-pacer { background: var(--red, #c0392b);    color: var(--white, #f7f6f2); }
+      .role-rover { background: var(--green, #2d5a3d);  color: var(--white, #f7f6f2); }
+      .header-user-name {
+        font-size: 12px;
+        color: rgba(247,246,242,0.6);
+        font-family: var(--font-body, sans-serif);
+      }
+      .header-logout {
+        background: none;
+        border: 1px solid rgba(247,246,242,0.2);
+        color: rgba(247,246,242,0.4);
+        padding: 4px 10px;
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        cursor: pointer;
+        font-family: var(--font-body, sans-serif);
+        transition: border-color 0.2s, color 0.2s;
+      }
+      .header-logout:hover {
+        border-color: rgba(247,246,242,0.5);
+        color: var(--white, #f7f6f2);
+      }
+    `;
+    document.head.appendChild(style);
+  }
+}
+
+/**
+ * Role-based visibility helper.
+ * Hides element if current role not in allowedRoles.
+ * Usage: vtmGuardElement(document.getElementById('deleteBtn'), ['admin'])
+ */
+function vtmGuardElement(el, allowedRoles) {
+  if (!el) return;
+  const session = vtmGetSession();
+  if (!session || !allowedRoles.includes(session.role)) {
+    el.style.display = 'none';
+  }
+}
+
+/**
+ * Role-based page guard.
+ * Redirects to index.html if current role not in allowedRoles.
+ * Usage: vtmGuardPage(['pacer', 'admin'])
+ */
+function vtmGuardPage(allowedRoles) {
+  const session = vtmGetSession();
+  if (!session || !allowedRoles.includes(session.role)) {
+    showToast('Access restricted for your role', 'err');
+    setTimeout(() => { window.location.href = 'index.html'; }, 1200);
+  }
+}
 
 /* ═══════════════════════════════════════════════════════════════
    1. STAR RATING + SLIDER SYNC
@@ -79,24 +275,20 @@ function interpolatePct(score) {
 
 /* ═══════════════════════════════════════════════════════════════
    4. SETTING CHANGE (Field / Desk)
-      Handles: weight display, cost row visibility, budget block
    ═══════════════════════════════════════════════════════════════ */
 
 function onSettingChange() {
   const setting = getToggle('tog-setting') || 'field';
   const w = VTM_WEIGHTS[setting];
 
-  // Budget block (gig_setup and gig_eval)
   const budgetBlock = document.getElementById('budgetBlock');
   if (budgetBlock) {
     budgetBlock.style.display = setting === 'field' ? 'block' : 'none';
   }
 
-  // Cost row (gig_eval)
   const costRow = document.getElementById('costRow');
   if (costRow) costRow.classList.toggle('hidden', setting === 'desk');
 
-  // Weight labels (gig_eval)
   const wCost     = document.getElementById('wCost');
   const wQuality  = document.getElementById('wQuality');
   const wTimeline = document.getElementById('wTimeline');
@@ -107,14 +299,10 @@ function onSettingChange() {
   if (typeof calcScores === 'function') calcScores();
 }
 
-// Alias used by gig_setup's inline onchange attributes
 function toggleBudgetBlock() { onSettingChange(); }
 
 /* ═══════════════════════════════════════════════════════════════
    5. EVALUATION SCORING
-      Individual cells  → raw pacer rating  e.g. "3 ★"
-      Dimension rows    → weighted average  e.g. "3.45 ★"
-      Final block       → combined score, reward %, reward ₹
    ═══════════════════════════════════════════════════════════════ */
 
 function calcScores() {
@@ -123,7 +311,6 @@ function calcScores() {
   const w    = VTM_WEIGHTS[setting];
   const base = BASE_REWARD[scale];
 
-  // --- D2: Engagement ---
   const d2p1r = getVal('d2p1rover'), d2p1p = getVal('d2p1pacer');
   const d2p2r = getVal('d2p2rover'), d2p2p = getVal('d2p2pacer');
   const d2p3r = getVal('d2p3rover'), d2p3p = getVal('d2p3pacer');
@@ -141,7 +328,6 @@ function calcScores() {
   _setAvgCell('d2pacer-avg', d2PacerAvg);
   _setAvgCell('d2final',     d2PacerAvg);
 
-  // --- D3: Effectiveness ---
   const d3p1r = getVal('d3p1rover'), d3p1p = getVal('d3p1pacer');
   const d3p2r = getVal('d3p2rover'), d3p2p = getVal('d3p2pacer');
   const d3p3r = getVal('d3p3rover'), d3p3p = getVal('d3p3pacer');
@@ -169,7 +355,6 @@ function calcScores() {
   _setAvgCell('d3pacer-avg', d3PacerAvg);
   _setAvgCell('d3final',     d3PacerAvg);
 
-  // --- Final Score ---
   const starsEl = document.getElementById('finalStarsDisplay');
   const pctEl   = document.getElementById('finalPct');
   const rsEl    = document.getElementById('finalRs');
@@ -188,14 +373,12 @@ function calcScores() {
   }
 }
 
-// Raw pacer rating for individual attribute cells: "3 ★" or "—"
 function _setRawCell(id, val) {
   const el = document.getElementById(id);
   if (!el) return;
   el.textContent = val !== null ? val + ' ★' : '—';
 }
 
-// Weighted average for dimension summary cells: "3.45 ★" or "—"
 function _setAvgCell(id, val) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -217,7 +400,7 @@ function addBudgetRow(data) {
   const tr = document.createElement('tr');
   tr.id = 'brow-' + id;
   tr.innerHTML = `
-    <td><input type="text"   class="desc-input"   placeholder="Description" value="${_esc(d.description || '')}"></td>
+    <tr><input type="text"   class="desc-input"   placeholder="Description" value="${_esc(d.description || '')}"></td>
     <td><input type="number" class="amount-input" placeholder="0"            value="${d.estimatedCost || ''}" oninput="recalcBudget()"></td>
     <td><input type="text"   class="notes-inline" placeholder="Notes"        value="${_esc(d.notes || '')}"></td>
     <td><button type="button" class="del-btn" onclick="removeBudgetRow('brow-${id}')">×</button></td>
@@ -235,23 +418,12 @@ function removeBudgetRow(rowId) {
 function recalcBudget() {
   const tbody = document.getElementById('budget-body');
   if (!tbody) return;
-
   let total = 0;
   tbody.querySelectorAll('.amount-input').forEach(input => {
     total += parseFloat(input.value) || 0;
   });
-
   const totalEl = document.getElementById('budget-total');
   if (totalEl) totalEl.textContent = '₹ ' + total.toLocaleString('en-IN');
-
-  const actualEl = document.getElementById('budget-total-actual');
-  if (actualEl) {
-    let actualTotal = 0;
-    tbody.querySelectorAll('.actual-cost').forEach(input => {
-      actualTotal += parseFloat(input.value) || 0;
-    });
-    actualEl.textContent = actualTotal > 0 ? '₹ ' + actualTotal.toLocaleString('en-IN') : '—';
-  }
 }
 
 function getBudgetItems() {
@@ -260,13 +432,12 @@ function getBudgetItems() {
   return Array.from(tbody.querySelectorAll('tr')).map(row => ({
     description:   (row.querySelector('.desc-input')   || {}).value || '',
     estimatedCost: parseFloat((row.querySelector('.amount-input') || {}).value) || 0,
-    actualCost:    parseFloat((row.querySelector('.actual-cost')  || {}).value) || 0,
     notes:         (row.querySelector('.notes-inline') || {}).value || '',
   })).filter(item => item.description || item.estimatedCost);
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   7. DELIVERABLES LIST
+   7. DELIVERABLES LIST (parked for MVP)
    ═══════════════════════════════════════════════════════════════ */
 
 function addDeliverable(value) {
@@ -296,299 +467,7 @@ function getDeliverables() {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   8. ODS / DATA LOADERS
-   Strategy: fetch relative path first (works on server / SharePoint /
-   Teams). If fetch fails (local file://, CORS, or 404), inject a
-   small file-picker inline so the user can browse to the file.
-   The same HTML works in both environments — no changes needed.
-   ═══════════════════════════════════════════════════════════════ */
-
-// Parse an ODS/XLSX Blob or File → array of row objects
-async function readODSFile(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      try {
-        const data = new Uint8Array(e.target.result);
-        const wb   = XLSX.read(data, { type: 'array' });
-        const ws   = wb.Sheets[wb.SheetNames[0]];
-        resolve(XLSX.utils.sheet_to_json(ws, { defval: '' }));
-      } catch (err) { reject(err); }
-    };
-    reader.onerror = reject;
-    reader.readAsArrayBuffer(file);
-  });
-}
-
-// Populate a <select> from an array of row objects
-function _populateRoverSelect(sel, rows) {
-  sel.innerHTML = '<option value="">-- Select Rover --</option>';
-  rows.forEach(row => {
-    if (row.active === 'TRUE' || row.active === true) {
-      const opt = document.createElement('option');
-      opt.value       = row.rover_id;
-      opt.textContent = `${row.rover_name} (${row.skill_level})`;
-      sel.appendChild(opt);
-    }
-  });
-  if (sel.options.length === 1)
-    sel.innerHTML = '<option value="">-- No active rovers --</option>';
-}
-
-function _populatePacerSelect(sel, rows) {
-  sel.innerHTML = '<option value="">-- Select Pacer --</option>';
-  rows.forEach(row => {
-    if (row.active === 'TRUE' || row.active === true) {
-      const opt = document.createElement('option');
-      opt.value       = row.pacer_id;
-      opt.textContent = row.pacer_name;
-      sel.appendChild(opt);
-    }
-  });
-  if (sel.options.length === 1)
-    sel.innerHTML = '<option value="">-- No active pacers --</option>';
-}
-
-// Inject a file-picker fallback next to the select element
-function _injectFilePicker(sel, filename, onRows) {
-  // Don't add a second picker if one already exists
-  if (document.getElementById('vtm-picker-' + sel.id)) return;
-
-  sel.innerHTML = `<option value="">-- Select file below --</option>`;
-
-  const wrapper = document.createElement('div');
-  wrapper.id    = 'vtm-picker-' + sel.id;
-  wrapper.style.cssText = 'margin-top:6px;display:flex;align-items:center;gap:8px;';
-
-  const label = document.createElement('label');
-  label.style.cssText   = 'font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--stone);white-space:nowrap;';
-  label.textContent     = filename;
-
-  const input = document.createElement('input');
-  input.type   = 'file';
-  input.accept = '.ods,.xlsx,.xls';
-  input.style.cssText = 'font-size:12px;color:var(--mid);';
-  input.addEventListener('change', async () => {
-    if (!input.files[0]) return;
-    try {
-      const rows = await readODSFile(input.files[0]);
-      onRows(sel, rows);
-      wrapper.remove();
-      showToast('Loaded ' + input.files[0].name, 'ok');
-    } catch (err) {
-      showToast('Could not read ' + filename, 'err');
-    }
-  });
-
-  wrapper.appendChild(label);
-  wrapper.appendChild(input);
-  sel.insertAdjacentElement('afterend', wrapper);
-}
-
-async function loadRovers(selectId = 'gigRover') {
-  const sel = document.getElementById(selectId);
-  if (!sel) return;
-  sel.innerHTML = '<option value="">-- Loading... --</option>';
-  try {
-    const response = await fetch('data/rovers.ods');
-    if (!response.ok) throw new Error('fetch failed');
-    const rows = await readODSFile(await response.blob());
-    _populateRoverSelect(sel, rows);
-  } catch (e) {
-    // Relative fetch failed — offer file picker instead
-    _injectFilePicker(sel, 'rovers.ods', _populateRoverSelect);
-    showToast('Select rovers.ods to continue', 'err');
-  }
-}
-
-async function loadPacers(selectId = 'gigPacer') {
-  const sel = document.getElementById(selectId);
-  if (!sel) return;
-  sel.innerHTML = '<option value="">-- Loading... --</option>';
-  try {
-    const response = await fetch('data/pacers.ods');
-    if (!response.ok) throw new Error('fetch failed');
-    const rows = await readODSFile(await response.blob());
-    _populatePacerSelect(sel, rows);
-  } catch (e) {
-    // Relative fetch failed — offer file picker instead
-    _injectFilePicker(sel, 'pacers.ods', _populatePacerSelect);
-    showToast('Select pacers.ods to continue', 'err');
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   9. LOAD GIG INTO EVAL (gig_eval.html)
-      Reads a _gig_data.xlsx exported by gig_setup and pre-fills
-      the eval form: meta fields, toggles, rover/pacer display.
-   ═══════════════════════════════════════════════════════════════ */
-
-async function loadGigFromExcel(input) {
-  const file = input.files[0];
-  if (!file) return;
-
-  try {
-    const data = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = e => {
-        try {
-          const wb  = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
-          const ws  = wb.Sheets['Gig'];
-          if (!ws) throw new Error('No Gig sheet found');
-          // Sheet is [[key, value], ...] — convert to object
-          const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-          const obj  = {};
-          rows.forEach(([k, v]) => { if (k) obj[String(k).trim()] = v; });
-          resolve(obj);
-        } catch (err) { reject(err); }
-      };
-      reader.onerror = reject;
-      reader.readAsArrayBuffer(file);
-    });
-
-    // --- Fill meta fields ---
-    _setInputVal('gigCode', data.gig_code);
-    _setInputVal('gigName', data.gig_name);
-    _setInputVal('gigDesc', data.description);
-
-    // Rover / Pacer — eval uses readonly text inputs
-    _setInputVal('roverDisplay', data.rover_id);
-    _setInputVal('pacerDisplay', data.pacer_id);
-
-    // Set today's date if blank
-    const dateEl = document.getElementById('gigDate');
-    if (dateEl && !dateEl.value)
-      dateEl.value = new Date().toISOString().slice(0, 10);
-
-    // --- Set toggles ---
-    if (data.scale)       setToggle('tog-scale',   data.scale);
-    if (data.cadence)     setToggle('tog-cadence',  data.cadence);
-    if (data.setting)     setToggle('tog-setting',  data.setting);
-    if (data.skill_level) setToggle('tog-skill',    data.skill_level);
-
-    onSettingChange();
-    if (typeof updateTitle === 'function') updateTitle();
-
-    // --- Visual confirmation on the bar ---
-    const bar = document.getElementById('loadGigBar');
-    if (bar) {
-      bar.classList.add('loaded');
-      const label = bar.querySelector('.load-gig-label');
-      if (label) label.textContent = `Loaded \u00b7 ${data.gig_code} \u2014 ${data.gig_name}`;
-      const hint = bar.querySelector('.load-gig-hint');
-      if (hint) hint.textContent = '';
-    }
-
-    showToast('Gig loaded — ready to evaluate', 'ok');
-
-  } catch (err) {
-    showToast('Could not read gig file', 'err');
-    console.error('loadGigFromExcel:', err);
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   10. GIG SETUP: EXPORT + RESET
-   ═══════════════════════════════════════════════════════════════ */
-
-function exportGigToExcel() {
-  const code    = document.getElementById('gigCode')?.value.trim();
-  const name    = document.getElementById('gigName')?.value.trim();
-  const rover   = document.getElementById('gigRover')?.value;
-  const pacer   = document.getElementById('gigPacer')?.value;
-  const setting = getToggle('tog-setting') || 'field';
-
-  if (!code)  { showToast('Gig Code is required',  'err'); return; }
-  if (!name)  { showToast('Gig Name is required',  'err'); return; }
-  if (!rover) { showToast('Please select a Rover', 'err'); return; }
-  if (!pacer) { showToast('Please select a Pacer', 'err'); return; }
-
-  const gigData = {
-    gig_code:     code,
-    gig_name:     name,
-    category:     document.getElementById('gigCategory')?.value  || '',
-    description:  document.getElementById('gigDesc')?.value      || '',
-    rover_id:     rover,
-    pacer_id:     pacer,
-    status:       document.getElementById('gigStatus')?.value    || 'Placed',
-    scale:        getToggle('tog-scale')   || 'minor',
-    cadence:      getToggle('tog-cadence') || 'oneoff',
-    setting:      setting,
-    skill_level:  getToggle('tog-skill')   || 'unskilled',
-    date_placed:  document.getElementById('gigDatePlaced')?.value || '',
-    date_start:   document.getElementById('gigDateStart')?.value  || '',
-    date_due:     document.getElementById('gigDateDue')?.value    || '',
-    has_budget:   (setting === 'field').toString().toUpperCase(),
-    deliverables: getDeliverables().join(', '),
-    notes:        document.getElementById('gigNotes')?.value      || '',
-    budget_total: 0,
-  };
-
-  const budgetItems = getBudgetItems();
-  gigData.budget_total = budgetItems.reduce((sum, item) => sum + item.estimatedCost, 0);
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(Object.entries(gigData)), 'Gig');
-
-  if (budgetItems.length) {
-    const rows = [['description', 'estimated_cost', 'actual_cost', 'notes']];
-    budgetItems.forEach(item =>
-      rows.push([item.description, item.estimatedCost, '', item.notes])
-    );
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'BudgetItems');
-  }
-
-  XLSX.writeFile(wb, `${code}_gig_data.xlsx`);
-  showToast(`Exported ${code}_gig_data.xlsx`, 'ok');
-}
-
-function resetGigForm() {
-  ['gigCode','gigName','gigCategory','gigDesc','gigDatePlaced','gigDateStart','gigDateDue','gigNotes']
-    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-
-  const statusEl = document.getElementById('gigStatus');
-  if (statusEl) statusEl.value = 'Placed';
-
-  ['setup-tog-minor','setup-tog-oneoff','setup-tog-field','setup-tog-unskilled'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.checked = true;
-  });
-
-  const budgetBody = document.getElementById('budget-body');
-  if (budgetBody) budgetBody.innerHTML = '';
-
-  const deliverableList = document.getElementById('deliverable-list');
-  if (deliverableList) deliverableList.innerHTML = '';
-
-  vtmBudgetRowId = 0;
-  vtmDelivRowId  = 0;
-
-  onSettingChange();
-  recalcBudget();
-  addBudgetRow();
-}
-
-function validateGigForm() {
-  const missing = [];
-  if (!_val('gigCode'))          missing.push('Gig Code');
-  if (!_val('gigName'))          missing.push('Gig Name');
-  if (!_val('gigRover'))         missing.push('Rover');
-  if (!_val('gigPacer'))         missing.push('Pacer');
-  if (!getToggle('tog-setting')) missing.push('Setting');
-  if (!getToggle('tog-scale'))   missing.push('Scale');
-  return missing;
-}
-
-function nextGigCode(existingGigs) {
-  const nums = existingGigs
-    .map(g => parseInt((g.gig_code || '').replace(/\D/g, ''), 10))
-    .filter(n => !isNaN(n));
-  const next = nums.length ? Math.max(...nums) + 1 : 1;
-  return 'G' + String(next).padStart(2, '0');
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   11. TOAST NOTIFICATION
+   8. TOAST NOTIFICATION
    ═══════════════════════════════════════════════════════════════ */
 
 let _toastTimer = null;
@@ -611,7 +490,7 @@ function showToast(msg, type, duration) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   12. UTILITIES
+   9. UTILITIES
    ═══════════════════════════════════════════════════════════════ */
 
 function _esc(str) {
@@ -633,10 +512,15 @@ function _setInputVal(id, value) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   13. INIT
+   10. INIT
    ═══════════════════════════════════════════════════════════════ */
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Try to inject header from sessionStorage immediately.
+  // If sessionStorage is empty, module JS will repopulate it
+  // and call vtmAuthGuard() again after db.auth.getSession() resolves.
+  vtmAuthGuard();
+
   onSettingChange();
   if (typeof calcScores === 'function') calcScores();
 });

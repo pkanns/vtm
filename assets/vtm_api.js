@@ -70,7 +70,7 @@ export async function fetchGigById(db, id) {
 
 export async function saveGig(db, payload, id = null) {
   if (id) return db.from('gigs').update(payload).eq('gig_id', id)
-  return db.from('gigs').insert(payload)
+  return db.from('gigs').insert(payload).select()
 }
 
 export async function updateGigStatus(db, id, status) {

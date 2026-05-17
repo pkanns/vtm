@@ -31,6 +31,7 @@
     .tool-card-footer { display: flex; align-items: center; justify-content: flex-end; border-top: 1px solid var(--light); padding-top: 12px; }
     .tool-card-arrow { font-size: 13px; color: var(--stone); font-family: var(--font-mono); transition: color 0.2s, transform 0.2s; }
     .tool-card:hover .tool-card-arrow { color: var(--red); transform: translateX(4px); }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
@@ -74,6 +75,14 @@
       <div class="tool-card-footer"><span class="tool-card-arrow">→</span></div>
     </a>
 
+    <!-- Create User — Admin only, shown/hidden based on role -->
+    <a href="create_user.html" class="tool-card hidden" id="cardCreateUser">
+      <div class="tool-card-eyebrow">Admin</div>
+      <h3>Users</h3>
+      <div class="tool-card-desc">Invite and manage platform users. Create Leads, Doers and Admins. Send email invites or set up OAuth access.</div>
+      <div class="tool-card-footer"><span class="tool-card-arrow">→</span></div>
+    </a>
+
   </div>
 </div>
 
@@ -98,6 +107,19 @@
                || session.user.email
                || 'User'
     document.getElementById('coverName').textContent = name
+  }
+
+  // ── Check user role from vtm_users ─────────────────────────────────────
+  const { data: vtmUser } = await db
+    .from('vtm_users')
+    .select('role')
+    .eq('auth_user_id', session.user.id)
+    .maybeSingle()
+
+  // Show Create User card only for admins
+  if (vtmUser && vtmUser.role === 'admin') {
+    const card = document.getElementById('cardCreateUser')
+    if (card) card.classList.remove('hidden')
   }
 
   // ── Sign out ───────────────────────────────────────────────────────────

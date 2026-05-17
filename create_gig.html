@@ -140,8 +140,9 @@
     <div class="form-row"><label>Description</label><textarea id="gigDesc" rows="3" placeholder="Scope of this gig…"></textarea></div>
 
     <div class="two-columns">
-      <div class="form-row"><label>Lead (Rover) *</label><select id="gigRover"><option value="">— Loading —</option></select></div>
-      <div class="form-row"><label>Doer (Pacer) *</label><select id="gigPacer"><option value="">— Loading —</option></select></div>
+      <!-- gigPacer = Lead (pacer role) · gigRover = Doer (rover role) -->
+      <div class="form-row"><label>Lead (Pacer) *</label><select id="gigPacer"><option value="">— Loading —</option></select></div>
+      <div class="form-row"><label>Doer (Rover) *</label><select id="gigRover"><option value="">— Loading —</option></select></div>
     </div>
 
     <div class="three-columns">
@@ -150,7 +151,6 @@
       <div class="form-row"><label>Date Due</label><input type="date" id="gigDateDue"></div>
     </div>
 
-    <!-- Status — visible in edit mode only -->
     <div class="form-row" id="statusRow" style="display:none">
       <label>Status</label>
       <select id="gigStatus">

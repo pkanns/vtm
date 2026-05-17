@@ -1,25 +1,23 @@
 /**
  * gig_eval.js — Vidai to Mulai · Gig Evaluation
- * AUTH-10: Role-split scoring via upsert on gig_id.
+ * Role-split scoring:
  *   rover (Doer)  → saves rover columns only, does not complete gig
  *   pacer (Lead)  → saves pacer columns + final score, completes gig
  *   admin         → saves everything in one shot, completes gig
- * All original functionality preserved.
- * DB calls via vtm_api.js · Connection via vtm_db.js
- * Scoring/UI logic via vtm.js (global script)
+ *
+ * Lead/Doer names resolved from vtm_users — no pacers/rovers tables.
+ * Filtering by role uses session.user_id matched to gigs.pacer_id / rover_id.
  */
 
-import { db }                                          from './assets/vtm_db.js'
-import { fetchGigsForEval, fetchRoverById,
-         fetchPacerById, saveEvaluation,
-         updateGigStatus }                             from './assets/vtm_api.js'
-import { fmtDate, esc }                                from './assets/vtm_api.js'
+import { db }                              from './assets/vtm_db.js'
+import { fetchGigsForEval, updateGigStatus,
+         fmtDate, esc }                    from './assets/vtm_api.js'
 
-// ── SESSION + ROLE ────────────────────────────────────────────────────────
+// ── SESSION ───────────────────────────────────────────────────────────────
 
-const session = vtmGetSession()
-const role    = session?.role   || 'admin'
-const refId   = session?.ref_id || null
+const session  = vtmGetSession()
+const role     = session?.role    || 'admin'
+const myUserId = session?.user_id || null
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 
@@ -38,18 +36,17 @@ async function loadGigPicker() {
   if (error || !data || !data.length) {
     grid.style.display  = 'none'
     empty.style.display = 'block'
-    if (error) label.textContent = 'Could not connect to database'
+    label.textContent   = error ? 'Could not connect to database' : 'Ready for Reflection'
     return
   }
 
-  // AUTH-10: filter picker by role
+  // Filter by role using user_id
   let visible = data
-  if (role === 'rover' && refId) {
-    visible = data.filter(g => g.rover_id === refId)
-  } else if (role === 'pacer' && refId) {
-    visible = data.filter(g => g.pacer_id === refId)
+  if (role === 'rover' && myUserId) {
+    visible = data.filter(g => g.rover_id === myUserId)
+  } else if (role === 'pacer' && myUserId) {
+    visible = data.filter(g => g.pacer_id === myUserId)
   }
-  // Admin sees all
 
   if (!visible.length) {
     grid.style.display  = 'none'
@@ -67,14 +64,12 @@ async function loadGigPicker() {
     const colour = g.status === 'delivered' ? 'var(--green)' : 'var(--red)'
     return `
       <div onclick="selectGig('${g.gig_id}')" style="
-        background:rgba(255,255,255,0.04);
-        border:1px solid rgba(255,255,255,0.08);
-        border-top:3px solid ${colour};
-        padding:16px 18px; cursor:pointer;
-        transition:background 0.15s, transform 0.15s;"
+        background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
+        border-top:3px solid ${colour};padding:16px 18px;cursor:pointer;
+        transition:background 0.15s,transform 0.15s;"
         onmouseover="this.style.background='rgba(255,255,255,0.09)';this.style.transform='translateY(-2px)'"
         onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.transform='none'">
-        <div style="font-family:var(--font-mono);font-size:10px;color:${colour};letter-spacing:0.1em;margin-bottom:6px;">${g.gig_code}</div>
+        <div style="font-family:var(--font-mono);font-size:10px;color:${colour};letter-spacing:0.1em;margin-bottom:6px;">${esc(g.gig_code)}</div>
         <div style="font-family:var(--font-display);font-size:1rem;font-weight:600;color:var(--white);line-height:1.2;margin-bottom:6px;">${esc(g.title)}</div>
         <div style="font-size:11px;color:rgba(247,246,242,0.4);margin-bottom:10px;">${esc(g.category || 'Uncategorised')}</div>
         <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,0.07);padding-top:10px;">
@@ -85,7 +80,7 @@ async function loadGigPicker() {
   }).join('')
 }
 
-// ── SELECT GIG CARD ───────────────────────────────────────────────────────
+// ── SELECT GIG ────────────────────────────────────────────────────────────
 
 window.selectGig = async function(gigId) {
   const gig = gigPickerData.find(g => g.gig_id === gigId)
@@ -93,17 +88,22 @@ window.selectGig = async function(gigId) {
 
   currentGigId = gigId
 
-  const [roverRes, pacerRes] = await Promise.all([
-    gig.rover_id ? fetchRoverById(db, gig.rover_id) : Promise.resolve({ data: null }),
-    gig.pacer_id ? fetchPacerById(db, gig.pacer_id) : Promise.resolve({ data: null })
+  // Resolve Lead and Doer names from vtm_users
+  const [leadRes, doerRes] = await Promise.all([
+    gig.pacer_id
+      ? db.from('vtm_users').select('name').eq('user_id', gig.pacer_id).single()
+      : Promise.resolve({ data: null }),
+    gig.rover_id
+      ? db.from('vtm_users').select('name').eq('user_id', gig.rover_id).single()
+      : Promise.resolve({ data: null })
   ])
 
   document.getElementById('gigCode').value      = gig.gig_code    || ''
   document.getElementById('gigName').value      = gig.title       || ''
   document.getElementById('gigDesc').value      = gig.description || ''
   document.getElementById('gigDate').value      = new Date().toISOString().split('T')[0]
-  document.getElementById('roverDisplay').value = roverRes.data?.name || ''
-  document.getElementById('pacerDisplay').value = pacerRes.data?.name || ''
+  document.getElementById('roverDisplay').value = doerRes.data?.name  || '—'
+  document.getElementById('pacerDisplay').value = leadRes.data?.name  || '—'
 
   if (gig.setting) setToggle('tog-setting', gig.setting)
   if (gig.scale)   setToggle('tog-scale',   gig.scale)
@@ -113,14 +113,13 @@ window.selectGig = async function(gigId) {
   bar.style.display = 'flex'
   document.getElementById('loadStatus').textContent = `${gig.gig_code} · ${gig.title}`
 
-  // AUTH-10: show correct submit button for role
   _applyRoleButtons()
 
   if (typeof updateTitle === 'function') updateTitle()
   if (typeof calcScores  === 'function') calcScores()
 }
 
-// ── AUTH-10: Show correct submit button ───────────────────────────────────
+// ── ROLE-BASED SUBMIT BUTTONS ─────────────────────────────────────────────
 
 function _applyRoleButtons() {
   const submitRover = document.getElementById('submitRoverBtn')
@@ -136,7 +135,6 @@ function _applyRoleButtons() {
     if (submitPacer) submitPacer.style.display = 'inline-block'
     if (submitBoth)  submitBoth.style.display  = 'none'
   } else {
-    // Admin
     if (submitRover) submitRover.style.display = 'none'
     if (submitPacer) submitPacer.style.display = 'none'
     if (submitBoth)  submitBoth.style.display  = 'inline-block'
@@ -149,15 +147,15 @@ window.resetPicker = function() {
   currentGigId = null
   document.getElementById('gigPickerSection').style.display = 'block'
   document.getElementById('loadGigBar').style.display = 'none'
-  const btn = document.getElementById('submitBtn')
-  if (btn) { btn.disabled = false; btn.textContent = 'Save Evaluation →' }
+  const btn  = document.getElementById('submitBtn')
   const rBtn = document.getElementById('submitRoverBtn')
-  if (rBtn) { rBtn.disabled = false; rBtn.textContent = 'Save Self-Rating →' }
   const pBtn = document.getElementById('submitPacerBtn')
+  if (btn)  { btn.disabled  = false; btn.textContent  = 'Save Evaluation →' }
+  if (rBtn) { rBtn.disabled = false; rBtn.textContent = 'Save Self-Rating →' }
   if (pBtn) { pBtn.disabled = false; pBtn.textContent = 'Save Evaluation →' }
 }
 
-// ── HELPERS: read values ──────────────────────────────────────────────────
+// ── VALUE READERS ─────────────────────────────────────────────────────────
 
 const _r = name => parseFloat(document.querySelector(`input[name="${name}"]:checked`)?.value || 0)
 const _t = id   => parseFloat(document.getElementById(id)?.textContent) || null
@@ -182,18 +180,13 @@ window.submitRoverEval = async function() {
   }
 
   const btn = document.getElementById('submitRoverBtn')
-  btn.disabled    = true
-  btn.textContent = 'Saving…'
+  btn.disabled = true; btn.textContent = 'Saving…'
 
-  // Upsert — creates row if none exists, updates rover columns if row exists
-  const { error } = await db
-    .from('evaluations')
-    .upsert(payload, { onConflict: 'gig_id' })
+  const { error } = await db.from('evaluations').upsert(payload, { onConflict: 'gig_id' })
 
   if (error) {
     showToast('Save failed — ' + error.message, 'err')
-    btn.disabled    = false
-    btn.textContent = 'Save Self-Rating →'
+    btn.disabled = false; btn.textContent = 'Save Self-Rating →'
     return
   }
 
@@ -201,7 +194,7 @@ window.submitRoverEval = async function() {
   btn.textContent = 'Saved ✓'
 }
 
-// ── SUBMIT — PACER (Lead rates Doer, calculates reward, completes gig) ────
+// ── SUBMIT — PACER (Lead rates Doer, completes gig) ───────────────────────
 
 window.submitPacerEval = async function() {
   if (!currentGigId) { showToast('Please select a gig first', 'err'); return }
@@ -226,24 +219,17 @@ window.submitPacerEval = async function() {
   }
 
   const btn = document.getElementById('submitPacerBtn')
-  btn.disabled    = true
-  btn.textContent = 'Saving…'
+  btn.disabled = true; btn.textContent = 'Saving…'
 
-  // Upsert — merges pacer columns into existing row or creates new row
-  const { error } = await db
-    .from('evaluations')
-    .upsert(payload, { onConflict: 'gig_id' })
+  const { error } = await db.from('evaluations').upsert(payload, { onConflict: 'gig_id' })
 
   if (error) {
     showToast('Save failed — ' + error.message, 'err')
-    btn.disabled    = false
-    btn.textContent = 'Save Evaluation →'
+    btn.disabled = false; btn.textContent = 'Save Evaluation →'
     return
   }
 
-  // Lead completing the evaluation closes the gig
   await updateGigStatus(db, currentGigId, 'completed')
-
   showToast('Evaluation saved. Gig marked completed.', 'ok')
   btn.textContent = 'Saved ✓'
 }
@@ -280,39 +266,28 @@ window.submitEval = async function() {
   }
 
   const btn = document.getElementById('submitBtn')
-  btn.disabled    = true
-  btn.textContent = 'Saving…'
+  btn.disabled = true; btn.textContent = 'Saving…'
 
-  const { error: evalError } = await db
-    .from('evaluations')
-    .upsert(payload, { onConflict: 'gig_id' })
+  const { error } = await db.from('evaluations').upsert(payload, { onConflict: 'gig_id' })
 
-  if (evalError) {
-    showToast('Save failed — ' + evalError.message, 'err')
-    btn.disabled    = false
-    btn.textContent = 'Save Evaluation →'
+  if (error) {
+    showToast('Save failed — ' + error.message, 'err')
+    btn.disabled = false; btn.textContent = 'Save Evaluation →'
     return
   }
 
   await updateGigStatus(db, currentGigId, 'completed')
-
   if (typeof downloadEvalXLSX === 'function') downloadEvalXLSX()
-
   showToast('Evaluation saved. Gig marked completed.', 'ok')
   btn.textContent = 'Saved ✓'
 }
 
-// ── URL PRELOAD — from gig_index "Evaluate" button ────────────────────────
+// ── URL PRELOAD ───────────────────────────────────────────────────────────
 
 async function checkPreload() {
-  const params = new URLSearchParams(window.location.search)
-  const gigId  = params.get('gig_id')
-  if (gigId) {
-    await loadGigPicker()
-    selectGig(gigId)
-  } else {
-    loadGigPicker()
-  }
+  const gigId = new URLSearchParams(window.location.search).get('gig_id')
+  await loadGigPicker()
+  if (gigId) selectGig(gigId)
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────

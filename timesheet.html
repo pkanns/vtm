@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timesheet — Vidai to Mulai</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/vtm.css">
+  <script src="assets/vtm.js"></script>
+  <style>
+    .header-nav { display:flex; align-items:center; gap:24px; }
+    .header-nav a { font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:rgba(247,246,242,0.45); text-decoration:none; transition:color 0.2s; }
+    .header-nav a:hover { color:var(--white); }
+    .header-nav a.active { color:var(--white); }
+    .header-nav .nav-sep { color:rgba(247,246,242,0.2); font-size:11px; }
+
+    .page-wrap { max-width:960px; margin:0 auto; padding:40px 24px 80px; }
+
+    /* ── Entry form card ── */
+    .entry-card {
+      background: var(--white);
+      border-top: 4px solid var(--red);
+      padding: 36px;
+      margin-bottom: 24px;
+    }
+
+    .entry-title {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      color: var(--black);
+      margin-bottom: 4px;
+    }
+
+    .entry-subtitle {
+      font-size: 11px;
+      color: var(--stone);
+      font-family: var(--font-mono);
+      letter-spacing: 0.04em;
+      margin-bottom: 32px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 16px;
+      align-items: end;
+      margin-bottom: 16px;
+    }
+
+    .form-row label {
+      display: block;
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--stone);
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .form-row input,
+    .form-row select {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--light);
+      border: none;
+      border-bottom: 2px solid #ccc;
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--black);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-row input:focus,
+    .form-row select:focus { border-bottom-color: var(--red); }
+
+    .form-row input[type="time"] {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      letter-spacing: 0.04em;
+    }
+
+    /* Duration display */
+    .duration-display {
+      background: var(--light);
+      border-bottom: 2px solid var(--charcoal);
+      padding: 10px 12px;
+      font-family: var(--font-mono);
+      font-size: 15px;
+      color: var(--charcoal);
+      letter-spacing: 0.04em;
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+    }
+
+    .duration-display.valid { color: var(--green); border-bottom-color: var(--green); }
+    .duration-display.invalid { color: var(--red); border-bottom-color: var(--red); }
+
+    /* Notes row */
+    .notes-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: end;
+    }
+
+    .form-row textarea {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--light);
+      border: none;
+      border-bottom: 2px solid #ccc;
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--black);
+      outline: none;
+      resize: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-row textarea:focus { border-bottom-color: var(--red); }
+
+    .btn-save {
+      background: var(--red);
+      color: var(--white);
+      border: none;
+      padding: 12px 32px;
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-save:hover { background: var(--red-dark); transform: translateY(-1px); }
+    .btn-save:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    /* ── Log card ── */
+    .log-card {
+      background: var(--white);
+      border-top: 4px solid var(--charcoal);
+      padding: 36px;
+    }
+
+    .log-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .log-title {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      color: var(--black);
+    }
+
+    .log-total {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--stone);
+    }
+
+    .log-total strong {
+      color: var(--red);
+      font-size: 13px;
+    }
+
+    .db-status {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--stone);
+      padding: 4px 0 20px;
+    }
+
+    .db-status.ok  { color: var(--green); }
+    .db-status.err { color: var(--red); }
+
+    /* Log table */
+    .log-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .log-table thead tr { background: var(--black); color: var(--white); }
+    .log-table th { padding: 10px 14px; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; text-align: left; }
+    .log-table td { padding: 12px 14px; border-bottom: 1px solid var(--light); vertical-align: middle; color: var(--charcoal); }
+    .log-table tr:hover td { background: var(--light); }
+    .log-table tr:last-child td { border-bottom: none; }
+
+    .gig-code-pill {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      background: var(--light);
+      color: var(--charcoal);
+      padding: 2px 8px;
+      font-weight: 600;
+    }
+
+    .duration-pill {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--green);
+      font-weight: 600;
+    }
+
+    .btn-delete {
+      background: none;
+      border: 1px solid #ccc;
+      color: var(--stone);
+      padding: 3px 10px;
+      font-size: 11px;
+      cursor: pointer;
+      font-family: var(--font-body);
+      transition: all 0.2s;
+    }
+
+    .btn-delete:hover { border-color: var(--red); color: var(--red); }
+
+    .empty-state {
+      text-align: center;
+      padding: 48px 0;
+      color: var(--stone);
+      font-size: 13px;
+    }
+
+    /* Week filter tabs */
+    .week-tabs {
+      display: flex;
+      gap: 2px;
+      margin-bottom: 20px;
+    }
+
+    .week-tab {
+      padding: 6px 14px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      letter-spacing: 0.06em;
+      background: var(--light);
+      color: var(--stone);
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .week-tab:hover { background: #e0ddd5; color: var(--charcoal); }
+    .week-tab.active { background: var(--charcoal); color: var(--white); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-brand">Vidai <span>to</span> Mulai</div>
+  <nav class="header-nav">
+    <a href="index.html">← Home</a>
+    <span class="nav-sep">|</span>
+    <a href="gig_index.html">Gig Index</a>
+    <span class="nav-sep">|</span>
+    <a href="timesheet.html" class="active">Timesheet</a>
+  </nav>
+</header>
+
+<main class="page-wrap">
+
+  <!-- Entry form -->
+  <div class="entry-card">
+    <div class="entry-title">Log Time</div>
+    <div class="entry-subtitle">Record time worked against a gig</div>
+
+    <div class="form-grid">
+      <div class="form-row">
+        <label>Gig *</label>
+        <select id="tsGig"><option value="">— Loading gigs —</option></select>
+      </div>
+      <div class="form-row">
+        <label>Date *</label>
+        <input type="date" id="tsDate">
+      </div>
+      <div class="form-row">
+        <label>Start Time *</label>
+        <input type="time" id="tsStart" oninput="calcDuration()">
+      </div>
+      <div class="form-row">
+        <label>End Time *</label>
+        <input type="time" id="tsEnd" oninput="calcDuration()">
+      </div>
+    </div>
+
+    <div class="form-grid" style="grid-template-columns:2fr 1fr 1fr 1fr;margin-bottom:24px;">
+      <div class="form-row">
+        <label>Notes</label>
+        <textarea id="tsNotes" rows="1" placeholder="What did you work on?"></textarea>
+      </div>
+      <div class="form-row">
+        <label>Duration</label>
+        <div class="duration-display" id="durationDisplay">—</div>
+      </div>
+      <div class="form-row" style="grid-column:span 2;display:flex;align-items:flex-end;gap:12px;">
+        <button class="btn-save" style="flex:1" onclick="saveEntry()">Save Entry →</button>
+        <button class="btn-save" style="background:var(--light);color:var(--charcoal);flex:0 0 auto" onclick="resetForm()">Clear</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Time log -->
+  <div class="log-card">
+    <div class="log-header">
+      <div class="log-title">Time Log</div>
+      <div class="log-total">This week: <strong id="weekTotal">0h 0m</strong></div>
+    </div>
+    <div class="db-status" id="dbStatus">Loading…</div>
+
+    <div class="week-tabs">
+      <button class="week-tab active" onclick="setFilter('week')" data-filter="week">This Week</button>
+      <button class="week-tab" onclick="setFilter('month')" data-filter="month">This Month</button>
+      <button class="week-tab" onclick="setFilter('all')" data-filter="all">All Time</button>
+    </div>
+
+    <table class="log-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Gig</th>
+          <th>Start</th>
+          <th>End</th>
+          <th>Duration</th>
+          <th>Notes</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="logTableBody">
+        <tr><td colspan="7"><div class="empty-state">Loading…</div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</main>
+
+<script type="module" src="timesheet.js"></script>
+</body>
+</html>

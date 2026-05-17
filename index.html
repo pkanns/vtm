@@ -19,6 +19,7 @@
     .cover-status.ok  { color: var(--green); }
     .cover-status.err { color: var(--red); }
 
+    /* ── Stats ── */
     .stats-strip { display: grid; grid-template-columns: repeat(4,1fr); background: var(--charcoal); border-bottom: 3px solid var(--black); }
     .stat-cell { padding: 24px 28px; border-right: 1px solid rgba(255,255,255,0.06); text-align: center; }
     .stat-cell:last-child { border-right: none; }
@@ -39,18 +40,16 @@
     .flow-step:hover::after { background: var(--red); }
     .flow-arrow { color: #ccc; font-size: 12px; padding: 0 2px; flex-shrink: 0; align-self: center; font-family: var(--font-mono); }
 
-    .section-head { margin: 48px 0 20px; display: flex; align-items: baseline; gap: 14px; }
-    .section-head-title { font-family: var(--font-display); font-size: 1.25rem; color: var(--black); }
-    .section-head-rule { flex: 1; height: 1px; background: #ccc; }
-
-    .tools-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap: 2px; }
-    .tool-card { background: var(--white); padding: 28px 28px 24px; text-decoration: none; color: inherit; display: flex; flex-direction: column; border-top: 3px solid var(--charcoal); transition: border-top-color 0.2s, transform 0.15s, box-shadow 0.15s; }
+    /* ── Tool cards ── */
+    .tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 2px; margin-top: 40px; }
+    .tool-card { background: var(--white); padding: 32px 28px 28px; text-decoration: none; color: inherit; display: flex; flex-direction: column; border-top: 3px solid var(--charcoal); transition: border-top-color 0.2s, transform 0.15s, box-shadow 0.15s; }
     .tool-card:hover { border-top-color: var(--red); transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.07); }
-    .tool-card-code { font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--stone); margin-bottom: 10px; }
+    .tool-card.hidden { display: none; }
+    .tool-card-eyebrow { font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--stone); margin-bottom: 10px; }
     .tool-card h3 { font-family: var(--font-display); font-size: 1.2rem; font-weight: 600; color: var(--black); margin-bottom: 8px; }
     .tool-card-desc { font-size: 12px; color: var(--mid); line-height: 1.6; flex: 1; margin-bottom: 20px; }
     .tool-card-footer { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--light); padding-top: 12px; }
-    .tool-card-count { font-size: 11px; font-family: var(--font-mono); color: var(--stone); }
+    .tool-card-meta { font-size: 11px; font-family: var(--font-mono); color: var(--stone); }
     .tool-card-arrow { font-size: 13px; color: var(--stone); font-family: var(--font-mono); transition: color 0.2s, transform 0.2s; }
     .tool-card:hover .tool-card-arrow { color: var(--red); transform: translateX(4px); }
   </style>
@@ -62,7 +61,7 @@
   <div class="header-sub">Dashboard</div>
 </header>
 
-<!-- Flow strip -->
+<!-- Flow strip — primary workflow navigation -->
 <div class="flow-strip">
   <div class="flow-inner">
     <a class="flow-step" href="create_gig.html">
@@ -117,8 +116,8 @@
 
 <!-- Stats -->
 <div class="stats-strip">
-  <div class="stat-cell"><div class="stat-num" id="statPacers">—</div><div class="stat-label">Doers</div></div>
-  <div class="stat-cell"><div class="stat-num" id="statRovers">—</div><div class="stat-label">Leads</div></div>
+  <div class="stat-cell"><div class="stat-num" id="statPacers">—</div><div class="stat-label">Leads</div></div>
+  <div class="stat-cell"><div class="stat-num" id="statRovers">—</div><div class="stat-label">Doers</div></div>
   <div class="stat-cell"><div class="stat-num" id="statGigs">—</div><div class="stat-label">Gigs</div></div>
   <div class="stat-cell"><div class="stat-num" id="statEvals">—</div><div class="stat-label">Evaluations</div></div>
 </div>
@@ -131,54 +130,44 @@
   <div class="cover-status" id="coverStatus">Connecting to database…</div>
 </div>
 
+<!-- Utility cards — role aware, injected by JS -->
 <div class="page-container">
+  <div class="tools-grid" id="toolsGrid">
 
-  <div class="section-head">
-    <div class="section-head-title">Master Data</div>
-    <div class="section-head-rule"></div>
-  </div>
-  <div class="tools-grid">
-    <!-- NEW: Create User card - added as first block in Master Data -->
-    <a href="create_user.html" class="tool-card">
-      <div class="tool-card-code">M · 00</div>
-      <h3>Create User</h3>
-      <div class="tool-card-desc">Unified user registration. Add new platform members (Leads, Doers, Admins). Central identity management for all roles.</div>
-      <div class="tool-card-footer"><span class="tool-card-count">New registration</span><span class="tool-card-arrow">→</span></div>
+    <!-- Timesheet — visible to all roles -->
+    <a href="timesheet.html" class="tool-card" id="cardTimesheet">
+      <div class="tool-card-eyebrow">All Roles</div>
+      <h3>Timesheet</h3>
+      <div class="tool-card-desc">Log time worked against your gigs. Record start and end times, add notes, and review your personal time history.</div>
+      <div class="tool-card-footer">
+        <span class="tool-card-meta" id="tsWeekTotal">This week: —</span>
+        <span class="tool-card-arrow">→</span>
+      </div>
     </a>
-    <a href="create_pacer.html" class="tool-card">
-      <div class="tool-card-code">M · 01</div><h3>Doers</h3>
-      <div class="tool-card-desc">Register and manage coordinators. Doers create gigs, approve work, and rate Lead performance after delivery.</div>
-      <div class="tool-card-footer"><span class="tool-card-count" id="countPacers">— registered</span><span class="tool-card-arrow">→</span></div>
-    </a>
-    <a href="create_rover.html" class="tool-card">
-      <div class="tool-card-code">M · 02</div><h3>Leads</h3>
-      <div class="tool-card-desc">Register and manage field agents. Leads are matched to gigs, submit cost estimates, and self-rate during evaluation.</div>
-      <div class="tool-card-footer"><span class="tool-card-count" id="countRovers">— registered</span><span class="tool-card-arrow">→</span></div>
-    </a>
-  </div>
 
-  <div class="section-head" style="margin-top:40px;">
-    <div class="section-head-title">Gig Workflow</div>
-    <div class="section-head-rule"></div>
-  </div>
-  <div class="tools-grid">
-    <a href="create_gig.html" class="tool-card">
-      <div class="tool-card-code">W · 01</div><h3>Create Gig</h3>
-      <div class="tool-card-desc">Define a new work package. Set scope, budget, and classification. Assign a Lead and Doer. Status opens at Placed.</div>
-      <div class="tool-card-footer"><span class="tool-card-count" id="countGigs">— active</span><span class="tool-card-arrow">→</span></div>
+    <!-- Users — Admin only -->
+    <a href="create_user.html" class="tool-card hidden" id="cardUsers">
+      <div class="tool-card-eyebrow">Admin</div>
+      <h3>Users</h3>
+      <div class="tool-card-desc">Invite and manage platform users. Create Leads, Doers and Admins. Send email invites or set up OAuth access.</div>
+      <div class="tool-card-footer">
+        <span class="tool-card-meta" id="countUsers">— registered</span>
+        <span class="tool-card-arrow">→</span>
+      </div>
     </a>
-    <a href="gig_index.html" class="tool-card">
-      <div class="tool-card-code">W · 02</div><h3>Gig Index</h3>
-      <div class="tool-card-desc">View all gigs across every status. Track pipeline, edit gigs, and move them through the workflow.</div>
-      <div class="tool-card-footer"><span class="tool-card-count" id="countGigsIndex">— total</span><span class="tool-card-arrow">→</span></div>
-    </a>
-    <a href="gig_eval.html" class="tool-card">
-      <div class="tool-card-code">W · 03</div><h3>Evaluate Gig</h3>
-      <div class="tool-card-desc">Rate engagement (D2) and effectiveness (D3). Both Lead and Doer score. System calculates reward percentage and amount.</div>
-      <div class="tool-card-footer"><span class="tool-card-count" id="countEvals">— completed</span><span class="tool-card-arrow">→</span></div>
-    </a>
-  </div>
 
+    <!-- Gig Index shortcut — visible to all -->
+    <a href="gig_index.html" class="tool-card" id="cardGigIndex">
+      <div class="tool-card-eyebrow">All Roles</div>
+      <h3>Gig Index</h3>
+      <div class="tool-card-desc">View all your gigs across every status. Filter by pipeline stage, edit details, and track progress.</div>
+      <div class="tool-card-footer">
+        <span class="tool-card-meta" id="countGigsIndex">— gigs</span>
+        <span class="tool-card-arrow">→</span>
+      </div>
+    </a>
+
+  </div>
 </div>
 
 <script type="module" src="index.js"></script>

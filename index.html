@@ -6,50 +6,29 @@
   <title>Vidai to Mulai — Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/vtm.css">
-  <script src="assets/vtm.js"></script>
   <style>
     .page-container { max-width: 1100px; margin: 0 auto; padding: 48px 24px 80px; }
 
+    /* ── Cover ── */
     .cover { background: var(--black); padding: 56px 48px 48px; border-bottom: 4px solid var(--red); }
     .cover-eyebrow { font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--stone); font-family: var(--font-mono); margin-bottom: 14px; }
     .cover h1 { font-family: var(--font-display); font-size: 3rem; font-weight: 600; color: var(--white); line-height: 1.1; margin-bottom: 10px; }
     .cover h1 span { color: var(--red); }
     .cover-sub { font-size: 13px; color: rgba(247,246,242,0.45); font-weight: 300; }
-    .cover-status { margin-top: 28px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.07); font-size: 11px; font-family: var(--font-mono); letter-spacing: 0.06em; color: var(--stone); }
-    .cover-status.ok  { color: var(--green); }
-    .cover-status.err { color: var(--red); }
-
-    /* ── Stats ── */
-    .stats-strip { display: grid; grid-template-columns: repeat(4,1fr); background: var(--charcoal); border-bottom: 3px solid var(--black); }
-    .stat-cell { padding: 24px 28px; border-right: 1px solid rgba(255,255,255,0.06); text-align: center; }
-    .stat-cell:last-child { border-right: none; }
-    .stat-num { font-family: var(--font-display); font-size: 2.4rem; font-weight: 600; color: var(--white); line-height: 1; margin-bottom: 6px; transition: color 0.3s; }
-    .stat-num.loaded { color: var(--red); }
-    .stat-label { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(247,246,242,0.35); font-family: var(--font-mono); }
-
-    /* ── Flow strip ── */
-    .flow-strip { background: var(--white); border-bottom: 2px solid var(--light); overflow-x: auto; }
-    .flow-inner { display: flex; align-items: stretch; max-width: 1100px; margin: 0 auto; padding: 0 48px; }
-    .flow-step { display: flex; align-items: center; flex: 1; min-width: 0; text-decoration: none; color: inherit; position: relative; }
-    .flow-step-body { flex: 1; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; transition: background 0.15s; }
-    .flow-step:hover .flow-step-body { background: var(--light); }
-    .flow-step-num { font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.1em; color: var(--stone); }
-    .flow-step-name { font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--charcoal); white-space: nowrap; }
-    .flow-step-status { font-size: 10px; color: var(--stone); font-weight: 300; }
-    .flow-step::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: transparent; transition: background 0.15s; }
-    .flow-step:hover::after { background: var(--red); }
-    .flow-arrow { color: #ccc; font-size: 12px; padding: 0 2px; flex-shrink: 0; align-self: center; font-family: var(--font-mono); }
+    .cover-user { margin-top: 28px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.07); display: flex; align-items: center; justify-content: space-between; }
+    .cover-welcome { font-size: 12px; font-family: var(--font-mono); letter-spacing: 0.06em; color: var(--stone); }
+    .cover-welcome strong { color: var(--white); }
+    .btn-signout { background: none; border: 1px solid rgba(247,246,242,0.15); color: rgba(247,246,242,0.4); padding: 6px 14px; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; font-family: var(--font-body); transition: all 0.2s; }
+    .btn-signout:hover { border-color: rgba(247,246,242,0.4); color: var(--white); }
 
     /* ── Tool cards ── */
-    .tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 2px; margin-top: 40px; }
+    .tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2px; margin-top: 40px; }
     .tool-card { background: var(--white); padding: 32px 28px 28px; text-decoration: none; color: inherit; display: flex; flex-direction: column; border-top: 3px solid var(--charcoal); transition: border-top-color 0.2s, transform 0.15s, box-shadow 0.15s; }
     .tool-card:hover { border-top-color: var(--red); transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.07); }
-    .tool-card.hidden { display: none; }
     .tool-card-eyebrow { font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--stone); margin-bottom: 10px; }
     .tool-card h3 { font-family: var(--font-display); font-size: 1.2rem; font-weight: 600; color: var(--black); margin-bottom: 8px; }
     .tool-card-desc { font-size: 12px; color: var(--mid); line-height: 1.6; flex: 1; margin-bottom: 20px; }
-    .tool-card-footer { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--light); padding-top: 12px; }
-    .tool-card-meta { font-size: 11px; font-family: var(--font-mono); color: var(--stone); }
+    .tool-card-footer { display: flex; align-items: center; justify-content: flex-end; border-top: 1px solid var(--light); padding-top: 12px; }
     .tool-card-arrow { font-size: 13px; color: var(--stone); font-family: var(--font-mono); transition: color 0.2s, transform 0.2s; }
     .tool-card:hover .tool-card-arrow { color: var(--red); transform: translateX(4px); }
   </style>
@@ -61,115 +40,73 @@
   <div class="header-sub">Dashboard</div>
 </header>
 
-<!-- Flow strip — primary workflow navigation -->
-<div class="flow-strip">
-  <div class="flow-inner">
-    <a class="flow-step" href="create_gig.html">
-      <div class="flow-step-body">
-        <div class="flow-step-num">01</div>
-        <div class="flow-step-name">Create</div>
-        <div class="flow-step-status">Placed</div>
-      </div>
-    </a>
-    <div class="flow-arrow">›</div>
-    <a class="flow-step" href="gig_index.html?status=matched">
-      <div class="flow-step-body">
-        <div class="flow-step-num">02</div>
-        <div class="flow-step-name">Assign</div>
-        <div class="flow-step-status">Matched</div>
-      </div>
-    </a>
-    <div class="flow-arrow">›</div>
-    <a class="flow-step" href="gig_index.html?status=aligned">
-      <div class="flow-step-body">
-        <div class="flow-step-num">03</div>
-        <div class="flow-step-name">Approve</div>
-        <div class="flow-step-status">Aligned</div>
-      </div>
-    </a>
-    <div class="flow-arrow">›</div>
-    <a class="flow-step" href="gig_index.html?status=in_progress">
-      <div class="flow-step-body">
-        <div class="flow-step-num">04</div>
-        <div class="flow-step-name">Deliver</div>
-        <div class="flow-step-status">In Progress</div>
-      </div>
-    </a>
-    <div class="flow-arrow">›</div>
-    <a class="flow-step" href="gig_index.html?status=delivered">
-      <div class="flow-step-body">
-        <div class="flow-step-num">05</div>
-        <div class="flow-step-name">Evaluate</div>
-        <div class="flow-step-status">Delivered</div>
-      </div>
-    </a>
-    <div class="flow-arrow">›</div>
-    <a class="flow-step" href="gig_index.html?status=completed">
-      <div class="flow-step-body">
-        <div class="flow-step-num">06</div>
-        <div class="flow-step-name">Close</div>
-        <div class="flow-step-status">Completed</div>
-      </div>
-    </a>
-  </div>
-</div>
-
-<!-- Stats -->
-<div class="stats-strip">
-  <div class="stat-cell"><div class="stat-num" id="statPacers">—</div><div class="stat-label">Leads</div></div>
-  <div class="stat-cell"><div class="stat-num" id="statRovers">—</div><div class="stat-label">Doers</div></div>
-  <div class="stat-cell"><div class="stat-num" id="statGigs">—</div><div class="stat-label">Gigs</div></div>
-  <div class="stat-cell"><div class="stat-num" id="statEvals">—</div><div class="stat-label">Evaluations</div></div>
-</div>
-
-<!-- Cover -->
 <div class="cover">
   <div class="cover-eyebrow">Gig Evaluation Platform</div>
   <h1>Vidai <span>to</span> Mulai</h1>
   <div class="cover-sub">Lead · Doer · Gig · Evaluate · Reward</div>
-  <div class="cover-status" id="coverStatus">Connecting to database…</div>
+  <div class="cover-user">
+    <div class="cover-welcome">Signed in as <strong id="coverName">…</strong></div>
+    <button class="btn-signout" onclick="signOut()">Sign out</button>
+  </div>
 </div>
 
-<!-- Utility cards — role aware, injected by JS -->
 <div class="page-container">
-  <div class="tools-grid" id="toolsGrid">
+  <div class="tools-grid">
 
-    <!-- Timesheet — visible to all roles -->
-    <a href="timesheet.html" class="tool-card" id="cardTimesheet">
-      <div class="tool-card-eyebrow">All Roles</div>
+    <a href="gig_index.html" class="tool-card">
+      <div class="tool-card-eyebrow">Work</div>
+      <h3>Gigs</h3>
+      <div class="tool-card-desc">View and manage gigs across every stage of the pipeline — from placement through to completion.</div>
+      <div class="tool-card-footer"><span class="tool-card-arrow">→</span></div>
+    </a>
+
+    <a href="gig_eval.html" class="tool-card">
+      <div class="tool-card-eyebrow">Reflect</div>
+      <h3>Evaluations</h3>
+      <div class="tool-card-desc">Rate engagement and effectiveness for completed gigs. Calculate scores and confirm rewards.</div>
+      <div class="tool-card-footer"><span class="tool-card-arrow">→</span></div>
+    </a>
+
+    <a href="timesheet.html" class="tool-card">
+      <div class="tool-card-eyebrow">Track</div>
       <h3>Timesheet</h3>
-      <div class="tool-card-desc">Log time worked against your gigs. Record start and end times, add notes, and review your personal time history.</div>
-      <div class="tool-card-footer">
-        <span class="tool-card-meta" id="tsWeekTotal">This week: —</span>
-        <span class="tool-card-arrow">→</span>
-      </div>
-    </a>
-
-    <!-- Users — Admin only -->
-    <a href="create_user.html" class="tool-card hidden" id="cardUsers">
-      <div class="tool-card-eyebrow">Admin</div>
-      <h3>Users</h3>
-      <div class="tool-card-desc">Invite and manage platform users. Create Leads, Doers and Admins. Send email invites or set up OAuth access.</div>
-      <div class="tool-card-footer">
-        <span class="tool-card-meta" id="countUsers">— registered</span>
-        <span class="tool-card-arrow">→</span>
-      </div>
-    </a>
-
-    <!-- Gig Index shortcut — visible to all -->
-    <a href="gig_index.html" class="tool-card" id="cardGigIndex">
-      <div class="tool-card-eyebrow">All Roles</div>
-      <h3>Gig Index</h3>
-      <div class="tool-card-desc">View all your gigs across every status. Filter by pipeline stage, edit details, and track progress.</div>
-      <div class="tool-card-footer">
-        <span class="tool-card-meta" id="countGigsIndex">— gigs</span>
-        <span class="tool-card-arrow">→</span>
-      </div>
+      <div class="tool-card-desc">Log time worked against your gigs. Record start and end times and review your personal time history.</div>
+      <div class="tool-card-footer"><span class="tool-card-arrow">→</span></div>
     </a>
 
   </div>
 </div>
 
-<script type="module" src="index.js"></script>
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+  const SUPABASE_URL = 'https://dbecwjhsewucqtfgoylv.supabase.co'
+  const SUPABASE_KEY = 'sb_publishable_aw39P_0nn4vB0yjfDqwEvw_mU-Hc1Sp'
+  const db = createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'vtm-auth' }
+  })
+
+  // ── Auth check — redirect to login if no session ──────────────────────
+  const { data: { session } } = await db.auth.getSession()
+
+  if (!session) {
+    window.location.href = 'login.html'
+  } else {
+    // Show user's name from session metadata or email fallback
+    const name = session.user.user_metadata?.full_name
+               || session.user.user_metadata?.name
+               || session.user.email
+               || 'User'
+    document.getElementById('coverName').textContent = name
+  }
+
+  // ── Sign out ───────────────────────────────────────────────────────────
+  window.signOut = async function() {
+    await db.auth.signOut()
+    sessionStorage.clear()
+    window.location.href = 'login.html'
+  }
+</script>
+
 </body>
 </html>

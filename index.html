@@ -9,6 +9,23 @@
   <style>
     .page-container { max-width: 1100px; margin: 0 auto; padding: 48px 24px 80px; }
 
+    /* ── Flow strip ── */
+    .flow-strip { background: var(--white); border-bottom: 2px solid var(--light); overflow-x: auto; }
+    .flow-inner { display: flex; align-items: stretch; max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+    .flow-step { display: flex; align-items: center; flex: 1; min-width: 0; position: relative; }
+    .flow-step-body { flex: 1; padding: 12px 16px; display: flex; flex-direction: column; gap: 2px; }
+    .flow-step-num { font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.1em; color: var(--stone); }
+    .flow-step-name { font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--charcoal); white-space: nowrap; }
+    .flow-step-status { font-size: 10px; color: var(--stone); font-weight: 300; }
+    .flow-arrow { color: #ccc; font-size: 11px; padding: 0 2px; flex-shrink: 0; align-self: center; font-family: var(--font-mono); }
+
+    /* ── Stats strip ── */
+    .stats-strip { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--charcoal); margin-top: 0; }
+    .stat-cell { padding: 24px 28px; text-align: center; border-right: 1px solid rgba(255,255,255,0.06); }
+    .stat-cell:last-child { border-right: none; }
+    .stat-num { font-family: var(--font-display); font-size: 2.4rem; font-weight: 600; color: var(--white); line-height: 1; margin-bottom: 6px; }
+    .stat-label { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(247,246,242,0.35); font-family: var(--font-mono); }
+
     /* ── Cover ── */
     .cover { background: var(--black); padding: 56px 48px 48px; border-bottom: 4px solid var(--red); }
     .cover-eyebrow { font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--stone); font-family: var(--font-mono); margin-bottom: 14px; }
@@ -41,6 +58,31 @@
   <div class="header-sub">Dashboard</div>
 </header>
 
+<!-- Flow Strip -->
+<div class="flow-strip">
+  <div class="flow-inner">
+    <div class="flow-step"><div class="flow-step-body"><div class="flow-step-num">01</div><div class="flow-step-name">Create</div><div class="flow-step-status">Placed</div></div></div>
+    <div class="flow-arrow">›</div>
+    <div class="flow-step"><div class="flow-step-body"><div class="flow-step-num">02</div><div class="flow-step-name">Assign</div><div class="flow-step-status">Matched</div></div></div>
+    <div class="flow-arrow">›</div>
+    <div class="flow-step"><div class="flow-step-body"><div class="flow-step-num">03</div><div class="flow-step-name">Approve</div><div class="flow-step-status">Aligned</div></div></div>
+    <div class="flow-arrow">›</div>
+    <div class="flow-step"><div class="flow-step-body"><div class="flow-step-num">04</div><div class="flow-step-name">Deliver</div><div class="flow-step-status">In Progress</div></div></div>
+    <div class="flow-arrow">›</div>
+    <div class="flow-step"><div class="flow-step-body"><div class="flow-step-num">05</div><div class="flow-step-name">Evaluate</div><div class="flow-step-status">Delivered</div></div></div>
+    <div class="flow-arrow">›</div>
+    <div class="flow-step"><div class="flow-step-body"><div class="flow-step-num">06</div><div class="flow-step-name">Close</div><div class="flow-step-status">Completed</div></div></div>
+  </div>
+</div>
+
+<!-- Stats Strip -->
+<div class="stats-strip">
+  <div class="stat-cell"><div class="stat-num" id="statUsers">—</div><div class="stat-label">USERS</div></div>
+  <div class="stat-cell"><div class="stat-num" id="statGigs">—</div><div class="stat-label">GIGS</div></div>
+  <div class="stat-cell"><div class="stat-num" id="statEvals">—</div><div class="stat-label">EVALUATIONS</div></div>
+  <div class="stat-cell"><div class="stat-num" id="statHours">—</div><div class="stat-label">TIME WORKED</div></div>
+</div>
+
 <div class="cover">
   <div class="cover-eyebrow">Gig Evaluation Platform</div>
   <h1>Vidai <span>to</span> Mulai</h1>
@@ -53,7 +95,6 @@
 
 <div class="page-container">
   <div class="tools-grid">
-
     <a href="gig_index.html" class="tool-card">
       <div class="tool-card-eyebrow">Work</div>
       <h3>Gigs</h3>
@@ -75,14 +116,12 @@
       <div class="tool-card-footer"><span class="tool-card-arrow">→</span></div>
     </a>
 
-    <!-- Create User — Admin only, shown/hidden based on role -->
     <a href="create_user.html" class="tool-card hidden" id="cardCreateUser">
       <div class="tool-card-eyebrow">Admin</div>
       <h3>Users</h3>
       <div class="tool-card-desc">Invite and manage platform users. Create Leads, Doers and Admins. Send email invites or set up OAuth access.</div>
       <div class="tool-card-footer"><span class="tool-card-arrow">→</span></div>
     </a>
-
   </div>
 </div>
 
@@ -95,37 +134,65 @@
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'vtm-auth' }
   })
 
+  // ── Auth check ──────────────────────────────────────────────────────────
   const { data: { session } } = await db.auth.getSession()
 
   if (!session) {
     window.location.href = 'login.html'
   }
 
-  const { data: vtmUser } = await db
+  // ── Get user profile from vtm_users ─────────────────────────────────────
+  const { data: vtmUser, error: vtmError } = await db
     .from('vtm_users')
     .select('user_id, name, role')
     .eq('auth_user_id', session.user.id)
     .maybeSingle()
 
-  if (!vtmUser) {
+  if (vtmError || !vtmUser) {
+    console.error('No vtm_user profile:', vtmError)
     await db.auth.signOut()
-    sessionStorage.clear()
     window.location.href = 'login.html'
   } else {
-    sessionStorage.setItem('vtm_role', vtmUser.role)
-    sessionStorage.setItem('vtm_name', vtmUser.name)
+    // Store in sessionStorage for other pages
+    sessionStorage.setItem('vtm_role',    vtmUser.role)
+    sessionStorage.setItem('vtm_name',    vtmUser.name)
     sessionStorage.setItem('vtm_user_id', vtmUser.user_id)
-    sessionStorage.setItem('vtm_email', session.user.email || '')
+    sessionStorage.setItem('vtm_email',   session.user.email || '')
 
     const displayName = vtmUser.name || session.user.user_metadata?.full_name || session.user.email || 'User'
     document.getElementById('coverName').textContent = displayName
 
+    // Show Create User card only for admins
     if (vtmUser.role === 'admin') {
       const card = document.getElementById('cardCreateUser')
       if (card) card.classList.remove('hidden')
     }
   }
 
+  // ── Load stats ──────────────────────────────────────────────────────────
+  async function loadStats() {
+    // Users count
+    const { count: userCount } = await db.from('vtm_users').select('*', { count: 'exact', head: true })
+    document.getElementById('statUsers').textContent = userCount || 0
+
+    // Gigs count
+    const { count: gigCount } = await db.from('gigs').select('*', { count: 'exact', head: true })
+    document.getElementById('statGigs').textContent = gigCount || 0
+
+    // Evaluations count
+    const { count: evalCount } = await db.from('evaluations').select('*', { count: 'exact', head: true })
+    document.getElementById('statEvals').textContent = evalCount || 0
+
+    // Total hours from time_entries
+    const { data: hoursData } = await db.from('time_entries').select('hours')
+    const totalHours = (hoursData || []).reduce((sum, entry) => sum + (entry.hours || 0), 0)
+    const hoursDisplay = totalHours >= 1 ? `${totalHours}h` : `${Math.round(totalHours * 60)}m`
+    document.getElementById('statHours').textContent = hoursDisplay
+  }
+
+  loadStats()
+
+  // ── Sign out ───────────────────────────────────────────────────────────
   window.signOut = async function() {
     await db.auth.signOut()
     sessionStorage.clear()

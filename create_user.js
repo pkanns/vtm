@@ -1,9 +1,9 @@
 /**
  * create_user.js — Vidai to Mulai · Create User
- * Admin only — guarded by vtmAuthGuard + vtmGuardPage
- * Email invite: calls Supabase Edge Function (invite-user)
- * Google/Microsoft: creates vtm_users row only, links on first OAuth login
- * DB calls via vtm_api.js · Connection via vtm_db.js
+ * Admin only — uses Edge Function for ALL user creation
+ * Email invite: sends invite email with password setup link
+ * Google/Microsoft: creates auth user + vtm_users record in one call
+ * No direct database inserts from frontend
  */
 
 import { db } from './assets/vtm_db.js'
@@ -18,13 +18,14 @@ const { data: { session } } = await db.auth.getSession()
 if (!session) {
   sessionStorage.clear()
   window.location.href = 'login.html'
+  throw new Error('No session')
 }
 
 // Repopulate sessionStorage if needed
 if (!sessionStorage.getItem('vtm_role')) {
   const { data: vtmUser } = await db
     .from('vtm_users')
-    .select('role, name, ref_id, user_id')
+    .select('role, name, user_id')
     .eq('auth_user_id', session.user.id)
     .single()
 
@@ -32,14 +33,16 @@ if (!sessionStorage.getItem('vtm_role')) {
     sessionStorage.setItem('vtm_role',    vtmUser.role)
     sessionStorage.setItem('vtm_name',    vtmUser.name)
     sessionStorage.setItem('vtm_user_id', vtmUser.user_id)
-    sessionStorage.setItem('vtm_ref_id',  vtmUser.ref_id || '')
     sessionStorage.setItem('vtm_email',   session.user.email)
-    vtmAuthGuard()
   }
 }
 
 // Guard — admin only
-vtmGuardPage(['admin'])
+const role = sessionStorage.getItem('vtm_role')
+if (role !== 'admin') {
+  window.location.href = 'index.html'
+  throw new Error('Admin only')
+}
 
 // ── AUTH METHOD SELECTION ─────────────────────────────────────────────────
 
@@ -63,12 +66,12 @@ window.setAuthMethod = function(method) {
   }
 }
 
-// ── LOAD USERS TABLE ──────────────────────────────────────────────────────
+// ── LOAD USERS TABLE (no email column) ────────────────────────────────────
 
 async function loadUsers() {
   const { data, error } = await db
     .from('vtm_users')
-    .select('user_id, name, email, role, auth_user_id')
+    .select('user_id, name, role, auth_user_id')
     .order('role')
 
   const statusEl = document.getElementById('dbStatus')
@@ -77,6 +80,7 @@ async function loadUsers() {
   if (error) {
     statusEl.textContent = 'Could not load users'
     statusEl.className   = 'db-status err'
+    console.error('Load users error:', error)
     return
   }
 
@@ -94,8 +98,7 @@ async function loadUsers() {
     <tr>
       <td>
         <div style="font-weight:500;color:var(--black)">${esc(u.name)}</div>
-        <div style="font-size:11px;color:var(--stone);font-family:var(--font-mono)">${esc(u.email)}</div>
-      </td>
+       </td>
       <td><span class="role-pill ${u.role}">${roleLabel[u.role] || u.role}</span></td>
       <td>
         <span class="linked-dot ${u.auth_user_id ? 'yes' : 'no'}" title="${u.auth_user_id ? 'Auth linked' : 'Not yet linked'}"></span>
@@ -105,7 +108,7 @@ async function loadUsers() {
   `).join('')
 }
 
-// ── CREATE USER ───────────────────────────────────────────────────────────
+// ── CREATE USER — ONE EDGE FUNCTION FOR ALL METHODS ───────────────────────
 
 window.createUser = async function() {
   const name   = document.getElementById('userName').value.trim()
@@ -123,16 +126,6 @@ window.createUser = async function() {
   btn.disabled  = true
   btn.innerHTML = '<span class="spinner"></span>Creating…'
 
-  if (selectedMethod === 'email') {
-    await createEmailUser(name, email, role, btn)
-  } else {
-    await createOAuthUser(name, email, role, selectedMethod, btn)
-  }
-}
-
-// ── EMAIL INVITE PATH ─────────────────────────────────────────────────────
-
-async function createEmailUser(name, email, role, btn) {
   try {
     const res = await fetch(EDGE_FUNCTION_URL, {
       method: 'POST',
@@ -140,7 +133,12 @@ async function createEmailUser(name, email, role, btn) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
       },
-      body: JSON.stringify({ name, email, role })
+      body: JSON.stringify({
+        name,
+        email,
+        role,
+        auth_method: selectedMethod  // 'email', 'google', or 'microsoft'
+      })
     })
 
     const data = await res.json()
@@ -148,86 +146,32 @@ async function createEmailUser(name, email, role, btn) {
     if (!res.ok || data.error) {
       showResult('err', data.error || 'Failed to create user')
       btn.disabled  = false
-      btn.textContent = 'Create User & Send Invite →'
+      btn.textContent = selectedMethod === 'email' ? 'Create User & Send Invite →' : 'Create User →'
       return
     }
 
-    // Show invite link if returned (localhost)
-    if (data.invite_link) {
-      showResult('ok', `Invite created for ${email}. Copy the link below and open it in a browser to activate the account.`, data.invite_link)
+    // Success message based on method
+    if (selectedMethod === 'email') {
+      if (data.invite_link) {
+        showResult('ok', `Invite created for ${email}. Copy the link below to activate the account.`, data.invite_link)
+      } else {
+        showResult('ok', `Invite email sent to ${email}. They will receive a link to set their password.`)
+      }
     } else {
-      showResult('ok', `Invite email sent to ${email}. They will receive a link to set their password.`)
+      const providerName = selectedMethod === 'google' ? 'Google' : 'Microsoft'
+      showResult('ok', `${name} added as ${role}. They can sign in using ${providerName} with ${email} — their account will be linked automatically on first login.`)
     }
 
     btn.disabled    = false
-    btn.textContent = 'Create User & Send Invite →'
+    btn.textContent = selectedMethod === 'email' ? 'Create User & Send Invite →' : 'Create User →'
     resetForm()
     loadUsers()
 
   } catch (err) {
     showResult('err', 'Network error — ' + err.message)
     btn.disabled    = false
-    btn.textContent = 'Create User & Send Invite →'
+    btn.textContent = selectedMethod === 'email' ? 'Create User & Send Invite →' : 'Create User →'
   }
-}
-
-// ── OAUTH PATH (Google / Microsoft) ──────────────────────────────────────
-
-async function createOAuthUser(name, email, role, method, btn) {
-  // For OAuth users we create the vtm_users row only
-  // auth_user_id will be linked automatically on first login
-  const { error } = await db
-    .from('vtm_users')
-    .insert({ name, email, role, auth_user_id: null })
-
-  if (error) {
-    const msg = error.message.includes('unique')
-      ? 'A user with this email already exists'
-      : 'Failed to create user — ' + error.message
-    showResult('err', msg)
-    btn.disabled    = false
-    btn.textContent = 'Create User →'
-    return
-  }
-
-  // Also create the pacer or rover record
-  if (role === 'pacer') {
-    const { data: pacer } = await db
-      .from('pacers')
-      .insert({ name, email, active: true })
-      .select()
-      .single()
-
-    if (pacer) {
-      await db
-        .from('vtm_users')
-        .update({ ref_id: pacer.pacer_id })
-        .eq('email', email)
-    }
-  }
-
-  if (role === 'rover') {
-    const { data: rover } = await db
-      .from('rovers')
-      .insert({ name, email, skill_level: 'unskilled', active: true })
-      .select()
-      .single()
-
-    if (rover) {
-      await db
-        .from('vtm_users')
-        .update({ ref_id: rover.rover_id })
-        .eq('email', email)
-    }
-  }
-
-  const providerName = method === 'google' ? 'Google' : 'Microsoft'
-  showResult('ok', `${name} added. They can sign in using ${providerName} with ${email} — their account will be linked automatically on first login.`)
-
-  btn.disabled    = false
-  btn.textContent = 'Create User →'
-  resetForm()
-  loadUsers()
 }
 
 // ── INVITE LINK COPY ──────────────────────────────────────────────────────
@@ -235,7 +179,11 @@ async function createOAuthUser(name, email, role, method, btn) {
 window.copyInviteLink = function() {
   const link = document.getElementById('inviteLinkBox').textContent
   navigator.clipboard.writeText(link).then(() => {
-    showToast('Invite link copied', 'ok')
+    if (typeof showToast === 'function') {
+      showToast('Invite link copied', 'ok')
+    } else {
+      alert('Invite link copied')
+    }
   })
 }
 
@@ -261,7 +209,8 @@ function showResult(type, msg, link) {
 }
 
 function hideResult() {
-  document.getElementById('resultBar').className = 'result-bar'
+  const bar = document.getElementById('resultBar')
+  if (bar) bar.className = 'result-bar'
 }
 
 function resetForm() {

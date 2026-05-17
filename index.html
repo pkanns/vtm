@@ -169,11 +169,39 @@
     }
   }
 
-  // ── Load stats ──────────────────────────────────────────────────────────
-  async function loadStats() {
-    // Users count
-    const { count: userCount } = await db.from('vtm_users').select('*', { count: 'exact', head: true })
-    document.getElementById('statUsers').textContent = userCount || 0
+// ── Load stats ──────────────────────────────────────────────────────────
+async function loadStats() {
+  // Users count
+  const { count: userCount } = await db.from('vtm_users').select('*', { count: 'exact', head: true })
+  document.getElementById('statUsers').textContent = userCount || 0
+
+  // Gigs count
+  const { count: gigCount } = await db.from('gigs').select('*', { count: 'exact', head: true })
+  document.getElementById('statGigs').textContent = gigCount || 0
+
+  // Evaluations count
+  const { count: evalCount } = await db.from('evaluations').select('*', { count: 'exact', head: true })
+  document.getElementById('statEvals').textContent = evalCount || 0
+
+  // Total duration from time_entries (duration_mins in minutes)
+  const { data: durationData } = await db.from('time_entries').select('duration_mins')
+  const totalMinutes = (durationData || []).reduce((sum, entry) => sum + (entry.duration_mins || 0), 0)
+  
+  // Format as X D Y H Z M
+  const days = Math.floor(totalMinutes / (24 * 60))
+  const remainingAfterDays = totalMinutes % (24 * 60)
+  const hours = Math.floor(remainingAfterDays / 60)
+  const minutes = remainingAfterDays % 60
+  
+  let durationDisplay = ''
+  if (days > 0) durationDisplay += `${days} D `
+  if (hours > 0) durationDisplay += `${hours} H `
+  if (minutes > 0 || durationDisplay === '') durationDisplay += `${minutes} M`
+  
+  document.getElementById('statHours').textContent = durationDisplay.trim() || '0 M'
+}
+
+loadStats()
 
     // Gigs count
     const { count: gigCount } = await db.from('gigs').select('*', { count: 'exact', head: true })

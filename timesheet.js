@@ -1,7 +1,7 @@
 /**
  * timesheet.js — Vidai to Mulai · Timesheet
  * Personal time log — each user sees only their own entries.
- * DB calls via vtm_db.js · Auth via vtm.js
+ * Uses user_id from vtm_users (not ref_id)
  */
 
 import { db } from './assets/vtm_db.js'
@@ -15,10 +15,11 @@ if (!session) {
   window.location.href = 'login.html'
 }
 
+// Get or restore session
 if (!sessionStorage.getItem('vtm_role')) {
   const { data: vtmUser } = await db
     .from('vtm_users')
-    .select('role, name, ref_id, user_id')
+    .select('role, name, user_id')
     .eq('auth_user_id', session.user.id)
     .single()
 
@@ -26,22 +27,19 @@ if (!sessionStorage.getItem('vtm_role')) {
     sessionStorage.setItem('vtm_role',    vtmUser.role)
     sessionStorage.setItem('vtm_name',    vtmUser.name)
     sessionStorage.setItem('vtm_user_id', vtmUser.user_id)
-    sessionStorage.setItem('vtm_ref_id',  vtmUser.ref_id || '')
     sessionStorage.setItem('vtm_email',   session.user.email)
-    vtmAuthGuard()
   }
 }
 
 const vtmSession = vtmGetSession()
 const userId     = vtmSession?.user_id || null
 const role       = vtmSession?.role    || null
-const refId      = vtmSession?.ref_id  || null
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 
 let currentFilter = 'week'
 let allEntries    = []
-let gigMap        = {}  // gig_id → { gig_code, title }
+let gigMap        = {}
 
 // ── INIT: set today's date ────────────────────────────────────────────────
 
@@ -52,11 +50,11 @@ document.getElementById('tsDate').value = new Date().toISOString().split('T')[0]
 async function loadGigs() {
   let query = db.from('gigs').select('gig_id, gig_code, title, status')
 
-  // Filter by role — show only relevant gigs
-  if (role === 'pacer' && refId) {
-    query = query.eq('pacer_id', refId)
-  } else if (role === 'rover' && refId) {
-    query = query.eq('rover_id', refId)
+  // Filter by role using user_id (not ref_id)
+  if (role === 'pacer' && userId) {
+    query = query.eq('pacer_id', userId)
+  } else if (role === 'rover' && userId) {
+    query = query.eq('rover_id', userId)
   }
 
   // Only active gigs — no completed

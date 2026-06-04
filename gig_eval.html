@@ -16,7 +16,7 @@
   <nav style="display:flex;align-items:center;gap:24px;">
     <a href="index.html" style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(247,246,242,0.45);text-decoration:none;">← Home</a>
     <span style="color:rgba(247,246,242,0.2);font-size:11px;">|</span>
-    <a href="gig_index.html" style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(247,246,242,0.45);text-decoration:none;">Gig Index</a>
+    <a href="project_index.html" style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(247,246,242,0.45);text-decoration:none;">Projects</a>
     <span style="color:rgba(247,246,242,0.2);font-size:11px;">|</span>
     <span style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--white);">Evaluate</span>
   </nav>
@@ -31,7 +31,7 @@
     <div id="pickerEmpty" style="display:none;font-size:13px;color:var(--stone);padding:12px 0;">
       No gigs ready for evaluation. Set a gig status to
       <span style="font-family:var(--font-mono);color:rgba(247,246,242,0.5)">in_progress</span> or
-      <span style="font-family:var(--font-mono);color:rgba(247,246,242,0.5)">delivered</span> in Create Gig first.
+      <span style="font-family:var(--font-mono);color:rgba(247,246,242,0.5)">delivered</span> first.
     </div>
   </div>
 
@@ -74,8 +74,8 @@
       <div class="toggle-group">
         <div class="toggle-group-label">Cadence</div>
         <div class="toggle-pair">
-          <input type="radio" name="tog-cadence" id="tog-oneoff" value="oneoff" onchange="calcScores()" checked /><label for="tog-oneoff">One-off</label>
-          <input type="radio" name="tog-cadence" id="tog-recurring" value="recurring" onchange="calcScores()" /><label for="tog-recurring">Recurring</label>
+          <input type="radio" name="tog-cadence" id="tog-oneoff" value="oneoff" checked /><label for="tog-oneoff">One-off</label>
+          <input type="radio" name="tog-cadence" id="tog-recurring" value="recurring" /><label for="tog-recurring">Recurring</label>
         </div>
       </div>
       <div class="toggle-group">
@@ -88,8 +88,8 @@
       <div class="toggle-group">
         <div class="toggle-group-label">Skill Level</div>
         <div class="toggle-pair">
-          <input type="radio" name="tog-skill" id="tog-unskilled" value="unskilled" onchange="calcScores()" checked /><label for="tog-unskilled">Unskilled</label>
-          <input type="radio" name="tog-skill" id="tog-skilled" value="skilled" onchange="calcScores()" /><label for="tog-skilled">Skilled</label>
+          <input type="radio" name="tog-skill" id="tog-unskilled" value="unskilled" checked /><label for="tog-unskilled">Unskilled</label>
+          <input type="radio" name="tog-skill" id="tog-skilled" value="skilled" /><label for="tog-skilled">Skilled</label>
         </div>
       </div>
     </div>
@@ -185,11 +185,12 @@
     </tbody>
   </table>
 
-  <!-- FINAL SCORE -->
+  <!-- FINAL SCORE — Lead weighted average only, no rewards -->
   <div class="final-block">
-    <div class="final-item"><div class="final-label">Rover Final Score</div><div class="final-value red final-stars" id="finalStarsDisplay">— ★</div></div>
-    <div class="final-item"><div class="final-label">Gig Reward %</div><div class="final-value" id="finalPct">—%</div></div>
-    <div class="final-item"><div class="final-label">Gig Reward (₹)</div><div class="final-value red" id="finalRs">₹ —</div></div>
+    <div class="final-item" style="grid-column:1/-1;text-align:center;">
+      <div class="final-label">Final Score — Lead Rating</div>
+      <div class="final-value red final-stars" id="finalStarsDisplay">— ★</div>
+    </div>
   </div>
 
   <!-- REFLECTION DATE -->
@@ -208,17 +209,13 @@
   <!-- SUBMIT -->
   <div class="submit-block">
     <p class="submit-note" id="submitNote">Evaluation saved to database. Gig marked completed.</p>
-    <!-- Doer (rover): self-rating only, does not complete gig -->
     <button class="btn-submit" id="submitRoverBtn" style="display:none;background:var(--green);" onclick="submitRoverEval()">Save Self-Rating &rarr;</button>
-    <!-- Lead (pacer): rates Doer, completes gig -->
     <button class="btn-submit" id="submitPacerBtn" style="display:none;" onclick="submitPacerEval()">Save Evaluation &rarr;</button>
-    <!-- Admin: everything in one shot -->
     <button class="btn-submit" id="submitBtn" onclick="submitEval()">Save Evaluation &rarr;</button>
   </div>
 
 </main>
 
-<!-- XLSX download — non-module, uses global XLSX from SheetJS -->
 <script>
   function updateTitle() {
     const code = document.getElementById('gigCode').value || 'Gig'
@@ -226,9 +223,9 @@
   }
 
   function downloadEvalXLSX() {
-    const code  = document.getElementById('gigCode').value || 'G00'
-    const _t    = id => document.getElementById(id)?.textContent || ''
-    const rows  = [
+    const code = document.getElementById('gigCode').value || 'G00'
+    const _t   = id => document.getElementById(id)?.textContent || ''
+    const rows = [
       ['Gig Code', code],
       ['Gig Name', document.getElementById('gigName').value || ''],
       ['Date',     document.getElementById('gigDate').value || ''],
@@ -244,9 +241,7 @@
       ['D3','Timeline', getVal('d3p3rover'), getVal('d3p3pacer'), _t('d3p3score')],
       ['D3 Score','','', _t('d3rover-avg'), _t('d3pacer-avg'), _t('d3final')],
       [],
-      ['Final Score', _t('finalStarsDisplay')],
-      ['Reward %',    _t('finalPct')],
-      ['Reward (₹)',  _t('finalRs')],
+      ['Final Score (Lead)', _t('finalStarsDisplay')],
       [],
       ['Notes', document.getElementById('notes')?.value || ''],
     ]
@@ -257,6 +252,6 @@
   }
 </script>
 
-<script type="module" src="gig_eval.js"></script>
+<script type="module" src="assets/gig_eval.js"></script>
 </body>
 </html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Projects — Vidai to Mulai</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/vtm.css">
+  <script src="assets/vtm.js"></script>
+  <style>
+    .header-nav { display: flex; align-items: center; gap: 24px; }
+    .header-nav a { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(247,246,242,0.45); text-decoration: none; transition: color 0.2s; }
+    .header-nav a:hover { color: var(--white); }
+    .header-nav a.active { color: var(--white); }
+    .header-nav .nav-sep { color: rgba(247,246,242,0.2); font-size: 11px; }
+
+    .page-container { max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    .page-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 28px; }
+    .page-title { font-family: var(--font-display); font-size: 2rem; color: var(--black); }
+    .page-subtitle { font-size: 11px; color: var(--stone); font-family: var(--font-mono); margin-top: 4px; letter-spacing: 0.04em; }
+
+    .btn-primary { background: var(--red); color: white; border: none; padding: 10px 22px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; font-family: var(--font-body); transition: background 0.2s; text-decoration: none; display: inline-block; }
+    .btn-primary:hover { background: var(--red-dark); }
+    .btn-secondary { background: transparent; color: var(--stone); border: 1px solid #ccc; padding: 7px 16px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; font-family: var(--font-body); transition: all 0.2s; text-decoration: none; display: inline-block; }
+    .btn-secondary:hover { border-color: var(--charcoal); color: var(--black); }
+    .btn-sm { padding: 4px 12px; font-size: 10px; }
+
+    /* Stats strip */
+    .stats-strip { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--charcoal); margin-bottom: 32px; }
+    .stat-cell { padding: 18px 24px; text-align: center; border-right: 1px solid rgba(255,255,255,0.06); }
+    .stat-cell:last-child { border-right: none; }
+    .stat-num { font-family: var(--font-display); font-size: 1.8rem; font-weight: 600; color: var(--white); line-height: 1; margin-bottom: 4px; }
+    .stat-label { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(247,246,242,0.35); font-family: var(--font-mono); }
+
+    .db-status { font-size: 11px; font-family: var(--font-mono); color: var(--stone); margin-bottom: 20px; }
+    .db-status.ok  { color: var(--green); }
+    .db-status.err { color: var(--red); }
+
+    /* Project card */
+    .project-card { background: var(--white); margin-bottom: 12px; border-top: 4px solid var(--charcoal); transition: border-top-color 0.2s; }
+    .project-card.expanded { border-top-color: var(--red); }
+
+    .project-row { display: grid; grid-template-columns: 120px 1fr auto; align-items: center; gap: 24px; padding: 20px 28px; cursor: pointer; transition: background 0.15s; user-select: none; }
+    .project-row:hover { background: var(--light); }
+
+    .project-code { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--red); letter-spacing: 0.08em; }
+    .project-name { font-family: var(--font-display); font-size: 1.15rem; color: var(--black); }
+    .project-desc { font-size: 12px; color: var(--stone); margin-top: 2px; }
+    .project-meta { display: flex; align-items: center; gap: 12px; }
+    .project-gig-count { font-size: 11px; font-family: var(--font-mono); color: var(--stone); background: var(--light); padding: 3px 10px; }
+    .expand-arrow { font-size: 13px; color: var(--stone); font-family: var(--font-mono); transition: transform 0.2s; flex-shrink: 0; }
+    .project-card.expanded .expand-arrow { transform: rotate(90deg); }
+
+    .cat-list { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+    .cat-pill { font-size: 9px; font-family: var(--font-mono); color: var(--stone); background: var(--light); padding: 2px 8px; letter-spacing: 0.06em; }
+
+    /* Gig panel */
+    .gig-panel { display: none; border-top: 1px solid var(--light); }
+    .project-card.expanded .gig-panel { display: block; }
+
+    .gig-panel-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 28px; background: rgba(238,236,230,0.4); border-bottom: 1px solid var(--light); }
+    .gig-panel-label { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--stone); font-family: var(--font-mono); }
+
+    .gig-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .gig-table th { padding: 10px 14px; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; text-align: left; background: var(--black); color: var(--white); }
+    .gig-table td { padding: 11px 14px; border-bottom: 1px solid var(--light); vertical-align: middle; color: var(--charcoal); }
+    .gig-table tr:last-child td { border-bottom: none; }
+    .gig-table tr:hover td { background: rgba(238,236,230,0.5); }
+
+    .gig-code-cell { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--black); }
+
+    .gig-type-badge { display: inline-block; font-size: 9px; letter-spacing: 0.1em; font-family: var(--font-mono); padding: 2px 7px; font-weight: 600; }
+    .gig-type-badge.O        { background: #e8eef5; color: #2a5a8a; }
+    .gig-type-badge.R        { background: #fceee8; color: var(--red); }
+    .gig-type-badge.instance { background: rgba(192,57,43,0.08); color: var(--red); border: 1px dashed rgba(192,57,43,0.3); }
+
+    .status-pill { display: inline-block; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; font-weight: 600; }
+    .status-pill.placed      { background: #e8eef5; color: #2a5a8a; }
+    .status-pill.matched     { background: #f5eef8; color: #7b3fa0; }
+    .status-pill.aligned     { background: #fdf5e0; color: #8a6200; }
+    .status-pill.in_progress { background: #fceee8; color: var(--red); }
+    .status-pill.delivered   { background: #e8f5ee; color: var(--green); }
+    .status-pill.completed   { background: var(--light); color: var(--stone); }
+
+    .cat-tag { display: inline-block; font-size: 10px; font-family: var(--font-mono); color: var(--stone); background: var(--light); padding: 1px 7px; }
+
+    .tbl-btn { background: none; border: 1px solid #ccc; color: var(--mid); padding: 3px 10px; font-size: 10px; cursor: pointer; font-family: var(--font-body); letter-spacing: 0.06em; margin-right: 4px; transition: all 0.2s; }
+    .tbl-btn:hover { border-color: var(--charcoal); color: var(--black); }
+    .tbl-btn.danger:hover { border-color: var(--red); color: var(--red); }
+
+    .empty-gigs { padding: 28px; text-align: center; color: var(--stone); font-size: 12px; }
+    .empty-gigs a { color: var(--red); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-brand">Vidai <span>to</span> Mulai</div>
+  <nav class="header-nav">
+    <a href="index.html">← Home</a>
+    <span class="nav-sep">|</span>
+    <a href="project_index.html" class="active">Projects</a>
+    <span class="nav-sep">|</span>
+    <a href="create_project.html">+ New Project</a>
+    <span class="nav-sep">|</span>
+    <a href="gig_eval.html">Evaluate</a>
+  </nav>
+</header>
+
+<div class="page-container">
+
+  <div class="stats-strip">
+    <div class="stat-cell"><div class="stat-num" id="statProjects">—</div><div class="stat-label">Projects</div></div>
+    <div class="stat-cell"><div class="stat-num" id="statGigs">—</div><div class="stat-label">Active Gigs</div></div>
+    <div class="stat-cell"><div class="stat-num" id="statRecurring">—</div><div class="stat-label">Recurring</div></div>
+    <div class="stat-cell"><div class="stat-num" id="statCompleted">—</div><div class="stat-label">Completed</div></div>
+  </div>
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">Projects</div>
+      <div class="db-status" id="dbStatus">Connecting…</div>
+    </div>
+    <a href="create_project.html" class="btn-primary" id="newProjectBtn">+ New Project</a>
+  </div>
+
+  <div id="projectsContainer">
+    <div style="background:var(--white);padding:48px;text-align:center;color:var(--stone);font-size:13px;">
+      Loading…
+    </div>
+  </div>
+
+</div>
+
+<script type="module" src="assets/project_index.js"></script>
+</body>
+</html>

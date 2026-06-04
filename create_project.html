@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Project — Vidai to Mulai</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/vtm.css">
+  <script src="assets/vtm.js"></script>
+  <style>
+    .header-nav { display: flex; align-items: center; gap: 24px; }
+    .header-nav a { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(247,246,242,0.45); text-decoration: none; transition: color 0.2s; }
+    .header-nav a:hover { color: var(--white); }
+    .header-nav a.active { color: var(--white); }
+    .header-nav .nav-sep { color: rgba(247,246,242,0.2); font-size: 11px; }
+
+    .form-container { max-width: 760px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    .form-card { background: var(--white); padding: 36px; margin-bottom: 0; border-top: 4px solid var(--red); }
+    .form-title { font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 4px; color: var(--black); }
+    .form-subtitle { font-size: 11px; color: var(--stone); font-family: var(--font-mono); margin-bottom: 32px; letter-spacing: 0.04em; }
+
+    .form-row { margin-bottom: 22px; }
+    .form-row label { display: block; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--stone); margin-bottom: 6px; font-weight: 500; }
+    .form-row input, .form-row textarea { width: 100%; padding: 10px 12px; background: var(--light); border: none; border-bottom: 2px solid #ccc; font-family: var(--font-body); font-size: 14px; color: var(--black); outline: none; transition: border-color 0.2s; }
+    .form-row input:focus, .form-row textarea:focus { border-bottom-color: var(--red); }
+    .form-row input:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .code-hint { font-size: 10px; color: var(--stone); font-family: var(--font-mono); margin-top: 5px; }
+    .code-hint span { color: var(--red); }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+    /* Code preview banner */
+    .code-preview-bar { background: var(--black); padding: 14px 20px; display: flex; align-items: center; gap: 16px; }
+    .code-preview-label { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(247,246,242,0.35); font-family: var(--font-mono); }
+    .code-preview-val { font-family: var(--font-mono); font-size: 1rem; color: var(--red); font-weight: 600; letter-spacing: 0.08em; }
+    .code-preview-sample { font-family: var(--font-mono); font-size: 11px; color: rgba(247,246,242,0.3); }
+    .code-preview-sample span { color: rgba(247,246,242,0.55); }
+
+    /* Categories section */
+    .section-card { background: var(--white); padding: 32px 36px; border-top: 4px solid var(--charcoal); }
+    .section-title { font-family: var(--font-display); font-size: 1.2rem; color: var(--black); margin-bottom: 4px; }
+    .section-subtitle { font-size: 11px; color: var(--stone); font-family: var(--font-mono); margin-bottom: 24px; letter-spacing: 0.04em; }
+
+    .cat-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+    .cat-table thead tr { background: var(--black); color: var(--white); }
+    .cat-table th { padding: 9px 14px; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; text-align: left; }
+    .cat-table td { padding: 8px 10px; border-bottom: 1px solid var(--light); vertical-align: middle; }
+    .cat-table tr:last-child td { border-bottom: none; }
+
+    .cat-input { width: 100%; padding: 7px 10px; background: var(--light); border: none; border-bottom: 1px solid #ccc; font-family: var(--font-body); font-size: 13px; color: var(--black); outline: none; transition: border-color 0.2s; }
+    .cat-input:focus { border-bottom-color: var(--red); }
+    .cat-input.code { font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; font-size: 12px; }
+
+    .cat-preview { font-family: var(--font-mono); font-size: 10px; color: var(--stone); padding: 4px 8px; background: var(--light); white-space: nowrap; }
+
+    .del-btn { background: none; border: 1px solid #ccc; color: var(--stone); width: 26px; height: 26px; cursor: pointer; font-size: 15px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+    .del-btn:hover { background: var(--red); border-color: var(--red); color: var(--white); }
+
+    .add-row-btn { background: var(--black); color: var(--white); border: none; padding: 7px 16px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; font-family: var(--font-body); transition: background 0.2s; }
+    .add-row-btn:hover { background: var(--charcoal); }
+
+    .action-buttons { display: flex; gap: 16px; justify-content: flex-end; margin-top: 28px; align-items: center; }
+    .btn-primary { background: var(--red); color: white; border: none; padding: 12px 28px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: background 0.2s, transform 0.15s; font-family: var(--font-body); }
+    .btn-primary:hover { background: var(--red-dark); transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .btn-secondary { background: transparent; color: var(--stone); border: 1px solid #ccc; padding: 12px 28px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; font-family: var(--font-body); transition: all 0.2s; }
+    .btn-secondary:hover { border-color: var(--charcoal); color: var(--black); }
+
+    .edit-banner { display: none; background: var(--light); border-left: 3px solid var(--charcoal); padding: 10px 16px; font-size: 12px; color: var(--mid); margin-bottom: 20px; }
+    .edit-banner.visible { display: block; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-brand">Vidai <span>to</span> Mulai</div>
+  <nav class="header-nav">
+    <a href="index.html">← Home</a>
+    <span class="nav-sep">|</span>
+    <a href="project_index.html">Projects</a>
+    <span class="nav-sep">|</span>
+    <a href="create_project.html" class="active">New Project</a>
+  </nav>
+</header>
+
+<div class="form-container">
+
+  <!-- Project details -->
+  <div class="form-card">
+    <div class="form-title" id="formTitle">New Project</div>
+    <div class="form-subtitle" id="formSubtitle">Define a project to group your gigs under</div>
+    <div class="edit-banner" id="editBanner">Editing existing project — save to update.</div>
+
+    <div class="two-col">
+      <div class="form-row">
+        <label>Project Code *</label>
+        <input type="text" id="projectCode" placeholder="e.g. MULAI" maxlength="12"
+          oninput="updatePreview()"
+          style="text-transform:uppercase;font-family:var(--font-mono);letter-spacing:0.06em;">
+        <div class="code-hint">
+          Short uppercase code — used to prefix all gig codes.<br>
+          e.g. <span>MULAI</span> → gigs become <span>MULAI_CAT_O_001</span>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Project Name *</label>
+        <input type="text" id="projectName" placeholder="e.g. Mulai.ch Platform">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label>Description</label>
+      <textarea id="projectDesc" rows="2" placeholder="What is this project about?"></textarea>
+    </div>
+  </div>
+
+  <!-- Code preview -->
+  <div class="code-preview-bar">
+    <div class="code-preview-label">Gig code preview</div>
+    <div class="code-preview-val" id="previewCode">—</div>
+    <div class="code-preview-sample">e.g. <span id="previewSample">—</span></div>
+  </div>
+
+  <!-- Categories -->
+  <div class="section-card">
+    <div class="section-title">Categories</div>
+    <div class="section-subtitle">Predefined categories for this project — used in gig code generation</div>
+
+    <table class="cat-table">
+      <thead>
+        <tr>
+          <th style="width:140px">Category Code</th>
+          <th>Category Name</th>
+          <th style="width:190px">Gig Code Preview</th>
+          <th style="width:36px"></th>
+        </tr>
+      </thead>
+      <tbody id="catBody"></tbody>
+    </table>
+
+    <button type="button" class="add-row-btn" onclick="addCatRow()">+ Add Category</button>
+
+    <div class="action-buttons">
+      <button type="button" class="btn-secondary" onclick="cancelForm()">Cancel</button>
+      <button type="button" class="btn-primary" id="saveBtn" onclick="saveProjectForm()">Save Project →</button>
+    </div>
+  </div>
+
+</div>
+
+<script type="module" src="assets/create_project.js"></script>
+</body>
+</html>

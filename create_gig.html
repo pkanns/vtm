@@ -14,50 +14,61 @@
     .header-nav a.active { color: var(--white); }
     .header-nav .nav-sep { color: rgba(247,246,242,0.2); font-size: 11px; }
 
-    .flow-strip { background: var(--white); border-bottom: 2px solid var(--light); overflow-x: auto; }
-    .flow-inner { display: flex; align-items: stretch; max-width: 1100px; margin: 0 auto; padding: 0 24px; }
-    .flow-step { display: flex; align-items: center; flex: 1; min-width: 0; text-decoration: none; color: inherit; position: relative; }
-    .flow-step-body { flex: 1; padding: 12px 16px; display: flex; flex-direction: column; gap: 2px; transition: background 0.15s; }
-    .flow-step:hover .flow-step-body { background: var(--light); }
-    .flow-step.active .flow-step-body { background: var(--light); }
-    .flow-step-num { font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.1em; color: var(--stone); }
-    .flow-step-name { font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--charcoal); white-space: nowrap; }
-    .flow-step-status { font-size: 10px; color: var(--stone); font-weight: 300; }
-    .flow-step::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: transparent; transition: background 0.15s; }
-    .flow-step:hover::after { background: var(--stone); }
-    .flow-step.active::after { background: var(--red); }
-    .flow-step.active .flow-step-name { color: var(--red); }
-    .flow-step.active .flow-step-num  { color: var(--red); }
-    .flow-arrow { color: #ccc; font-size: 11px; padding: 0 2px; flex-shrink: 0; align-self: center; font-family: var(--font-mono); }
-
     .form-container { max-width: 900px; margin: 0 auto; padding: 40px 24px 80px; }
+
     .form-card { background: white; padding: 32px 36px; margin-bottom: 24px; border-top: 4px solid var(--red); }
     .form-title { font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 4px; color: var(--black); }
     .form-subtitle { font-size: 11px; color: var(--stone); font-family: var(--font-mono); margin-bottom: 28px; letter-spacing: 0.04em; }
+
     .form-row { margin-bottom: 20px; }
     .form-row label { display: block; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--stone); margin-bottom: 6px; font-weight: 500; }
     .form-row input, .form-row select, .form-row textarea { width: 100%; padding: 10px 12px; background: var(--light); border: none; border-bottom: 1px solid #ccc; font-family: var(--font-body); font-size: 14px; color: var(--black); outline: none; transition: border-color 0.2s; }
     .form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-bottom-color: var(--red); }
-    .two-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .form-row input:disabled, .form-row select:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .two-columns   { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
     .three-columns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
 
-    .action-buttons { display: flex; gap: 16px; justify-content: flex-end; margin-top: 32px; align-items: center; }
-    .btn-primary { background: var(--red); color: white; border: none; padding: 12px 28px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: background 0.2s, transform 0.15s; font-family: var(--font-body); }
-    .btn-primary:hover { background: var(--red-dark); transform: translateY(-1px); }
-    .btn-secondary { background: transparent; color: var(--stone); border: 1px solid #ccc; padding: 12px 28px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; font-family: var(--font-body); transition: border-color 0.2s, color 0.2s; }
-    .btn-secondary:hover { border-color: var(--charcoal); color: var(--black); }
+    /* Gig code preview bar */
+    .code-preview-row { display: flex; align-items: center; gap: 0; margin-bottom: 20px; background: var(--black); padding: 14px 16px; }
+    .code-preview-label { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(247,246,242,0.35); font-family: var(--font-mono); margin-right: 16px; white-space: nowrap; }
+    .code-preview-value { font-family: var(--font-mono); font-size: 1.1rem; color: var(--red); font-weight: 600; letter-spacing: 0.06em; }
+    .code-preview-value.dim { color: rgba(247,246,242,0.25); font-size: 0.95rem; }
+    .code-preview-hint { font-size: 10px; color: rgba(247,246,242,0.3); font-family: var(--font-mono); margin-left: 16px; }
 
-    .post-save-bar { display: none; background: var(--light); border-left: 4px solid var(--green); padding: 16px 24px; margin-top: 24px; align-items: center; justify-content: space-between; gap: 16px; }
-    .post-save-bar.visible { display: flex; }
-    .post-save-msg { font-size: 13px; color: var(--green); font-weight: 500; }
-    .post-save-code { font-family: var(--font-mono); font-weight: 600; }
-    .btn-match { background: var(--green); color: white; border: none; padding: 10px 22px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; font-family: var(--font-body); transition: opacity 0.2s; white-space: nowrap; }
-    .btn-match:hover { opacity: 0.85; }
+    /* Cadence toggle — full width, same pair style */
+    .cadence-toggle-wrap { margin-bottom: 20px; }
+    .cadence-toggle-wrap .toggle-pair { width: 100%; }
+    .cadence-toggle-wrap .toggle-pair label { padding: 11px 12px; font-size: 13px; }
 
+    /* Recurring block */
+    #recurringBlock { display: none; background: var(--light); border-left: 3px solid var(--red); padding: 20px 20px 4px; margin-bottom: 20px; }
+    #recurringBlock.visible { display: block; }
+    .recurring-block-label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--red); font-weight: 500; margin-bottom: 16px; }
+    #recurringBlock .form-row input,
+    #recurringBlock .form-row select { background: var(--white); }
+    .stop-row { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .stop-row input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--red); cursor: pointer; flex-shrink: 0; }
+    .stop-row label { font-size: 12px; color: var(--mid); cursor: pointer; }
+
+    /* Status row — edit mode only */
+    #statusRow { display: none; }
+
+    /* Budget */
+    #budgetBlock { display: none; }
+    #budgetBlock.visible { display: block; }
+
+    /* Edit banner */
     .edit-banner { display: none; background: var(--light); border-left: 3px solid var(--charcoal); padding: 10px 16px; font-size: 12px; color: var(--mid); margin-bottom: 20px; }
     .edit-banner.visible { display: block; }
 
-    #budgetBlock { display: none; }
+    /* Action buttons */
+    .action-buttons { display: flex; gap: 16px; justify-content: flex-end; margin-top: 32px; align-items: center; }
+    .btn-primary { background: var(--red); color: white; border: none; padding: 12px 28px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: background 0.2s, transform 0.15s; font-family: var(--font-body); }
+    .btn-primary:hover { background: var(--red-dark); transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .btn-secondary { background: transparent; color: var(--stone); border: 1px solid #ccc; padding: 12px 28px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; font-family: var(--font-body); transition: all 0.2s; }
+    .btn-secondary:hover { border-color: var(--charcoal); color: var(--black); }
   </style>
 </head>
 <body>
@@ -67,63 +78,11 @@
   <nav class="header-nav">
     <a href="index.html">← Home</a>
     <span class="nav-sep">|</span>
-    <a href="gig_index.html">Gig Index</a>
+    <a href="project_index.html">Projects</a>
     <span class="nav-sep">|</span>
-    <a href="create_gig.html" class="active">Create Gig</a>
+    <a href="create_gig.html" class="active">New Gig</a>
   </nav>
 </header>
-
-<div class="flow-strip">
-  <div class="flow-inner">
-    <a class="flow-step active" href="gig_index.html?status=placed">
-      <div class="flow-step-body">
-        <div class="flow-step-num">01</div>
-        <div class="flow-step-name">Create</div>
-        <div class="flow-step-status">Placed</div>
-      </div>
-    </a>
-    <div class="flow-arrow">›</div>
-    <a class="flow-step" href="gig_index.html?status=matched">
-      <div class="flow-step-body">
-        <div class="flow-step-num">02</div>
-        <div class="flow-step-name">Assign</div>
-        <div class="flow-step-status">Matched</div>
-      </div>
-    </a>
-    <div class="flow-arrow">›</div>
-    <a class="flow-step" href="gig_index.html?status=aligned">
-      <div class="flow-step-body">
-        <div class="flow-step-num">03</div>
-        <div class="flow-step-name">Approve</div>
-        <div class="flow-step-status">Aligned</div>
-      </div>
-    </a>
-    <div class="flow-arrow">›</div>
-    <a class="flow-step" href="gig_index.html?status=in_progress">
-      <div class="flow-step-body">
-        <div class="flow-step-num">04</div>
-        <div class="flow-step-name">Deliver</div>
-        <div class="flow-step-status">In Progress</div>
-      </div>
-    </a>
-    <div class="flow-arrow">›</div>
-    <a class="flow-step" href="gig_index.html?status=delivered">
-      <div class="flow-step-body">
-        <div class="flow-step-num">05</div>
-        <div class="flow-step-name">Evaluate</div>
-        <div class="flow-step-status">Delivered</div>
-      </div>
-    </a>
-    <div class="flow-arrow">›</div>
-    <a class="flow-step" href="gig_index.html?status=completed">
-      <div class="flow-step-body">
-        <div class="flow-step-num">06</div>
-        <div class="flow-step-name">Close</div>
-        <div class="flow-step-status">Completed</div>
-      </div>
-    </a>
-  </div>
-</div>
 
 <main class="form-container">
   <div class="form-card">
@@ -132,17 +91,114 @@
     <div class="edit-banner" id="editBanner">Editing existing gig — save to update.</div>
     <input type="hidden" id="editingGigId">
 
+    <!-- Project + Category -->
     <div class="two-columns">
-      <div class="form-row"><label>Gig Code *</label><input type="text" id="gigCode" placeholder="e.g., G01"></div>
-      <div class="form-row"><label>Gig Name *</label><input type="text" id="gigName" placeholder="Short title"></div>
+      <div class="form-row">
+        <label>Project *</label>
+        <select id="gigProject" onchange="onProjectChange()">
+          <option value="">— Loading —</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Category *</label>
+        <select id="gigCategory" onchange="onCategoryChange()" disabled>
+          <option value="">— Select Project first —</option>
+        </select>
+      </div>
     </div>
-    <div class="form-row"><label>Category</label><input type="text" id="gigCategory" placeholder="e.g., Field Survey"></div>
-    <div class="form-row"><label>Description</label><textarea id="gigDesc" rows="3" placeholder="Scope of this gig…"></textarea></div>
 
-    <div class="two-columns">
-      <!-- gigPacer = Lead (pacer role) · gigRover = Doer (rover role) -->
-      <div class="form-row"><label>Lead (Pacer) *</label><select id="gigPacer"><option value="">— Loading —</option></select></div>
-      <div class="form-row"><label>Doer (Rover) *</label><select id="gigRover"><option value="">— Loading —</option></select></div>
+    <!-- Gig code preview -->
+    <div class="code-preview-row">
+      <div class="code-preview-label">Gig Code</div>
+      <div class="code-preview-value dim" id="gigCodeDisplay">— select project &amp; category</div>
+      <div class="code-preview-hint" id="gigCodeHint"></div>
+    </div>
+
+    <!-- Gig title -->
+    <div class="form-row">
+      <label>Gig Title *</label>
+      <input type="text" id="gigName" placeholder="Short descriptive title">
+    </div>
+
+    <!-- Cadence + Classification -->
+    <div class="gig-toggles" style="margin-top:4px;">
+      <div class="toggles-label">Cadence</div>
+
+      <div class="cadence-toggle-wrap">
+        <div class="toggle-pair">
+          <input type="radio" name="tog-cadence" id="tog-oneoff" value="oneoff" checked onchange="onCadenceChange()">
+          <label for="tog-oneoff">One-off</label>
+          <input type="radio" name="tog-cadence" id="tog-recurring" value="recurring" onchange="onCadenceChange()">
+          <label for="tog-recurring">Recurring</label>
+        </div>
+      </div>
+
+      <!-- Recurring config block -->
+      <div id="recurringBlock">
+        <div class="recurring-block-label">Recurrence Configuration</div>
+        <div class="two-columns">
+          <div class="form-row">
+            <label>Frequency *</label>
+            <select id="recurFrequency">
+              <option value="">— Select Frequency —</option>
+              <option value="weekly">Weekly</option>
+              <option value="fortnightly">Fortnightly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>End Date</label>
+            <input type="date" id="recurEndDate">
+          </div>
+        </div>
+        <div class="stop-row">
+          <input type="checkbox" id="recurStopped">
+          <label for="recurStopped">Stop recurrence — no new instances will be created after saving</label>
+        </div>
+      </div>
+
+      <div class="toggles-label" style="margin-top:20px;">Classification</div>
+      <div class="toggles-grid">
+        <div class="toggle-group">
+          <div class="toggle-group-label">Scale</div>
+          <div class="toggle-pair">
+            <input type="radio" name="tog-scale" id="tog-minor" value="minor" checked>
+            <label for="tog-minor">Minor</label>
+            <input type="radio" name="tog-scale" id="tog-major" value="major">
+            <label for="tog-major">Major</label>
+          </div>
+        </div>
+        <div class="toggle-group">
+          <div class="toggle-group-label">Setting</div>
+          <div class="toggle-pair">
+            <input type="radio" name="tog-setting" id="tog-field" value="field" checked onchange="toggleBudgetBlock()">
+            <label for="tog-field">Field</label>
+            <input type="radio" name="tog-setting" id="tog-desk" value="desk" onchange="toggleBudgetBlock()">
+            <label for="tog-desk">Desk</label>
+          </div>
+        </div>
+        <div class="toggle-group">
+          <div class="toggle-group-label">Skill Level</div>
+          <div class="toggle-pair">
+            <input type="radio" name="tog-skill" id="tog-unskilled" value="unskilled" checked>
+            <label for="tog-unskilled">Unskilled</label>
+            <input type="radio" name="tog-skill" id="tog-skilled" value="skilled">
+            <label for="tog-skilled">Skilled</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assignment + Dates -->
+    <div class="two-columns" style="margin-top:24px;">
+      <div class="form-row">
+        <label>Lead (Pacer) *</label>
+        <select id="gigPacer"><option value="">— Loading —</option></select>
+      </div>
+      <div class="form-row">
+        <label>Doer (Rover) *</label>
+        <select id="gigRover"><option value="">— Loading —</option></select>
+      </div>
     </div>
 
     <div class="three-columns">
@@ -151,7 +207,8 @@
       <div class="form-row"><label>Date Due</label><input type="date" id="gigDateDue"></div>
     </div>
 
-    <div class="form-row" id="statusRow" style="display:none">
+    <!-- Status — edit mode only -->
+    <div class="form-row" id="statusRow">
       <label>Status</label>
       <select id="gigStatus">
         <option value="placed">Placed</option>
@@ -163,64 +220,42 @@
       </select>
     </div>
 
-    <div class="gig-toggles" style="margin-top:24px;">
-      <div class="toggles-label">Gig Classification</div>
-      <div class="toggles-grid">
-        <div class="toggle-group">
-          <div class="toggle-group-label">Scale</div>
-          <div class="toggle-pair">
-            <input type="radio" name="tog-scale" id="setup-tog-minor" value="minor" checked><label for="setup-tog-minor">Minor</label>
-            <input type="radio" name="tog-scale" id="setup-tog-major" value="major"><label for="setup-tog-major">Major</label>
-          </div>
-        </div>
-        <div class="toggle-group">
-          <div class="toggle-group-label">Cadence</div>
-          <div class="toggle-pair">
-            <input type="radio" name="tog-cadence" id="setup-tog-oneoff" value="oneoff" checked><label for="setup-tog-oneoff">One-off</label>
-            <input type="radio" name="tog-cadence" id="setup-tog-recurring" value="recurring"><label for="setup-tog-recurring">Recurring</label>
-          </div>
-        </div>
-        <div class="toggle-group">
-          <div class="toggle-group-label">Setting</div>
-          <div class="toggle-pair">
-            <input type="radio" name="tog-setting" id="setup-tog-field" value="field" checked onchange="toggleBudgetBlock()"><label for="setup-tog-field">Field</label>
-            <input type="radio" name="tog-setting" id="setup-tog-desk" value="desk" onchange="toggleBudgetBlock()"><label for="setup-tog-desk">Desk</label>
-          </div>
-        </div>
-        <div class="toggle-group">
-          <div class="toggle-group-label">Skill Level</div>
-          <div class="toggle-pair">
-            <input type="radio" name="tog-skill" id="setup-tog-unskilled" value="unskilled" checked><label for="setup-tog-unskilled">Unskilled</label>
-            <input type="radio" name="tog-skill" id="setup-tog-skilled" value="skilled"><label for="setup-tog-skilled">Skilled</label>
-          </div>
-        </div>
-      </div>
+    <div class="form-row">
+      <label>Description</label>
+      <textarea id="gigDesc" rows="3" placeholder="Scope of this gig…"></textarea>
     </div>
 
+    <!-- Budget — field gigs only -->
     <div id="budgetBlock">
-      <div style="margin-top:24px;margin-bottom:16px;"><div class="toggles-label">Budget Items</div></div>
+      <div style="margin-top:8px;margin-bottom:16px;">
+        <div class="toggles-label">Budget Items</div>
+      </div>
       <table class="budget-table">
         <thead><tr><th>Description</th><th>Estimated (₹)</th><th>Notes</th><th></th></tr></thead>
         <tbody id="budget-body"></tbody>
-        <tfoot><tr class="budget-total-row"><td><strong>Total</strong></td><td id="budget-total">₹ 0</td><td></td><td></td></tr></tfoot>
+        <tfoot>
+          <tr class="budget-total-row">
+            <td><strong>Total</strong></td>
+            <td id="budget-total">₹ 0</td>
+            <td></td><td></td>
+          </tr>
+        </tfoot>
       </table>
       <button type="button" class="add-row-btn" onclick="addBudgetRow()">+ Add Budget Item</button>
     </div>
 
-    <div class="form-row" style="margin-top:24px;"><label>Internal Notes</label><textarea id="gigNotes" rows="2"></textarea></div>
-
-    <div class="action-buttons">
-      <button type="button" class="btn-secondary" onclick="cancelEdit()">Reset</button>
-      <button type="button" class="btn-primary" id="saveBtn" onclick="saveGigForm()">Save Gig →</button>
+    <div class="form-row" style="margin-top:24px;">
+      <label>Internal Notes</label>
+      <textarea id="gigNotes" rows="2"></textarea>
     </div>
 
-    <div class="post-save-bar" id="postSaveBar">
-      <div class="post-save-msg"><span class="post-save-code" id="postSaveCode"></span> saved successfully.</div>
-      <button type="button" class="btn-match" id="matchDoerBtn">Match Doer →</button>
+    <div class="action-buttons">
+      <button type="button" class="btn-secondary" onclick="cancelEdit()">Cancel</button>
+      <button type="button" class="btn-primary" id="saveBtn" onclick="saveGigForm()">Save Gig →</button>
     </div>
   </div>
 </main>
 
-<script type="module" src="create_gig.js"></script>
+<script type="module" src="assets/create_gig.js"></script>
 </body>
 </html>

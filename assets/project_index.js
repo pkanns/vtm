@@ -4,12 +4,12 @@
  * Role-aware: rovers see only gigs assigned to them.
  */
 
-import { db }                    from './assets/vtm_db.js'
+import { db }                    from './vtm_db.js'
 import { fetchProjectsWithGigs,
          fetchCategoriesByProject,
          deleteProject,
          deleteGig,
-         fmtDate, esc }          from './assets/vtm_api.js'
+         fmtDate, esc }          from './vtm_api.js'
 
 // ── SESSION ───────────────────────────────────────────────────────────────
 

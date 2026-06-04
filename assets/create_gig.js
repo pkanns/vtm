@@ -6,7 +6,7 @@
  * Pre-select project via ?project_id=xxx (from project_index)
  */
 
-import { db }                          from './assets/vtm_db.js'
+import { db }                          from './vtm_db.js'
 import { fetchProjects,
          fetchCategoriesByProject,
          generateGigCode,
@@ -19,7 +19,7 @@ import { fetchProjects,
          calcNextRunDate,
          fetchActiveLeads,
          fetchActiveDoers,
-         esc }                         from './assets/vtm_api.js'
+         esc }                         from './vtm_api.js'
 
 // ── SESSION ───────────────────────────────────────────────────────────────
 

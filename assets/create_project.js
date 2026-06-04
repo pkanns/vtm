@@ -5,11 +5,11 @@
  * Edit mode: load via ?project_id=xxx
  */
 
-import { db }                        from './assets/vtm_db.js'
+import { db }                        from './vtm_db.js'
 import { saveProject, fetchProjectById,
          saveCategoriesBulk,
          deleteCategoriesByProject,
-         fetchCategoriesByProject }  from './assets/vtm_api.js'
+         fetchCategoriesByProject }  from './vtm_api.js'
 
 // ── SESSION ───────────────────────────────────────────────────────────────
 
@@ -84,10 +84,8 @@ window.addCatRow = function(code, name, dbId) {
   if (dbId) tr.dataset.categoryId = dbId
 
   tr.innerHTML = `
-    <td><input type="text" class="cat-input code" placeholder="e.g. AUTH" maxlength="8"
-      value="${esc(code || '')}" oninput="updateRowPreview(${id})"></td>
-    <td><input type="text" class="cat-input" placeholder="e.g. Authentication"
-      value="${esc(name || '')}"></td>
+    <td><input type="text" class="cat-input code" placeholder="e.g. AUTH" maxlength="8" value="${esc(code || '')}" oninput="updateRowPreview(${id})"></td>
+    <td><input type="text" class="cat-input" placeholder="e.g. Authentication" value="${esc(name || '')}"></td>
     <td><span class="cat-preview" id="cprev-${id}">—</span></td>
     <td><button type="button" class="del-btn" onclick="removeCatRow('cat-${id}')">×</button></td>
   `

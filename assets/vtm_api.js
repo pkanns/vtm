@@ -3,73 +3,221 @@
  * All Supabase read/write functions live here.
  * Pages import only what they need.
  * To fix a query: edit here once, all pages benefit.
+ *
+ * Sections:
+ *  1. PROJECTS
+ *  2. PROJECT CATEGORIES
+ *  3. GIGS
+ *  4. RECURRENCE SCHEDULE
+ *  5. EVALUATIONS
+ *  6. USERS
+ *  7. COUNTS (dashboard)
+ *  8. SHARED HELPERS
  */
 
-// ── PACERS ────────────────────────────────────────────────────────────────
+// ── 1. PROJECTS ───────────────────────────────────────────────────────────
 
-export async function fetchPacers(db) {
-  return db.from('pacers').select('*').order('created_at', { ascending: false })
+export async function fetchProjects(db) {
+  return db
+    .from('projects')
+    .select('*')
+    .order('project_code', { ascending: true })
 }
 
-export async function fetchActivePacers(db) {
-  return db.from('pacers').select('pacer_id, name').eq('active', true).order('name')
+export async function fetchProjectById(db, id) {
+  return db
+    .from('projects')
+    .select('*')
+    .eq('project_id', id)
+    .single()
 }
 
-export async function savePacer(db, payload, id = null) {
-  if (id) return db.from('pacers').update(payload).eq('pacer_id', id)
-  return db.from('pacers').insert(payload)
+export async function fetchProjectByCode(db, code) {
+  return db
+    .from('projects')
+    .select('*')
+    .eq('project_code', code)
+    .single()
 }
 
-export async function deletePacer(db, id) {
-  return db.from('pacers').delete().eq('pacer_id', id)
+export async function saveProject(db, payload, id = null) {
+  if (id) return db.from('projects').update(payload).eq('project_id', id).select()
+  return db.from('projects').insert(payload).select()
 }
 
-export async function fetchPacerById(db, id) {
-  return db.from('pacers').select('*').eq('pacer_id', id).single()
+export async function deleteProject(db, id) {
+  return db.from('projects').delete().eq('project_id', id)
 }
 
-// ── ROVERS ────────────────────────────────────────────────────────────────
+// ── 2. PROJECT CATEGORIES ─────────────────────────────────────────────────
 
-export async function fetchRovers(db) {
-  return db.from('rovers').select('*').order('created_at', { ascending: false })
+export async function fetchCategoriesByProject(db, projectId) {
+  return db
+    .from('project_categories')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('category_code', { ascending: true })
 }
 
-export async function fetchActiveRovers(db) {
-  return db.from('rovers').select('rover_id, name, skill_level').eq('active', true).order('name')
+export async function saveCategoriesBulk(db, projectId, categories) {
+  // categories = [{ category_code, category_name }, ...]
+  // Upsert all rows for this project in one call
+  const rows = categories.map(c => ({
+    project_id:    projectId,
+    category_code: c.category_code.toUpperCase().trim(),
+    category_name: c.category_name.trim(),
+  }))
+  return db
+    .from('project_categories')
+    .upsert(rows, { onConflict: 'project_id,category_code' })
+    .select()
 }
 
-export async function saveRover(db, payload, id = null) {
-  if (id) return db.from('rovers').update(payload).eq('rover_id', id)
-  return db.from('rovers').insert(payload)
+export async function deleteCategory(db, categoryId) {
+  return db
+    .from('project_categories')
+    .delete()
+    .eq('category_id', categoryId)
 }
 
-export async function deleteRover(db, id) {
-  return db.from('rovers').delete().eq('rover_id', id)
+export async function deleteCategoriesByProject(db, projectId) {
+  return db
+    .from('project_categories')
+    .delete()
+    .eq('project_id', projectId)
 }
 
-export async function fetchRoverById(db, id) {
-  return db.from('rovers').select('*').eq('rover_id', id).single()
-}
+// ── 3. GIGS ───────────────────────────────────────────────────────────────
 
-// ── GIGS ──────────────────────────────────────────────────────────────────
-
+/**
+ * Fetch all gigs with project and category info joined.
+ * Returns: gig fields + project_code, project_name, category_code, category_name
+ */
 export async function fetchGigs(db) {
-  return db.from('gigs').select('*').order('created_at', { ascending: false })
+  return db
+    .from('gigs')
+    .select(`
+      *,
+      projects   ( project_code, project_name ),
+      project_categories ( category_code, category_name )
+    `)
+    .order('gig_code', { ascending: true })
+}
+
+/**
+ * Fetch gigs for a specific project, with categories joined.
+ * Includes nested recurring instances grouped under their parent.
+ */
+export async function fetchGigsByProject(db, projectId) {
+  return db
+    .from('gigs')
+    .select(`
+      *,
+      project_categories ( category_code, category_name )
+    `)
+    .eq('project_id', projectId)
+    .order('gig_code', { ascending: true })
+}
+
+/**
+ * Fetch all projects with their gigs nested — for project_index.
+ * Returns projects array; each has a gigs array attached in JS after fetch.
+ */
+export async function fetchProjectsWithGigs(db) {
+  const [projRes, gigsRes] = await Promise.all([
+    db.from('projects')
+      .select('*')
+      .order('project_code', { ascending: true }),
+    db.from('gigs')
+      .select(`
+        gig_id, gig_code, title, status, cadence,
+        date_due, pacer_id, rover_id, parent_gig_id,
+        project_id,
+        project_categories ( category_code, category_name )
+      `)
+      .order('gig_code', { ascending: true })
+  ])
+
+  if (projRes.error) return { data: null, error: projRes.error }
+  if (gigsRes.error) return { data: null, error: gigsRes.error }
+
+  // Attach gigs to their project
+  const projects = (projRes.data || []).map(p => ({
+    ...p,
+    gigs: (gigsRes.data || []).filter(g => g.project_id === p.project_id)
+  }))
+
+  return { data: projects, error: null }
+}
+
+export async function fetchGigById(db, id) {
+  return db
+    .from('gigs')
+    .select(`
+      *,
+      projects ( project_code, project_name ),
+      project_categories ( category_code, category_name )
+    `)
+    .eq('gig_id', id)
+    .single()
 }
 
 export async function fetchGigsForEval(db) {
-  return db.from('gigs')
-    .select('gig_id, gig_code, title, category, status, date_due, pacer_id, rover_id')
+  return db
+    .from('gigs')
+    .select(`
+      gig_id, gig_code, title, status, cadence,
+      date_due, pacer_id, rover_id,
+      project_categories ( category_code )
+    `)
     .in('status', ['in_progress', 'delivered'])
     .order('date_due', { ascending: true })
 }
 
-export async function fetchGigById(db, id) {
-  return db.from('gigs').select('*').eq('gig_id', id).single()
+/**
+ * Generate the next gig code for a given project + category + type.
+ * Pattern:
+ *   One-off:           PROJECT_CAT_O_NNN
+ *   Recurring parent:  PROJECT_CAT_R_NNN
+ *   Recurring instance: PROJECT_CAT_R_NNN_MMM  (pass parentCode)
+ */
+export async function generateGigCode(db, projectCode, categoryCode, cadence, parentCode = null) {
+  const type   = cadence === 'recurring' ? 'R' : 'O'
+  const prefix = `${projectCode}_${categoryCode}_${type}_`
+
+  if (parentCode) {
+    // Recurring instance — count existing instances of this parent
+    const { data, error } = await db
+      .from('gigs')
+      .select('gig_code')
+      .like('gig_code', `${parentCode}_%`)
+    if (error) return { code: null, error }
+    const next = String((data?.length || 0) + 1).padStart(3, '0')
+    return { code: `${parentCode}_${next}`, error: null }
+  }
+
+  // One-off or recurring parent — count existing with same prefix
+  const { data, error } = await db
+    .from('gigs')
+    .select('gig_code')
+    .like('gig_code', `${prefix}%`)
+    // Exclude instances (they have an extra _NNN segment)
+    .not('gig_code', 'like', `${prefix}%_%`)
+
+  if (error) return { code: null, error }
+
+  // Filter to exact pattern length to avoid counting instances
+  const parents = (data || []).filter(g => {
+    const parts = g.gig_code.split('_')
+    return parts.length === 4 // PROJECT_CAT_TYPE_NNN
+  })
+
+  const next = String(parents.length + 1).padStart(3, '0')
+  return { code: `${prefix}${next}`, error: null }
 }
 
 export async function saveGig(db, payload, id = null) {
-  if (id) return db.from('gigs').update(payload).eq('gig_id', id)
+  if (id) return db.from('gigs').update(payload).eq('gig_id', id).select()
   return db.from('gigs').insert(payload).select()
 }
 
@@ -81,40 +229,111 @@ export async function deleteGig(db, id) {
   return db.from('gigs').delete().eq('gig_id', id)
 }
 
-// ── EVALUATIONS ───────────────────────────────────────────────────────────
+// ── 4. RECURRENCE SCHEDULE ────────────────────────────────────────────────
+
+export async function fetchActiveSchedules(db) {
+  return db
+    .from('recurrence_schedule')
+    .select('*, gigs ( gig_code, title, project_id, rover_id )')
+    .eq('is_active', true)
+    .order('next_run_date', { ascending: true })
+}
+
+export async function saveRecurrenceSchedule(db, payload, id = null) {
+  if (id) return db.from('recurrence_schedule').update(payload).eq('schedule_id', id).select()
+  return db.from('recurrence_schedule').insert(payload).select()
+}
+
+export async function deactivateSchedule(db, scheduleId) {
+  return db
+    .from('recurrence_schedule')
+    .update({ is_active: false })
+    .eq('schedule_id', scheduleId)
+}
+
+export async function updateScheduleRover(db, scheduleId, roverId) {
+  return db
+    .from('recurrence_schedule')
+    .update({ current_rover_id: roverId })
+    .eq('schedule_id', scheduleId)
+}
+
+export async function advanceSchedule(db, scheduleId, nextRunDate) {
+  return db
+    .from('recurrence_schedule')
+    .update({ next_run_date: nextRunDate })
+    .eq('schedule_id', scheduleId)
+}
+
+// ── 5. EVALUATIONS ────────────────────────────────────────────────────────
 
 export async function saveEvaluation(db, payload) {
   return db.from('evaluations').insert([payload])
 }
 
 export async function fetchEvaluations(db) {
-  return db.from('evaluations').select('*').order('created_at', { ascending: false })
+  return db
+    .from('evaluations')
+    .select('*')
+    .order('created_at', { ascending: false })
 }
 
-// ── COUNTS (dashboard) ────────────────────────────────────────────────────
+// ── 6. USERS ──────────────────────────────────────────────────────────────
+
+export async function fetchActiveLeads(db) {
+  return db
+    .from('vtm_users')
+    .select('user_id, name')
+    .eq('role', 'pacer')
+    .eq('active', true)
+    .order('name')
+}
+
+export async function fetchActiveDoers(db) {
+  return db
+    .from('vtm_users')
+    .select('user_id, name, skill_level')
+    .eq('role', 'rover')
+    .eq('active', true)
+    .order('name')
+}
+
+// ── 7. COUNTS (dashboard) ─────────────────────────────────────────────────
 
 export async function fetchCounts(db) {
-  const [pacers, rovers, gigs, evals] = await Promise.all([
-    db.from('pacers').select('*',      { count: 'exact', head: true }),
-    db.from('rovers').select('*',      { count: 'exact', head: true }),
-    db.from('gigs').select('*',        { count: 'exact', head: true }),
-    db.from('evaluations').select('*', { count: 'exact', head: true }),
+  const [users, gigs, evals] = await Promise.all([
+    db.from('vtm_users').select('*',      { count: 'exact', head: true }),
+    db.from('gigs').select('*',           { count: 'exact', head: true }),
+    db.from('evaluations').select('*',    { count: 'exact', head: true }),
   ])
   return {
-    pacers: pacers.count ?? 0,
-    rovers: rovers.count ?? 0,
-    gigs:   gigs.count   ?? 0,
-    evals:  evals.count  ?? 0,
+    users: users.count ?? 0,
+    gigs:  gigs.count  ?? 0,
+    evals: evals.count ?? 0,
   }
 }
 
-// ── SHARED HELPERS ────────────────────────────────────────────────────────
+// ── 8. SHARED HELPERS ─────────────────────────────────────────────────────
 
 export function fmtDate(iso) {
   if (!iso) return '—'
   const [y, m, day] = iso.split('-')
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
   return `${parseInt(day)} ${months[parseInt(m) - 1]} ${y}`
+}
+
+/**
+ * Calculate next run date from a given date and frequency.
+ * Returns ISO date string.
+ */
+export function calcNextRunDate(fromDate, frequency) {
+  const d = new Date(fromDate)
+  switch (frequency) {
+    case 'weekly':      d.setDate(d.getDate() + 7);  break
+    case 'fortnightly': d.setDate(d.getDate() + 14); break
+    case 'monthly':     d.setMonth(d.getMonth() + 1); break
+  }
+  return d.toISOString().split('T')[0]
 }
 
 export function esc(s) {

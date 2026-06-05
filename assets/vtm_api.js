@@ -196,21 +196,20 @@ export async function generateGigCode(db, projectCode, categoryCode, cadence, pa
     return { code: `${parentCode}_${next}`, error: null }
   }
 
-  // One-off or recurring parent — count existing with same prefix
+  // Fetch all gigs with this prefix — filter client-side for exact depth
   const { data, error } = await db
     .from('gigs')
     .select('gig_code')
     .like('gig_code', `${prefix}%`)
-    // Exclude instances (they have an extra _NNN segment)
-    .not('gig_code', 'like', `${prefix}%_%`)
 
   if (error) return { code: null, error }
 
-  // Filter to exact pattern length to avoid counting instances
-  const parents = (data || []).filter(g => {
-    const parts = g.gig_code.split('_')
-    return parts.length === 4 // PROJECT_CAT_TYPE_NNN
-  })
+  // Count only exact parent codes — split by _ and match expected segment count
+  // e.g. MULAI_AUTH_O_001 has 4 parts; instance MULAI_AUTH_O_001_001 has 5
+  const prefixParts = prefix.split('_').length - 1  // prefix ends with _, so subtract 1
+  const parents = (data || []).filter(g =>
+    g.gig_code.split('_').length === prefixParts + 1
+  )
 
   const next = String(parents.length + 1).padStart(3, '0')
   return { code: `${prefix}${next}`, error: null }

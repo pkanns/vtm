@@ -1,26 +1,21 @@
 /**
  * gig_index.js — Vidai to Mulai · Gig Index
- * Filters gigs by role using session.user_id matched against
- * gigs.pacer_id (Lead) or gigs.rover_id (Doer).
- * No dependency on pacers or rovers tables.
+ * Full pipeline view — all gigs, status filter strip.
+ * Updated for new schema: project + category joins.
+ * Role-aware: rovers see only their gigs.
  */
 
-import { db } from './assets/vtm_db.js'
-import { fetchGigs, deleteGig, fmtDate, esc } from './assets/vtm_api.js'
+import { db }                              from './vtm_db.js'
+import { fetchGigs, deleteGig, fmtDate, esc } from './vtm_api.js'
 
 // ── SESSION ───────────────────────────────────────────────────────────────
-// vtm.js is loaded as a regular script before this module, so
-// vtmGetSession() is available on window immediately.
 
-const session = vtmGetSession()
+const session  = vtmGetSession()
+if (!session) { window.location.replace('login.html'); throw new Error() }
 
-if (!session) {
-  window.location.href = 'login.html'
-}
-
-const role     = session?.role    || 'admin'
-const myUserId = session?.user_id || null
-const name     = session?.name    || ''
+const role     = session.role
+const myUserId = session.user_id
+const name     = session.name
 
 // ── STATUS FILTER FROM URL ────────────────────────────────────────────────
 
@@ -28,6 +23,12 @@ const urlStatus  = new URLSearchParams(window.location.search).get('status')
 const statusEl   = document.getElementById('dbStatus')
 const titleEl    = document.getElementById('registerTitle')
 const subtitleEl = document.getElementById('registerSubtitle')
+
+// Hide New Gig for rovers
+if (role === 'rover') {
+  document.getElementById('newGigBtn')?.remove()
+  document.getElementById('newGigLink')?.remove()
+}
 
 if (urlStatus) {
   document.querySelectorAll('.flow-step').forEach(el => {
@@ -39,7 +40,7 @@ if (urlStatus) {
   subtitleEl.textContent = role === 'admin' ? 'All gigs' : `Your gigs · ${name}`
 }
 
-// ── LOAD GIGS ─────────────────────────────────────────────────────────────
+// ── LOAD ──────────────────────────────────────────────────────────────────
 
 async function loadGigs() {
   const { data: all, error } = await fetchGigs(db)
@@ -50,18 +51,13 @@ async function loadGigs() {
     return
   }
 
-  // Filter by role using user_id
+  // Role filter
   let filtered = all || []
-  if (role === 'pacer' && myUserId) {
-    filtered = filtered.filter(g => g.pacer_id === myUserId)
-  } else if (role === 'rover' && myUserId) {
-    filtered = filtered.filter(g => g.rover_id === myUserId)
-  }
+  if (role === 'pacer')  filtered = filtered.filter(g => g.pacer_id === myUserId)
+  if (role === 'rover')  filtered = filtered.filter(g => g.rover_id === myUserId)
 
-  // Further filter by pipeline status if URL param set
-  if (urlStatus) {
-    filtered = filtered.filter(g => g.status === urlStatus)
-  }
+  // Status filter
+  if (urlStatus) filtered = filtered.filter(g => g.status === urlStatus)
 
   statusEl.textContent = `● Connected · ${filtered.length} gig${filtered.length !== 1 ? 's' : ''}${urlStatus ? ' · filtered' : ''}`
   statusEl.className   = 'db-status ok'
@@ -69,38 +65,36 @@ async function loadGigs() {
   const tbody = document.getElementById('gigTableBody')
 
   if (!filtered.length) {
-    const canCreate = role === 'pacer' || role === 'admin'
-    tbody.innerHTML = `
-      <tr><td colspan="8">
-        <div class="empty-state">
-          No gigs ${urlStatus ? 'at this stage' : 'yet'}${canCreate ? ' — <a href="create_gig.html">create one</a>' : ''}.
-        </div>
-      </td></tr>`
+    const canCreate = role !== 'rover'
+    tbody.innerHTML = `<tr><td colspan="8">
+      <div class="empty-state">No gigs ${urlStatus ? 'at this stage' : 'yet'}${canCreate ? ' — <a href="create_gig.html">create one</a>' : ''}.
+      </div></td></tr>`
     return
   }
 
-  tbody.innerHTML = filtered.map(g => `
-    <tr>
-      <td><strong style="font-family:var(--font-mono);font-size:12px">${esc(g.gig_code)}</strong></td>
-      <td>${esc(g.title)}</td>
-      <td style="color:var(--stone)">${esc(g.category || '—')}</td>
-      <td style="text-transform:capitalize;color:var(--stone)">${g.setting || '—'}</td>
-      <td style="text-transform:capitalize;color:var(--stone)">${g.scale || '—'}</td>
-      <td><span class="status-pill ${g.status || 'placed'}">${fmtStatus(g.status)}</span></td>
-      <td style="color:var(--stone);font-size:12px">${fmtDate(g.date_due)}</td>
-      <td style="white-space:nowrap">
-        ${role !== 'rover'
-          ? `<button class="tbl-btn" onclick="editGig('${g.gig_id}')">Edit</button>`
-          : ''}
-        ${g.status === 'delivered' || g.status === 'in_progress'
-          ? `<button class="tbl-btn" onclick="goToEval('${g.gig_id}')">Evaluate</button>`
-          : ''}
-        ${role === 'admin'
-          ? `<button class="tbl-btn danger" onclick="deleteGigRow('${g.gig_id}','${esc(g.gig_code)}')">Delete</button>`
-          : ''}
-      </td>
-    </tr>
-  `).join('')
+  tbody.innerHTML = filtered.map(g => {
+    const projCode = g.projects?.project_code || '—'
+    const catCode  = g.project_categories?.category_code || '—'
+    const isPlacement = !g.date_start || !g.date_due || !g.rover_id || !g.pacer_id || !g.category_id
+
+    return `
+      <tr onclick="editGig('${g.gig_id}')">
+        <td><strong style="font-family:var(--font-mono);font-size:12px">${esc(g.gig_code)}</strong>
+          ${isPlacement && role !== 'rover' ? '<br><span class="placement-flag">Needs Placement</span>' : ''}
+        </td>
+        <td>${esc(g.title)}</td>
+        <td style="color:var(--stone);font-size:12px">${esc(projCode)}</td>
+        <td><span class="cat-tag">${esc(catCode)}</span></td>
+        <td><span class="status-pill ${g.status || 'placed'}">${fmtStatus(g.status)}</span></td>
+        <td style="color:var(--stone);font-size:12px">${fmtDate(g.date_start)}</td>
+        <td style="color:var(--stone);font-size:12px">${fmtDate(g.date_due)}</td>
+        <td style="white-space:nowrap" onclick="event.stopPropagation()">
+          ${role !== 'rover' ? `<button class="tbl-btn" onclick="editGig('${g.gig_id}')">Edit</button>` : ''}
+          ${['delivered','in_progress'].includes(g.status) ? `<button class="tbl-btn" onclick="goToEval('${g.gig_id}')">Evaluate</button>` : ''}
+          ${role === 'admin' ? `<button class="tbl-btn danger" onclick="deleteGigRow('${g.gig_id}','${esc(g.gig_code)}')">Delete</button>` : ''}
+        </td>
+      </tr>`
+  }).join('')
 }
 
 // ── ACTIONS ───────────────────────────────────────────────────────────────

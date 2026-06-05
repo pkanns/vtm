@@ -182,9 +182,24 @@
     signinBtn.textContent = 'Sign In →'
   }
 
+  // ── Show timeout message if redirected due to inactivity ────────────────
+  const _reason = new URLSearchParams(window.location.search).get('reason')
+  if (_reason === 'timeout') {
+    const errDiv = document.getElementById('errorMsg')
+    if (errDiv) {
+      errDiv.textContent = 'You were signed out after 30 minutes of inactivity.'
+      errDiv.classList.add('visible')
+      errDiv.style.borderLeftColor = '#8a6200'
+      errDiv.style.background = '#fdf5e0'
+      errDiv.style.color = '#8a6200'
+    }
+  }
+
   // ── If already logged in, skip to index ─────────────────────────────────
+  // Only auto-redirect if sessionStorage still has role set.
+  // If cleared (sign-out or timeout), stay on login even if token lingers.
   const { data: { session: existing } } = await db.auth.getSession()
-  if (existing) {
+  if (existing && sessionStorage.getItem('vtm_role')) {
     window.location.href = 'index.html'
   }
 

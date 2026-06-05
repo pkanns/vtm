@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/vtm.css">
   <script src="assets/vtm.js"></script>
+  <script src="assets/vtm_auth_guard.js"></script>
   <style>
     .header-nav { display: flex; align-items: center; gap: 24px; }
     .header-nav a { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(247,246,242,0.45); text-decoration: none; transition: color 0.2s; }
@@ -120,74 +121,79 @@
       <input type="text" id="gigName" placeholder="Short descriptive title">
     </div>
 
-    <!-- Cadence + Classification -->
-    <div class="gig-toggles" style="margin-top:4px;">
-      <div class="toggles-label">Cadence</div>
+  </div><!-- end form-card -->
 
-      <div class="cadence-toggle-wrap">
+  <!-- Cadence + Classification — standalone card matching gig_eval style -->
+  <div class="gig-toggles">
+    <div class="toggles-label">Cadence</div>
+
+    <div class="cadence-toggle-wrap">
+      <div class="toggle-pair">
+        <input type="radio" name="tog-cadence" id="tog-oneoff" value="oneoff" checked onchange="onCadenceChange()">
+        <label for="tog-oneoff">One-off</label>
+        <input type="radio" name="tog-cadence" id="tog-recurring" value="recurring" onchange="onCadenceChange()">
+        <label for="tog-recurring">Recurring</label>
+      </div>
+    </div>
+
+    <!-- Recurring config block -->
+    <div id="recurringBlock">
+      <div class="recurring-block-label">Recurrence Configuration</div>
+      <div class="two-columns">
+        <div class="form-row">
+          <label>Frequency *</label>
+          <select id="recurFrequency">
+            <option value="">— Select Frequency —</option>
+            <option value="weekly">Weekly</option>
+            <option value="fortnightly">Fortnightly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>End Date</label>
+          <input type="date" id="recurEndDate">
+        </div>
+      </div>
+      <div class="stop-row">
+        <input type="checkbox" id="recurStopped">
+        <label for="recurStopped">Stop recurrence — no new instances will be created after saving</label>
+      </div>
+    </div>
+
+    <div class="toggles-label" style="margin-top:20px;">Classification</div>
+    <div class="toggles-grid">
+      <div class="toggle-group">
+        <div class="toggle-group-label">Scale</div>
         <div class="toggle-pair">
-          <input type="radio" name="tog-cadence" id="tog-oneoff" value="oneoff" checked onchange="onCadenceChange()">
-          <label for="tog-oneoff">One-off</label>
-          <input type="radio" name="tog-cadence" id="tog-recurring" value="recurring" onchange="onCadenceChange()">
-          <label for="tog-recurring">Recurring</label>
+          <input type="radio" name="tog-scale" id="tog-minor" value="minor" checked onchange="calcScores()">
+          <label for="tog-minor">Minor</label>
+          <input type="radio" name="tog-scale" id="tog-major" value="major" onchange="calcScores()">
+          <label for="tog-major">Major</label>
         </div>
       </div>
-
-      <!-- Recurring config block -->
-      <div id="recurringBlock">
-        <div class="recurring-block-label">Recurrence Configuration</div>
-        <div class="two-columns">
-          <div class="form-row">
-            <label>Frequency *</label>
-            <select id="recurFrequency">
-              <option value="">— Select Frequency —</option>
-              <option value="weekly">Weekly</option>
-              <option value="fortnightly">Fortnightly</option>
-              <option value="monthly">Monthly</option>
-            </select>
-          </div>
-          <div class="form-row">
-            <label>End Date</label>
-            <input type="date" id="recurEndDate">
-          </div>
-        </div>
-        <div class="stop-row">
-          <input type="checkbox" id="recurStopped">
-          <label for="recurStopped">Stop recurrence — no new instances will be created after saving</label>
+      <div class="toggle-group">
+        <div class="toggle-group-label">Setting</div>
+        <div class="toggle-pair">
+          <input type="radio" name="tog-setting" id="tog-field" value="field" checked onchange="onSettingChange();toggleBudgetBlock()">
+          <label for="tog-field">Field</label>
+          <input type="radio" name="tog-setting" id="tog-desk" value="desk" onchange="onSettingChange();toggleBudgetBlock()">
+          <label for="tog-desk">Desk</label>
         </div>
       </div>
-
-      <div class="toggles-label" style="margin-top:20px;">Classification</div>
-      <div class="toggles-grid">
-        <div class="toggle-group">
-          <div class="toggle-group-label">Scale</div>
-          <div class="toggle-pair">
-            <input type="radio" name="tog-scale" id="tog-minor" value="minor" checked onchange="calcScores()">
-            <label for="tog-minor">Minor</label>
-            <input type="radio" name="tog-scale" id="tog-major" value="major" onchange="calcScores()">
-            <label for="tog-major">Major</label>
-          </div>
-        </div>
-        <div class="toggle-group">
-          <div class="toggle-group-label">Setting</div>
-          <div class="toggle-pair">
-            <input type="radio" name="tog-setting" id="tog-field" value="field" checked onchange="onSettingChange();toggleBudgetBlock()">
-            <label for="tog-field">Field</label>
-            <input type="radio" name="tog-setting" id="tog-desk" value="desk" onchange="onSettingChange();toggleBudgetBlock()">
-            <label for="tog-desk">Desk</label>
-          </div>
-        </div>
-        <div class="toggle-group">
-          <div class="toggle-group-label">Skill Level</div>
-          <div class="toggle-pair">
-            <input type="radio" name="tog-skill" id="tog-unskilled" value="unskilled" checked>
-            <label for="tog-unskilled">Unskilled</label>
-            <input type="radio" name="tog-skill" id="tog-skilled" value="skilled">
-            <label for="tog-skilled">Skilled</label>
-          </div>
+      <div class="toggle-group">
+        <div class="toggle-group-label">Skill Level</div>
+        <div class="toggle-pair">
+          <input type="radio" name="tog-skill" id="tog-unskilled" value="unskilled" checked>
+          <label for="tog-unskilled">Unskilled</label>
+          <input type="radio" name="tog-skill" id="tog-skilled" value="skilled">
+          <label for="tog-skilled">Skilled</label>
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- Second form card — Assignment, Dates, Description, Budget, Notes -->
+  <div class="form-card" style="border-top-color:var(--charcoal);">
 
     <!-- Assignment + Dates -->
     <div class="two-columns" style="margin-top:24px;">
@@ -253,7 +259,7 @@
       <button type="button" class="btn-secondary" onclick="cancelEdit()">Cancel</button>
       <button type="button" class="btn-primary" id="saveBtn" onclick="saveGigForm()">Save Gig →</button>
     </div>
-  </div>
+  </div><!-- end second form-card -->
 </main>
 
 <script type="module" src="assets/create_gig.js"></script>

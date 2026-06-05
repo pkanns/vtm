@@ -6,6 +6,8 @@
   <title>Gig Index — Vidai to Mulai</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/vtm.css">
+  <script src="assets/vtm.js"></script>
+  <script src="assets/vtm_auth_guard.js"></script>
   <style>
     .header-nav { display: flex; align-items: center; gap: 24px; }
     .header-nav a { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(247,246,242,0.45); text-decoration: none; transition: color 0.2s; }
@@ -13,6 +15,7 @@
     .header-nav a.active { color: var(--white); }
     .header-nav .nav-sep { color: rgba(247,246,242,0.2); font-size: 11px; }
 
+    /* Flow strip */
     .flow-strip { background: var(--white); border-bottom: 2px solid var(--light); overflow-x: auto; }
     .flow-inner { display: flex; align-items: stretch; max-width: 1100px; margin: 0 auto; padding: 0 24px; }
     .flow-step { display: flex; align-items: center; flex: 1; min-width: 0; text-decoration: none; color: inherit; position: relative; }
@@ -46,7 +49,7 @@
     .register-table thead tr { background: var(--black); color: var(--white); }
     .register-table th { padding: 10px 14px; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; text-align: left; }
     .register-table td { padding: 12px 14px; border-bottom: 1px solid var(--light); vertical-align: middle; color: var(--charcoal); }
-    .register-table tr:hover td { background: var(--light); }
+    .register-table tr:hover td { background: var(--light); cursor: pointer; }
 
     .status-pill { display: inline-block; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; font-weight: 600; }
     .status-pill.placed      { background: #e8eef5; color: #2a5a8a; }
@@ -60,8 +63,12 @@
     .tbl-btn:hover { border-color: var(--charcoal); color: var(--black); }
     .tbl-btn.danger:hover { border-color: var(--red); color: var(--red); }
 
+    .cat-tag { display: inline-block; font-size: 10px; font-family: var(--font-mono); color: var(--stone); background: var(--light); padding: 1px 7px; }
+
     .empty-state { text-align: center; padding: 48px 0; color: var(--stone); font-size: 13px; }
     .empty-state a { color: var(--red); text-decoration: none; }
+
+    .placement-flag { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: #8a6200; background: #fdf5e0; padding: 2px 6px; font-family: var(--font-mono); }
   </style>
 </head>
 <body>
@@ -73,10 +80,13 @@
     <span class="nav-sep">|</span>
     <a href="gig_index.html" class="active">Gig Index</a>
     <span class="nav-sep">|</span>
-    <a href="create_gig.html">+ New Gig</a>
+    <a href="project_index.html">Projects</a>
+    <span class="nav-sep">|</span>
+    <a href="create_gig.html" id="newGigLink">+ New Gig</a>
   </nav>
 </header>
 
+<!-- Pipeline flow strip -->
 <div class="flow-strip">
   <div class="flow-inner">
     <a class="flow-step" data-status="placed" href="gig_index.html?status=placed">
@@ -133,7 +143,7 @@
   <div class="register-card">
     <div class="register-header">
       <div class="register-title" id="registerTitle">Gig Register</div>
-      <a href="create_gig.html" class="btn-create">+ New Gig</a>
+      <a href="create_gig.html" class="btn-create" id="newGigBtn">+ New Gig</a>
     </div>
     <div class="register-subtitle" id="registerSubtitle">All gigs</div>
     <div class="db-status" id="dbStatus">Connecting…</div>
@@ -142,10 +152,10 @@
         <tr>
           <th>Code</th>
           <th>Title</th>
+          <th>Project</th>
           <th>Category</th>
-          <th>Setting</th>
-          <th>Scale</th>
           <th>Status</th>
+          <th>Start</th>
           <th>Due</th>
           <th></th>
         </tr>
@@ -157,7 +167,6 @@
   </div>
 </main>
 
-<script src="assets/vtm.js"></script>
-<script type="module" src="gig_index.js"></script>
+<script type="module" src="assets/gig_index.js"></script>
 </body>
 </html>

@@ -1,14 +1,15 @@
 /**
- * vtm.js — Vidai to Mulai · Shared Behaviours
- * Single source of truth for all pages.
+ * vtm.js — Vidai to Mulai · Shared UI Behaviours
+ * UI-only: scoring, toggles, budget, toasts, utilities.
+ * Auth, session, idle timeout → vtm_auth_guard.js
  *
  * Sections:
- *  0. AUTH GUARD + SESSION
+ *  0. SESSION UTILITIES
  *  1. STAR RATING + SLIDER SYNC
  *  2. TOGGLE HELPERS
  *  3. WEIGHTS + CONSTANTS
  *  4. SETTING CHANGE
- *  5. EVALUATION SCORING (Lead/Pacer weighted avg — no rewards)
+ *  5. EVALUATION SCORING
  *  6. BUDGET TABLE
  *  7. DELIVERABLES LIST
  *  8. TOAST NOTIFICATION
@@ -19,13 +20,9 @@
 'use strict';
 
 /* ═══════════════════════════════════════════════════════════════
-   0. AUTH GUARD + SESSION
+   0. SESSION UTILITIES
+   Read-only helpers — auth guard lives in vtm_auth_guard.js
    ═══════════════════════════════════════════════════════════════ */
-
-const _PUBLIC_PAGES = ['login.html'];
-
-const VTM_ROLE_LABELS = { admin: 'Admin', pacer: 'Lead', rover: 'Doer' };
-const VTM_ROLE_CLASS  = { admin: 'role-admin', pacer: 'role-pacer', rover: 'role-rover' };
 
 function vtmGetSession() {
   const role = sessionStorage.getItem('vtm_role');
@@ -37,58 +34,6 @@ function vtmGetSession() {
     ref_id:  sessionStorage.getItem('vtm_ref_id')  || '',
     email:   sessionStorage.getItem('vtm_email')   || '',
   };
-}
-
-function vtmSignOut() {
-  sessionStorage.clear();
-  import('https://esm.sh/@supabase/supabase-js@2').then(({ createClient }) => {
-    const db = createClient(
-      'https://dbecwjhsewucqtfgoylv.supabase.co',
-      'sb_publishable_aw39P_0nn4vB0yjfDqwEvw_mU-Hc1Sp'
-    );
-    db.auth.signOut().finally(() => { window.location.href = 'login.html'; });
-  }).catch(() => { window.location.href = 'login.html'; });
-}
-
-function vtmAuthGuard() {
-  const page = window.location.pathname.split('/').pop() || 'index.html';
-  if (_PUBLIC_PAGES.some(p => page.endsWith(p))) return;
-  const session = vtmGetSession();
-  if (session) _vtmInjectHeaderUser(session);
-}
-
-function _vtmInjectHeaderUser(session) {
-  const header = document.querySelector('header');
-  if (!header) return;
-  const existingUser = header.querySelector('.header-user');
-  if (existingUser) existingUser.remove();
-  const existingSub = header.querySelector('.header-sub');
-  const roleLabel   = VTM_ROLE_LABELS[session.role] || session.role;
-  const userEl      = document.createElement('div');
-  userEl.className  = 'header-user';
-  userEl.innerHTML  = `
-    <span class="header-role-pill ${VTM_ROLE_CLASS[session.role]}">${roleLabel}</span>
-    <span class="header-user-name">${_esc(session.name)}</span>
-    <button class="header-logout" onclick="vtmSignOut()">Sign out</button>
-  `;
-  if (existingSub) existingSub.replaceWith(userEl);
-  else header.appendChild(userEl);
-
-  if (!document.getElementById('vtm-auth-styles')) {
-    const style = document.createElement('style');
-    style.id = 'vtm-auth-styles';
-    style.textContent = `
-      .header-user { display:flex; align-items:center; gap:12px; }
-      .header-role-pill { font-size:9px; letter-spacing:0.12em; text-transform:uppercase; padding:3px 8px; font-weight:600; font-family:var(--font-mono,monospace); }
-      .role-admin { background:rgba(247,246,242,0.15); color:var(--white,#f7f6f2); }
-      .role-pacer { background:var(--red,#c0392b); color:var(--white,#f7f6f2); }
-      .role-rover { background:var(--green,#2d5a3d); color:var(--white,#f7f6f2); }
-      .header-user-name { font-size:12px; color:rgba(247,246,242,0.6); font-family:var(--font-body,sans-serif); }
-      .header-logout { background:none; border:1px solid rgba(247,246,242,0.2); color:rgba(247,246,242,0.4); padding:4px 10px; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; font-family:var(--font-body,sans-serif); transition:border-color 0.2s,color 0.2s; }
-      .header-logout:hover { border-color:rgba(247,246,242,0.5); color:var(--white,#f7f6f2); }
-    `;
-    document.head.appendChild(style);
-  }
 }
 
 function vtmGuardElement(el, allowedRoles) {
@@ -392,7 +337,6 @@ function _setInputVal(id, value) {
    ═══════════════════════════════════════════════════════════════ */
 
 document.addEventListener('DOMContentLoaded', () => {
-  vtmAuthGuard();
   onSettingChange();
   if (typeof calcScores === 'function') calcScores();
 });

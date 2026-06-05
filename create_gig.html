@@ -162,18 +162,18 @@
         <div class="toggle-group">
           <div class="toggle-group-label">Scale</div>
           <div class="toggle-pair">
-            <input type="radio" name="tog-scale" id="tog-minor" value="minor" checked>
+            <input type="radio" name="tog-scale" id="tog-minor" value="minor" checked onchange="calcScores()">
             <label for="tog-minor">Minor</label>
-            <input type="radio" name="tog-scale" id="tog-major" value="major">
+            <input type="radio" name="tog-scale" id="tog-major" value="major" onchange="calcScores()">
             <label for="tog-major">Major</label>
           </div>
         </div>
         <div class="toggle-group">
           <div class="toggle-group-label">Setting</div>
           <div class="toggle-pair">
-            <input type="radio" name="tog-setting" id="tog-field" value="field" checked onchange="toggleBudgetBlock()">
+            <input type="radio" name="tog-setting" id="tog-field" value="field" checked onchange="onSettingChange();toggleBudgetBlock()">
             <label for="tog-field">Field</label>
-            <input type="radio" name="tog-setting" id="tog-desk" value="desk" onchange="toggleBudgetBlock()">
+            <input type="radio" name="tog-setting" id="tog-desk" value="desk" onchange="onSettingChange();toggleBudgetBlock()">
             <label for="tog-desk">Desk</label>
           </div>
         </div>

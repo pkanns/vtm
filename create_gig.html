@@ -123,22 +123,56 @@
 
   </div><!-- end form-card -->
 
-  <!-- Cadence + Classification — standalone card matching gig_eval style -->
+  <!-- Gig Classification — 4 symmetric toggles matching gig_eval style -->
   <div class="gig-toggles">
-    <div class="toggles-label">Cadence</div>
+    <div class="toggles-label">Gig Classification</div>
+    <div class="toggles-grid">
 
-    <div class="cadence-toggle-wrap">
-      <div class="toggle-pair">
-        <input type="radio" name="tog-cadence" id="tog-oneoff" value="oneoff" checked onchange="onCadenceChange()">
-        <label for="tog-oneoff">One-off</label>
-        <input type="radio" name="tog-cadence" id="tog-recurring" value="recurring" onchange="onCadenceChange()">
-        <label for="tog-recurring">Recurring</label>
+      <div class="toggle-group">
+        <div class="toggle-group-label">Cadence</div>
+        <div class="toggle-pair">
+          <input type="radio" name="tog-cadence" id="tog-oneoff" value="oneoff" checked onchange="onCadenceChange()">
+          <label for="tog-oneoff">One-off</label>
+          <input type="radio" name="tog-cadence" id="tog-recurring" value="recurring" onchange="onCadenceChange()">
+          <label for="tog-recurring">Recurring</label>
+        </div>
       </div>
+
+      <div class="toggle-group">
+        <div class="toggle-group-label">Scale</div>
+        <div class="toggle-pair">
+          <input type="radio" name="tog-scale" id="tog-minor" value="minor" checked>
+          <label for="tog-minor">Minor</label>
+          <input type="radio" name="tog-scale" id="tog-major" value="major">
+          <label for="tog-major">Major</label>
+        </div>
+      </div>
+
+      <div class="toggle-group">
+        <div class="toggle-group-label">Setting</div>
+        <div class="toggle-pair">
+          <input type="radio" name="tog-setting" id="tog-field" value="field" checked onchange="onSettingChange();toggleBudgetBlock()">
+          <label for="tog-field">Field</label>
+          <input type="radio" name="tog-setting" id="tog-desk" value="desk" onchange="onSettingChange();toggleBudgetBlock()">
+          <label for="tog-desk">Desk</label>
+        </div>
+      </div>
+
+      <div class="toggle-group">
+        <div class="toggle-group-label">Skill Level</div>
+        <div class="toggle-pair">
+          <input type="radio" name="tog-skill" id="tog-unskilled" value="unskilled" checked>
+          <label for="tog-unskilled">Unskilled</label>
+          <input type="radio" name="tog-skill" id="tog-skilled" value="skilled">
+          <label for="tog-skilled">Skilled</label>
+        </div>
+      </div>
+
     </div>
 
-    <!-- Recurring config block -->
+    <!-- Recurring config block — appears below grid when Recurring selected -->
     <div id="recurringBlock">
-      <div class="recurring-block-label">Recurrence Configuration</div>
+      <div class="recurring-block-label" style="margin-top:20px;">Recurrence Configuration</div>
       <div class="two-columns">
         <div class="form-row">
           <label>Frequency *</label>
@@ -160,36 +194,6 @@
       </div>
     </div>
 
-    <div class="toggles-label" style="margin-top:20px;">Classification</div>
-    <div class="toggles-grid">
-      <div class="toggle-group">
-        <div class="toggle-group-label">Scale</div>
-        <div class="toggle-pair">
-          <input type="radio" name="tog-scale" id="tog-minor" value="minor" checked onchange="calcScores()">
-          <label for="tog-minor">Minor</label>
-          <input type="radio" name="tog-scale" id="tog-major" value="major" onchange="calcScores()">
-          <label for="tog-major">Major</label>
-        </div>
-      </div>
-      <div class="toggle-group">
-        <div class="toggle-group-label">Setting</div>
-        <div class="toggle-pair">
-          <input type="radio" name="tog-setting" id="tog-field" value="field" checked onchange="onSettingChange();toggleBudgetBlock()">
-          <label for="tog-field">Field</label>
-          <input type="radio" name="tog-setting" id="tog-desk" value="desk" onchange="onSettingChange();toggleBudgetBlock()">
-          <label for="tog-desk">Desk</label>
-        </div>
-      </div>
-      <div class="toggle-group">
-        <div class="toggle-group-label">Skill Level</div>
-        <div class="toggle-pair">
-          <input type="radio" name="tog-skill" id="tog-unskilled" value="unskilled" checked>
-          <label for="tog-unskilled">Unskilled</label>
-          <input type="radio" name="tog-skill" id="tog-skilled" value="skilled">
-          <label for="tog-skilled">Skilled</label>
-        </div>
-      </div>
-    </div>
   </div>
 
   <!-- Second form card — Assignment, Dates, Description, Budget, Notes -->

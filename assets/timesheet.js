@@ -143,7 +143,7 @@ window.clockIn = async function() {
     user_id:        userId,
     entry_date:     TODAY,
     start_time:     startTime,
-    entry_type:     'auto',
+    entry_type:     'live',
     is_active:      true,
     clock_in_lat:   lat,
     clock_in_lng:   lng,

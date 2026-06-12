@@ -19,6 +19,15 @@
 
 'use strict';
 
+// Dummy function to replace vtm_auth_guard.js
+function vtmAuthGuard() {
+  // Auth guard removed to allow OAuth to work
+  // Header injection is handled by the original dashboard HTML
+  return;
+}
+
+
+
 /* ═══════════════════════════════════════════════════════════════
    0. SESSION UTILITIES
    Read-only helpers — auth guard lives in vtm_auth_guard.js

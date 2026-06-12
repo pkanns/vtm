@@ -1,91 +1,99 @@
 /**
  * vtm_auth_guard.js — Vidai to Mulai · Auth Guard + Idle Timeout
- * Load as a regular <script> on every protected page, after vtm.js.
- * NOT loaded on login.html.
- *
- * Responsibilities:
- *  1. Session check — redirect to login if no session in sessionStorage
- *  2. Header injection — role pill, name, sign-out button
- *  3. Idle timeout — 30 min, with 2-min warning at 28 min
- *  4. Sign out — clears session, signs out of Supabase, redirects to login
+ * MODIFIED to work with Google OAuth
  */
 
 'use strict';
 
-/* ═══════════════════════════════════════════════════════════════
-   CONFIG
-   ═══════════════════════════════════════════════════════════════ */
+const SUPABASE_URL = 'https://dbecwjhsewucqtfgoylv.supabase.co'
+const SUPABASE_KEY = 'sb_publishable_aw39P_0nn4vB0yjfDqwEvw_mU-Hc1Sp'
 
-const _IDLE_TIMEOUT_MS  = 30 * 60 * 1000   // 30 minutes
-const _WARN_BEFORE_MS   = 2  * 60 * 1000   // warn at 28 minutes
-const _CHECK_INTERVAL_MS = 30 * 1000        // check every 30 seconds
+let idleTimer = null
+let warnShown = false
+const LAST_ACTIVITY_KEY = 'vtm_last_activity'
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000
+const WARN_BEFORE_MS = 2 * 60 * 1000
+const CHECK_INTERVAL_MS = 30 * 1000
 
-const _SUPABASE_URL = 'https://dbecwjhsewucqtfgoylv.supabase.co'
-const _SUPABASE_KEY = 'sb_publishable_aw39P_0nn4vB0yjfDqwEvw_mU-Hc1Sp'
+// ── SESSION CHECK (works with both email AND OAuth) ───────────────────────
 
-const _VTM_ROLE_LABELS = { admin: 'Admin', pacer: 'Lead', rover: 'Doer' }
-const _VTM_ROLE_CLASS  = { admin: 'role-admin', pacer: 'role-pacer', rover: 'role-rover' }
+async function vtmCheckAndRestoreSession() {
+  // First check sessionStorage (email login)
+  let session = vtmGetSession()
+  if (session) return session
 
-/* ═══════════════════════════════════════════════════════════════
-   STATE
-   ═══════════════════════════════════════════════════════════════ */
-
-let _idleTimer       = null
-let _warnShown       = false
-const _LAST_ACTIVITY_KEY = 'vtm_last_activity'
-
-/* ═══════════════════════════════════════════════════════════════
-   SIGN OUT
-   ═══════════════════════════════════════════════════════════════ */
-
-function vtmSignOut(reason) {
-  clearInterval(_idleTimer)
-  sessionStorage.clear()
-  const redirect = reason ? `login.html?reason=${reason}` : 'login.html'
-  import('https://esm.sh/@supabase/supabase-js@2')
-    .then(({ createClient }) => {
-      const db = createClient(_SUPABASE_URL, _SUPABASE_KEY)
-      db.auth.signOut().finally(() => { window.location.replace(redirect) })
-    })
-    .catch(() => { window.location.replace(redirect) })
-}
-
-// Expose globally so onclick="vtmSignOut()" works from header button
-window.vtmSignOut = vtmSignOut
-
-/* ═══════════════════════════════════════════════════════════════
-   SESSION CHECK
-   ═══════════════════════════════════════════════════════════════ */
-
-function _checkSession() {
-  const session = vtmGetSession()
-  if (!session) {
-    window.location.replace('login.html')
+  // No sessionStorage — check Supabase (handles OAuth return)
+  try {
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2')
+    const db = createClient(SUPABASE_URL, SUPABASE_KEY)
+    const { data: { session: supabaseSession } } = await db.auth.getSession()
+    
+    if (!supabaseSession) return null
+    
+    // Fetch user from vtm_users
+    const { data: vtmUser, error } = await db
+      .from('vtm_users')
+      .select('role, name, user_id, ref_id')
+      .eq('auth_user_id', supabaseSession.user.id)
+      .single()
+    
+    if (error || !vtmUser) return null
+    
+    // Restore to sessionStorage
+    sessionStorage.setItem('vtm_role', vtmUser.role)
+    sessionStorage.setItem('vtm_name', vtmUser.name)
+    sessionStorage.setItem('vtm_user_id', vtmUser.user_id)
+    sessionStorage.setItem('vtm_ref_id', vtmUser.ref_id || '')
+    sessionStorage.setItem('vtm_email', supabaseSession.user.email)
+    
+    return {
+      role: vtmUser.role,
+      name: vtmUser.name,
+      user_id: vtmUser.user_id,
+      ref_id: vtmUser.ref_id || '',
+      email: supabaseSession.user.email
+    }
+  } catch (err) {
+    console.error('Session restore error:', err)
     return null
   }
-  return session
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   HEADER INJECTION
-   ═══════════════════════════════════════════════════════════════ */
+function vtmGetSession() {
+  const role = sessionStorage.getItem('vtm_role');
+  if (!role) return null;
+  return {
+    role,
+    name: sessionStorage.getItem('vtm_name') || '',
+    user_id: sessionStorage.getItem('vtm_user_id') || '',
+    ref_id: sessionStorage.getItem('vtm_ref_id') || '',
+    email: sessionStorage.getItem('vtm_email') || '',
+  };
+}
 
-function _injectHeader(session) {
+// ── HEADER INJECTION ──────────────────────────────────────────────────────
+
+function vtmInjectHeader(session) {
   const header = document.querySelector('header')
   if (!header) return
 
   const existing = header.querySelector('.header-user')
   if (existing) existing.remove()
+  
   const existingSub = header.querySelector('.header-sub')
-
-  const roleLabel = _VTM_ROLE_LABELS[session.role] || session.role
-  const userEl    = document.createElement('div')
+  
+  const roleLabels = { admin: 'Admin', pacer: 'Lead', rover: 'Doer' }
+  const roleClass = { admin: 'role-admin', pacer: 'role-pacer', rover: 'role-rover' }
+  const roleLabel = roleLabels[session.role] || session.role
+  
+  const userEl = document.createElement('div')
   userEl.className = 'header-user'
   userEl.innerHTML = `
-    <span class="header-role-pill ${_VTM_ROLE_CLASS[session.role]}">${_hesc(roleLabel)}</span>
-    <span class="header-user-name">${_hesc(session.name)}</span>
+    <span class="header-role-pill ${roleClass[session.role]}">${escapeHtml(roleLabel)}</span>
+    <span class="header-user-name">${escapeHtml(session.name)}</span>
     <button class="header-logout" onclick="vtmSignOut()">Sign out</button>
   `
+  
   if (existingSub) existingSub.replaceWith(userEl)
   else header.appendChild(userEl)
 
@@ -106,83 +114,82 @@ function _injectHeader(session) {
         letter-spacing:0.1em; text-transform:uppercase; cursor:pointer;
         font-family:var(--font-body,sans-serif); transition:border-color 0.2s,color 0.2s; }
       .header-logout:hover { border-color:rgba(247,246,242,0.5); color:var(--white,#f7f6f2); }
-
-      /* Idle warning toast — amber colour */
-      .vtm-toast--warn { background: #8a6200; }
     `
     document.head.appendChild(style)
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   IDLE TIMEOUT
-   ═══════════════════════════════════════════════════════════════ */
+function escapeHtml(str) {
+  return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
 
-function _resetActivity() {
-  sessionStorage.setItem(_LAST_ACTIVITY_KEY, Date.now().toString())
-  // If warning was shown and user is active again — dismiss it
-  if (_warnShown) {
-    _warnShown = false
-    // Hide the toast immediately
+// ── SIGN OUT ─────────────────────────────────────────────────────────────
+
+async function vtmSignOut() {
+  if (idleTimer) clearInterval(idleTimer)
+  sessionStorage.clear()
+  
+  try {
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2')
+    const db = createClient(SUPABASE_URL, SUPABASE_KEY)
+    await db.auth.signOut()
+  } catch(e) {}
+  
+  window.location.replace('login.html')
+}
+window.vtmSignOut = vtmSignOut
+
+// ── IDLE TIMEOUT ─────────────────────────────────────────────────────────
+
+function resetActivity() {
+  sessionStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString())
+  if (warnShown) {
+    warnShown = false
     const toast = document.getElementById('vtm-toast')
     if (toast) toast.classList.remove('show')
   }
 }
 
-function _startIdleTimer() {
-  // Set initial activity timestamp
-  _resetActivity()
-
-  // Listen for any user interaction
-  const _events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click']
-  _events.forEach(e => document.addEventListener(e, _resetActivity, { passive: true }))
-
-  // Check idle state every 30 seconds
-  _idleTimer = setInterval(() => {
-    const last    = parseInt(sessionStorage.getItem(_LAST_ACTIVITY_KEY) || '0')
+function startIdleTimer() {
+  resetActivity()
+  const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click']
+  events.forEach(e => document.addEventListener(e, resetActivity, { passive: true }))
+  
+  idleTimer = setInterval(() => {
+    const last = parseInt(sessionStorage.getItem(LAST_ACTIVITY_KEY) || '0')
     const elapsed = Date.now() - last
-    const remaining = _IDLE_TIMEOUT_MS - elapsed
-
-    if (elapsed >= _IDLE_TIMEOUT_MS) {
-      // Time's up — sign out
-      clearInterval(_idleTimer)
+    
+    if (elapsed >= IDLE_TIMEOUT_MS) {
+      clearInterval(idleTimer)
       vtmSignOut('timeout')
-      return
     }
-
-    if (remaining <= _WARN_BEFORE_MS && !_warnShown) {
-      // Show 2-minute warning
-      _warnShown = true
-      const mins = Math.ceil(remaining / 60000)
-      if (typeof showToast === 'function') {
-        showToast(
-          `You'll be signed out in ${mins} minute${mins !== 1 ? 's' : ''} due to inactivity — click anywhere to stay`,
-          'warn',
-          (_WARN_BEFORE_MS - 5000)  // keep toast visible until almost timeout
-        )
-      }
-    }
-  }, _CHECK_INTERVAL_MS)
+  }, CHECK_INTERVAL_MS)
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   UTILITY
-   ═══════════════════════════════════════════════════════════════ */
+// ── AUTH GUARD (main entry point) ────────────────────────────────────────
 
-function _hesc(str) {
-  return String(str || '')
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+async function vtmAuthGuard() {
+  // Check for OAuth return - if present, don't redirect
+  const hash = window.location.hash
+  const isOAuthReturn = hash && (hash.includes('access_token') || hash.includes('code'))
+  
+  // Try to restore session (handles both email and OAuth)
+  const session = await vtmCheckAndRestoreSession()
+  
+  if (!session && !isOAuthReturn) {
+    window.location.replace('login.html')
+    return null
+  }
+  
+  if (session) {
+    vtmInjectHeader(session)
+    startIdleTimer()
+  }
+  
+  return session
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   INIT — runs on DOMContentLoaded
-   ═══════════════════════════════════════════════════════════════ */
-
-document.addEventListener('DOMContentLoaded', () => {
-  const session = _checkSession()
-  if (!session) return   // redirect already fired
-
-  _injectHeader(session)
-  _startIdleTimer()
-})
+// Make functions available globally
+window.vtmGetSession = vtmGetSession
+window.vtmAuthGuard = vtmAuthGuard
+window.vtmSignOut = vtmSignOut

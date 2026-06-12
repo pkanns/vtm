@@ -81,7 +81,6 @@
     }
     .error.visible { display: block; }
 
-    /* Debug helper — remove in production */
     .debug {
       display: none; background: #e8f5ee; border-left: 3px solid var(--green);
       padding: 10px 14px; font-size: 11px; color: var(--green);
@@ -196,11 +195,15 @@
   }
 
   // ── If already logged in, skip to index ─────────────────────────────────
-  // Only auto-redirect if sessionStorage still has role set.
-  // If cleared (sign-out or timeout), stay on login even if token lingers.
-  const { data: { session: existing } } = await db.auth.getSession()
-  if (existing && sessionStorage.getItem('vtm_role')) {
-    window.location.href = 'dashboard.html'
+  // Check if we're returning from OAuth — if so, let dashboard handle it
+  const hash = window.location.hash
+  const isOAuthReturn = hash && (hash.includes('access_token') || hash.includes('code'))
+  
+  if (!isOAuthReturn) {
+    const { data: { session: existing } } = await db.auth.getSession()
+    if (existing && sessionStorage.getItem('vtm_role')) {
+      window.location.href = 'dashboard.html'
+    }
   }
 
   // ── Email / password sign-in ─────────────────────────────────────────────
@@ -232,21 +235,15 @@
     }
 
     // Step 2 — look up vtm_users row
-    // Only select columns that are guaranteed to exist in the new schema.
-    // If vtm_users has RLS enabled with no policies, this will return an error —
-    // which we surface clearly rather than hiding as "Account not registered."
     const { data: vtmUser, error: vtmError } = await db
       .from('vtm_users')
       .select('user_id, name, role')
       .eq('auth_user_id', authData.user.id)
-      .maybeSingle()  // maybeSingle returns null (not error) when no row found
+      .maybeSingle()
 
     if (vtmError) {
-      // This usually means RLS is blocking the read.
-      // Show the actual DB error so it's diagnosable.
       showError(
         'Could not read user profile. ' +
-        'If this just happened after a database change, check Supabase RLS policies on vtm_users. ' +
         'Error: ' + vtmError.message
       )
       await db.auth.signOut()
@@ -255,7 +252,6 @@
     }
 
     if (!vtmUser) {
-      // Auth succeeded but no vtm_users row — show actionable message
       showError(
         'Authenticated but no user profile found. ' +
         'Ask your admin to add you to the vtm_users table with your auth ID: ' +

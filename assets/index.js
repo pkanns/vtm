@@ -4,8 +4,8 @@
  * All DB calls via vtm_api.js · Connection via vtm_db.js
  */
 
-import { db }          from './assets/vtm_db.js'
-import { fetchCounts } from './assets/vtm_api.js'
+import { db }          from './vtm_db.js'
+import { fetchCounts } from './vtm_api.js'
 
 const statusEl = document.getElementById('coverStatus')
 

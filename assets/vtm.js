@@ -46,7 +46,7 @@ function vtmGuardPage(allowedRoles) {
   const session = vtmGetSession();
   if (!session || !allowedRoles.includes(session.role)) {
     showToast('Access restricted for your role', 'err');
-    setTimeout(() => { window.location.href = 'index.html'; }, 1200);
+    setTimeout(() => { window.location.href = 'dashboard.html'; }, 1200);
   }
 }
 

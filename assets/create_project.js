@@ -23,7 +23,7 @@ if (!session) {
 
 if (role === 'rover') {
   showToast('Doers cannot create projects', 'err')
-  setTimeout(() => { window.location.href = 'index.html' }, 1200)
+  setTimeout(() => { window.location.href = 'dashboard.html' }, 1200)
   throw new Error('Rover blocked')
 }
 

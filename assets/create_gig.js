@@ -31,7 +31,7 @@ const myUserId = session.user_id
 
 if (role === 'rover') {
   showToast('Doers cannot create gigs', 'err')
-  setTimeout(() => { window.location.href = 'index.html' }, 1200)
+  setTimeout(() => { window.location.href = 'dashboard.html' }, 1200)
   throw new Error('Rover blocked')
 }
 

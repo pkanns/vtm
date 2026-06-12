@@ -333,7 +333,69 @@ function _setInputVal(id, value) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   10. INIT
+   10. HEADER INJECTION + SIGN OUT (replaces vtm_auth_guard.js) - ADDED DEEPSEEK
+   ═══════════════════════════════════════════════════════════════ */
+
+function vtmInjectHeader(session) {
+  if (!session || !session.role) return;
+  
+  const header = document.querySelector('header');
+  if (!header) return;
+
+  const existing = header.querySelector('.header-user');
+  if (existing) existing.remove();
+  
+  const existingSub = header.querySelector('.header-sub');
+  
+  const roleLabels = { admin: 'Admin', pacer: 'Lead', rover: 'Doer' };
+  const roleClass = { admin: 'role-admin', pacer: 'role-pacer', rover: 'role-rover' };
+  const roleLabel = roleLabels[session.role] || session.role;
+  
+  const userEl = document.createElement('div');
+  userEl.className = 'header-user';
+  userEl.innerHTML = `
+    <span class="header-role-pill ${roleClass[session.role]}">${_esc(roleLabel)}</span>
+    <span class="header-user-name">${_esc(session.name)}</span>
+    <button class="header-logout" onclick="vtmSignOut()">Sign out</button>
+  `;
+  
+  if (existingSub) existingSub.replaceWith(userEl);
+  else header.appendChild(userEl);
+
+  if (!document.getElementById('vtm-auth-styles')) {
+    const style = document.createElement('style');
+    style.id = 'vtm-auth-styles';
+    style.textContent = `
+      .header-user { display:flex; align-items:center; gap:12px; }
+      .header-role-pill { font-size:9px; letter-spacing:0.12em; text-transform:uppercase;
+        padding:3px 8px; font-weight:600; font-family:var(--font-mono,monospace); }
+      .role-admin { background:rgba(247,246,242,0.15); color:var(--white,#f7f6f2); }
+      .role-pacer { background:var(--red,#c0392b);     color:var(--white,#f7f6f2); }
+      .role-rover { background:var(--green,#2d5a3d);   color:var(--white,#f7f6f2); }
+      .header-user-name { font-size:12px; color:rgba(247,246,242,0.6);
+        font-family:var(--font-body,sans-serif); }
+      .header-logout { background:none; border:1px solid rgba(247,246,242,0.2);
+        color:rgba(247,246,242,0.4); padding:4px 10px; font-size:10px;
+        letter-spacing:0.1em; text-transform:uppercase; cursor:pointer;
+        font-family:var(--font-body,sans-serif); transition:border-color 0.2s,color 0.2s; }
+      .header-logout:hover { border-color:rgba(247,246,242,0.5); color:var(--white,#f7f6f2); }
+    `;
+    document.head.appendChild(style);
+  }
+}
+
+function vtmSignOut() {
+  sessionStorage.clear();
+  // Try to sign out of Supabase if db exists
+  if (typeof db !== 'undefined' && db && db.auth) {
+    db.auth.signOut().catch(() => {});
+  }
+  window.location.replace('login.html');
+}
+window.vtmSignOut = vtmSignOut;
+
+/* ═══════════════════════════════════════════════════════════════
+   11. INIT
    ═══════════════════════════════════════════════════════════════ */
 
 document.addEventListener('DOMContentLoaded', () => {

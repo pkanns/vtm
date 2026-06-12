@@ -143,6 +143,8 @@
   </div>
 </div>
 
+// Just replace the script section in your login.html (from line ~120 to the end)
+
 <script type="module">
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -160,20 +162,15 @@
 
   const emailInput = document.getElementById('email')
   const passwordInput = document.getElementById('password')
-  const signinBtn   = document.getElementById('signinBtn')
-  const googleBtn   = document.getElementById('googleBtn')
-  const errorDiv    = document.getElementById('errorMsg')
-  const debugDiv    = document.getElementById('debugMsg')
+  const signinBtn = document.getElementById('signinBtn')
+  const googleBtn = document.getElementById('googleBtn')
+  const errorDiv = document.getElementById('errorMsg')
+  const debugDiv = document.getElementById('debugMsg')
 
   function showError(msg) {
     errorDiv.textContent = msg
     errorDiv.classList.add('visible')
-    debugDiv.classList.remove('visible')
-  }
-
-  function showDebug(msg) {
-    debugDiv.textContent = msg
-    debugDiv.classList.add('visible')
+    if (debugDiv) debugDiv.classList.remove('visible')
   }
 
   function resetBtn() {
@@ -181,9 +178,9 @@
     signinBtn.textContent = 'Sign In →'
   }
 
-  // ── Show timeout message if redirected due to inactivity ────────────────
-  const _reason = new URLSearchParams(window.location.search).get('reason')
-  if (_reason === 'timeout') {
+  // Show timeout message if redirected due to inactivity
+  const reason = new URLSearchParams(window.location.search).get('reason')
+  if (reason === 'timeout') {
     const errDiv = document.getElementById('errorMsg')
     if (errDiv) {
       errDiv.textContent = 'You were signed out after 30 minutes of inactivity.'
@@ -194,28 +191,23 @@
     }
   }
 
-  // ── If already logged in, skip to index ─────────────────────────────────
-  // Check if we're returning from OAuth — if so, let dashboard handle it
+  // Check if already logged in (but NOT if returning from OAuth)
   const hash = window.location.hash
   const isOAuthReturn = hash && (hash.includes('access_token') || hash.includes('code'))
   
   if (!isOAuthReturn) {
-	const hash = window.location.hash
-	const isOAuthReturn = hash && (hash.includes('access_token') || hash.includes('code'))
+    const { data: { session: existing } } = await db.auth.getSession()
+    if (existing && sessionStorage.getItem('vtm_role')) {
+      window.location.href = 'dashboard.html'
+    }
+  }
 
-	if (!isOAuthReturn) {
-  	const { data: { session: existing } } = await db.auth.getSession()
-  	if (existing && sessionStorage.getItem('vtm_role')) {
-    	window.location.href = 'dashboard.html'
-  	}
-  }    
-
-  // ── Email / password sign-in ─────────────────────────────────────────────
+  // Email/password sign-in
   async function signInWithEmail() {
     errorDiv.classList.remove('visible')
-    debugDiv.classList.remove('visible')
+    if (debugDiv) debugDiv.classList.remove('visible')
 
-    const email    = emailInput.value.trim()
+    const email = emailInput.value.trim()
     const password = passwordInput.value
 
     if (!email || !password) {
@@ -226,19 +218,14 @@
     signinBtn.disabled = true
     signinBtn.textContent = 'Signing in…'
 
-    // Step 1 — authenticate with Supabase Auth
-    const { data: authData, error: authError } =
-      await db.auth.signInWithPassword({ email, password })
+    const { data: authData, error: authError } = await db.auth.signInWithPassword({ email, password })
 
     if (authError) {
-      showError(authError.message.includes('Invalid')
-        ? 'Incorrect email or password.'
-        : authError.message)
+      showError(authError.message.includes('Invalid') ? 'Incorrect email or password.' : authError.message)
       resetBtn()
       return
     }
 
-    // Step 2 — look up vtm_users row
     const { data: vtmUser, error: vtmError } = await db
       .from('vtm_users')
       .select('user_id, name, role')
@@ -246,36 +233,28 @@
       .maybeSingle()
 
     if (vtmError) {
-      showError(
-        'Could not read user profile. ' +
-        'Error: ' + vtmError.message
-      )
+      showError('Could not read user profile. Error: ' + vtmError.message)
       await db.auth.signOut()
       resetBtn()
       return
     }
 
     if (!vtmUser) {
-      showError(
-        'Authenticated but no user profile found. ' +
-        'Ask your admin to add you to the vtm_users table with your auth ID: ' +
-        authData.user.id
-      )
+      showError('Authenticated but no user profile found. Ask your admin to add you to the vtm_users table.')
       await db.auth.signOut()
       resetBtn()
       return
     }
 
-    // Step 3 — store session and redirect
-    sessionStorage.setItem('vtm_role',    vtmUser.role    || 'pacer')
-    sessionStorage.setItem('vtm_name',    vtmUser.name    || email)
+    sessionStorage.setItem('vtm_role', vtmUser.role || 'pacer')
+    sessionStorage.setItem('vtm_name', vtmUser.name || email)
     sessionStorage.setItem('vtm_user_id', vtmUser.user_id || '')
-    sessionStorage.setItem('vtm_email',   email)
+    sessionStorage.setItem('vtm_email', email)
 
     window.location.href = 'dashboard.html'
   }
 
-  // ── Google OAuth ─────────────────────────────────────────────────────────
+  // Google OAuth
   async function signInWithGoogle() {
     errorDiv.classList.remove('visible')
     const { error } = await db.auth.signInWithOAuth({
@@ -285,12 +264,12 @@
     if (error) showError(error.message)
   }
 
-  // ── Event listeners ──────────────────────────────────────────────────────
   signinBtn.addEventListener('click', signInWithEmail)
   googleBtn.addEventListener('click', signInWithGoogle)
   passwordInput.addEventListener('keypress', e => {
     if (e.key === 'Enter') signInWithEmail()
   })
+
 </script>
 </body>
 </html>

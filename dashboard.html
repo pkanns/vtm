@@ -6,84 +6,32 @@
   <title>Vidai to Mulai — Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/vtm.css">
-  <script src="assets/vtm.js"></script>
-  <script src="assets/vtm_auth_guard.js"></script>
   <style>
-    .page-container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
-
-    /* ── Stats strip ── */
-    .stats-strip { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--charcoal); }
-    .stat-cell { padding: 20px 24px; text-align: center; border-right: 1px solid rgba(255,255,255,0.06); cursor: default; }
-    .stat-cell:last-child { border-right: none; }
-    .stat-num { font-family: var(--font-display); font-size: 2rem; font-weight: 600; color: var(--white); line-height: 1; margin-bottom: 4px; transition: color 0.2s; }
-    .stat-num.warn { color: #f5c842; }
-    .stat-label { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(247,246,242,0.35); font-family: var(--font-mono); }
+    .page-container { max-width: 1100px; margin: 0 auto; padding: 48px 24px 80px; }
 
     /* ── Cover ── */
-    .cover { background: var(--black); padding: 28px 48px 24px; border-bottom: 3px solid var(--red); display: flex; align-items: center; justify-content: space-between; }
-    .cover-left h1 { font-family: var(--font-display); font-size: 1.8rem; color: var(--white); margin-bottom: 2px; }
-    .cover-left h1 span { color: var(--red); }
-    .cover-left .cover-sub { font-size: 11px; color: rgba(247,246,242,0.4); font-family: var(--font-mono); letter-spacing: 0.06em; }
-    .cover-right { display: flex; align-items: center; gap: 12px; }
-    .btn-new-gig { background: var(--red); color: var(--white); border: none; padding: 11px 24px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; font-family: var(--font-body); text-decoration: none; display: inline-block; transition: background 0.2s; }
-    .btn-new-gig:hover { background: var(--red-dark); }
-    .btn-outline { background: transparent; color: rgba(247,246,242,0.5); border: 1px solid rgba(247,246,242,0.2); padding: 10px 20px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; font-family: var(--font-body); text-decoration: none; display: inline-block; transition: all 0.2s; }
-    .btn-outline:hover { border-color: rgba(247,246,242,0.5); color: var(--white); }
+    .cover { background: var(--black); padding: 56px 48px 48px; border-bottom: 4px solid var(--red); }
+    .cover-eyebrow { font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--stone); font-family: var(--font-mono); margin-bottom: 14px; }
+    .cover h1 { font-family: var(--font-display); font-size: 3rem; font-weight: 600; color: var(--white); line-height: 1.1; margin-bottom: 10px; }
+    .cover h1 span { color: var(--red); }
+    .cover-sub { font-size: 13px; color: rgba(247,246,242,0.45); font-weight: 300; }
+    .cover-user { margin-top: 28px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.07); display: flex; align-items: center; justify-content: space-between; }
+    .cover-welcome { font-size: 12px; font-family: var(--font-mono); letter-spacing: 0.06em; color: var(--stone); }
+    .cover-welcome strong { color: var(--white); }
+    .btn-signout { background: none; border: 1px solid rgba(247,246,242,0.15); color: rgba(247,246,242,0.4); padding: 6px 14px; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; font-family: var(--font-body); transition: all 0.2s; }
+    .btn-signout:hover { border-color: rgba(247,246,242,0.4); color: var(--white); }
 
-    /* ── Sort / filter bar ── */
-    .filter-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
-    .filter-label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--stone); font-family: var(--font-mono); margin-right: 4px; }
-    .filter-btn { background: var(--white); border: 1px solid #ccc; color: var(--stone); padding: 5px 14px; font-size: 11px; cursor: pointer; font-family: var(--font-body); letter-spacing: 0.06em; transition: all 0.15s; }
-    .filter-btn:hover { border-color: var(--charcoal); color: var(--black); }
-    .filter-btn.active { background: var(--black); border-color: var(--black); color: var(--white); }
-
-    /* ── Section headers ── */
-    .section-header { display: flex; align-items: center; justify-content: space-between; margin: 28px 0 12px; }
-    .section-title-row { display: flex; align-items: center; gap: 10px; }
-    .section-heading { font-family: var(--font-display); font-size: 1.1rem; color: var(--black); }
-    .section-count { font-size: 11px; font-family: var(--font-mono); color: var(--stone); background: var(--light); padding: 2px 10px; }
-    .section-count.warn { background: #fdf5e0; color: #8a6200; }
-
-    /* ── Gig task rows ── */
-    .gig-list { background: var(--white); border-top: 3px solid var(--charcoal); }
-    .gig-list.warn-list { border-top-color: #f5c842; }
-    .gig-row { display: grid; grid-template-columns: 180px 1fr 100px 90px 100px 120px; align-items: center; gap: 16px; padding: 14px 20px; border-bottom: 1px solid var(--light); cursor: pointer; transition: background 0.12s; text-decoration: none; color: inherit; }
-    .gig-row:last-child { border-bottom: none; }
-    .gig-row:hover { background: var(--light); }
-    .gig-row.needs-placement { background: rgba(245,200,66,0.04); }
-    .gig-row.needs-placement:hover { background: rgba(245,200,66,0.1); }
-
-    .gig-code { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--black); letter-spacing: 0.04em; }
-    .gig-title { font-size: 13px; color: var(--black); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .gig-project { font-size: 10px; color: var(--stone); font-family: var(--font-mono); margin-top: 2px; }
-    .gig-due { font-size: 11px; color: var(--stone); font-family: var(--font-mono); }
-    .gig-due.overdue { color: var(--red); font-weight: 600; }
-    .gig-start { font-size: 11px; color: var(--stone); font-family: var(--font-mono); }
-
-    .placement-flag { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #8a6200; background: #fdf5e0; padding: 2px 7px; font-family: var(--font-mono); font-weight: 600; }
-
-    .status-pill { display: inline-block; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; font-weight: 600; }
-    .status-pill.placed      { background: #e8eef5; color: #2a5a8a; }
-    .status-pill.matched     { background: #f5eef8; color: #7b3fa0; }
-    .status-pill.aligned     { background: #fdf5e0; color: #8a6200; }
-    .status-pill.in_progress { background: #fceee8; color: var(--red); }
-    .status-pill.delivered   { background: #e8f5ee; color: var(--green); }
-    .status-pill.completed   { background: var(--light); color: var(--stone); }
-
-    /* ── Upcoming collapsed section ── */
-    .upcoming-toggle { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 12px 0; user-select: none; }
-    .upcoming-toggle:hover .section-heading { color: var(--red); }
-    .upcoming-arrow { font-family: var(--font-mono); font-size: 12px; color: var(--stone); transition: transform 0.2s; }
-    .upcoming-arrow.open { transform: rotate(90deg); }
-    .upcoming-list { display: none; }
-    .upcoming-list.visible { display: block; }
-
-    .empty-section { background: var(--white); padding: 32px; text-align: center; color: var(--stone); font-size: 13px; border-top: 3px solid var(--light); }
-    .empty-section a { color: var(--red); text-decoration: none; }
-
-    .db-status { font-size: 11px; font-family: var(--font-mono); color: var(--stone); padding: 4px 0 0; }
-    .db-status.ok  { color: var(--green); }
-    .db-status.err { color: var(--red); }
+    /* ── Tool cards ── */
+    .tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2px; margin-top: 40px; }
+    .tool-card { background: var(--white); padding: 32px 28px 28px; text-decoration: none; color: inherit; display: flex; flex-direction: column; border-top: 3px solid var(--charcoal); transition: border-top-color 0.2s, transform 0.15s, box-shadow 0.15s; }
+    .tool-card:hover { border-top-color: var(--red); transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.07); }
+    .tool-card-eyebrow { font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--stone); margin-bottom: 10px; }
+    .tool-card h3 { font-family: var(--font-display); font-size: 1.2rem; font-weight: 600; color: var(--black); margin-bottom: 8px; }
+    .tool-card-desc { font-size: 12px; color: var(--mid); line-height: 1.6; flex: 1; margin-bottom: 20px; }
+    .tool-card-footer { display: flex; align-items: center; justify-content: flex-end; border-top: 1px solid var(--light); padding-top: 12px; }
+    .tool-card-arrow { font-size: 13px; color: var(--stone); font-family: var(--font-mono); transition: color 0.2s, transform 0.2s; }
+    .tool-card:hover .tool-card-arrow { color: var(--red); transform: translateX(4px); }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
@@ -93,73 +41,97 @@
   <div class="header-sub">Dashboard</div>
 </header>
 
-<!-- Stats -->
-<div class="stats-strip">
-  <div class="stat-cell"><div class="stat-num" id="statActive">—</div><div class="stat-label">Active Today</div></div>
-  <div class="stat-cell"><div class="stat-num warn" id="statPlacement">—</div><div class="stat-label">Needs Placement</div></div>
-  <div class="stat-cell"><div class="stat-num" id="statUpcoming">—</div><div class="stat-label">Upcoming</div></div>
-  <div class="stat-cell"><div class="stat-num" id="statDoneWeek">—</div><div class="stat-label">Done This Week</div></div>
-</div>
-
-<!-- Cover -->
 <div class="cover">
-  <div class="cover-left">
-    <h1>Vidai <span>to</span> Mulai</h1>
-    <div class="cover-sub" id="coverSub">Loading…</div>
-  </div>
-  <div class="cover-right" id="coverActions">
-    <a href="gig_index.html" class="btn-outline">All Gigs →</a>
-    <a href="create_gig.html" class="btn-new-gig">+ New Gig</a>
+  <div class="cover-eyebrow">Gig Evaluation Platform</div>
+  <h1>Vidai <span>to</span> Mulai</h1>
+  <div class="cover-sub">Lead · Doer · Gig · Evaluate · Reward</div>
+  <div class="cover-user">
+    <div class="cover-welcome">Signed in as <strong id="coverName">…</strong></div>
+    <button class="btn-signout" onclick="signOut()">Sign out</button>
   </div>
 </div>
 
 <div class="page-container">
+  <div class="tools-grid">
 
-  <div class="db-status" id="dbStatus">Connecting…</div>
+    <a href="gig_index.html" class="tool-card">
+      <div class="tool-card-eyebrow">Work</div>
+      <h3>Gigs</h3>
+      <div class="tool-card-desc">View and manage gigs across every stage of the pipeline — from placement through to completion.</div>
+      <div class="tool-card-footer"><span class="tool-card-arrow">→</span></div>
+    </a>
 
-  <!-- Sort bar -->
-  <div class="filter-bar" id="filterBar">
-    <span class="filter-label">Sort by</span>
-    <button class="filter-btn active" data-sort="due" onclick="setSort('due')">Due Date</button>
-    <button class="filter-btn" data-sort="start" onclick="setSort('start')">Start Date</button>
-    <button class="filter-btn" data-sort="project" onclick="setSort('project')">Project</button>
-    <button class="filter-btn" data-sort="status" onclick="setSort('status')">Status</button>
+    <a href="gig_eval.html" class="tool-card">
+      <div class="tool-card-eyebrow">Reflect</div>
+      <h3>Evaluations</h3>
+      <div class="tool-card-desc">Rate engagement and effectiveness for completed gigs. Calculate scores and confirm rewards.</div>
+      <div class="tool-card-footer"><span class="tool-card-arrow">→</span></div>
+    </a>
+
+    <a href="timesheet.html" class="tool-card">
+      <div class="tool-card-eyebrow">Track</div>
+      <h3>Timesheet</h3>
+      <div class="tool-card-desc">Log time worked against your gigs. Record start and end times and review your personal time history.</div>
+      <div class="tool-card-footer"><span class="tool-card-arrow">→</span></div>
+    </a>
+
+    <!-- Create User — Admin only, shown/hidden based on role -->
+    <a href="create_user.html" class="tool-card hidden" id="cardCreateUser">
+      <div class="tool-card-eyebrow">Admin</div>
+      <h3>Users</h3>
+      <div class="tool-card-desc">Invite and manage platform users. Create Leads, Doers and Admins. Send email invites or set up OAuth access.</div>
+      <div class="tool-card-footer"><span class="tool-card-arrow">→</span></div>
+    </a>
+
   </div>
-
-  <!-- Needs Placement — admin/pacer only -->
-  <div id="placementSection" style="display:none;">
-    <div class="section-header">
-      <div class="section-title-row">
-        <div class="section-heading">Needs Placement</div>
-        <span class="section-count warn" id="placementCount">0</span>
-      </div>
-    </div>
-    <div class="gig-list warn-list" id="placementList"></div>
-  </div>
-
-  <!-- Active Today -->
-  <div class="section-header">
-    <div class="section-title-row">
-      <div class="section-heading">Active Today</div>
-      <span class="section-count" id="activeCount">0</span>
-    </div>
-  </div>
-  <div id="activeList">
-    <div class="empty-section">Loading…</div>
-  </div>
-
-  <!-- Upcoming -->
-  <div class="upcoming-toggle" onclick="toggleUpcoming()">
-    <div class="upcoming-arrow" id="upcomingArrow">›</div>
-    <div class="section-title-row">
-      <div class="section-heading">Upcoming</div>
-      <span class="section-count" id="upcomingCount">0</span>
-    </div>
-  </div>
-  <div class="upcoming-list" id="upcomingList"></div>
-
 </div>
 
-<script type="module" src="assets/index.js"></script>
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+  const SUPABASE_URL = 'https://dbecwjhsewucqtfgoylv.supabase.co'
+  const SUPABASE_KEY = 'sb_publishable_aw39P_0nn4vB0yjfDqwEvw_mU-Hc1Sp'
+  const db = createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'vtm-auth' }
+  })
+
+  const { data: { session } } = await db.auth.getSession()
+
+  if (!session) {
+    window.location.href = 'login.html'
+  }
+
+  const { data: vtmUser } = await db
+    .from('vtm_users')
+    .select('user_id, name, role')
+    .eq('auth_user_id', session.user.id)
+    .maybeSingle()
+
+  if (!vtmUser) {
+    await db.auth.signOut()
+    sessionStorage.clear()
+    window.location.href = 'login.html'
+  } else {
+    sessionStorage.setItem('vtm_role', vtmUser.role)
+    sessionStorage.setItem('vtm_name', vtmUser.name)
+    sessionStorage.setItem('vtm_user_id', vtmUser.user_id)
+    sessionStorage.setItem('vtm_email', session.user.email || '')
+
+    const displayName = vtmUser.name || session.user.user_metadata?.full_name || session.user.email || 'User'
+    document.getElementById('coverName').textContent = displayName
+
+    if (vtmUser.role === 'admin') {
+      const card = document.getElementById('cardCreateUser')
+      if (card) card.classList.remove('hidden')
+    }
+  }
+
+  window.signOut = async function() {
+    await db.auth.signOut()
+    sessionStorage.clear()
+    window.location.href = 'login.html'
+  }
+</script>
+
 </body>
 </html>

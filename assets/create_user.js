@@ -6,7 +6,7 @@
  * No direct database inserts from frontend
  */
 
-import { db } from 'vtm_db.js'
+import { db } from './vtm_db.js'
 
 const EDGE_FUNCTION_URL = 'https://dbecwjhsewucqtfgoylv.supabase.co/functions/v1/invite-user'
 const SUPABASE_ANON_KEY = 'sb_publishable_aw39P_0nn4vB0yjfDqwEvw_mU-Hc1Sp'

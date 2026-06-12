@@ -200,7 +200,7 @@
   // If cleared (sign-out or timeout), stay on login even if token lingers.
   const { data: { session: existing } } = await db.auth.getSession()
   if (existing && sessionStorage.getItem('vtm_role')) {
-    window.location.href = 'index.html'
+    window.location.href = 'dashboard.html'
   }
 
   // ── Email / password sign-in ─────────────────────────────────────────────
@@ -272,7 +272,7 @@
     sessionStorage.setItem('vtm_user_id', vtmUser.user_id || '')
     sessionStorage.setItem('vtm_email',   email)
 
-    window.location.href = 'index.html'
+    window.location.href = 'dashboard.html'
   }
 
   // ── Google OAuth ─────────────────────────────────────────────────────────
@@ -280,7 +280,7 @@
     errorDiv.classList.remove('visible')
     const { error } = await db.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + '/index.html' }
+      options: { redirectTo: window.location.origin + '/dashboard.html' }
     })
     if (error) showError(error.message)
   }

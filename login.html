@@ -200,11 +200,15 @@
   const isOAuthReturn = hash && (hash.includes('access_token') || hash.includes('code'))
   
   if (!isOAuthReturn) {
-    const { data: { session: existing } } = await db.auth.getSession()
-    if (existing && sessionStorage.getItem('vtm_role')) {
-      window.location.href = 'dashboard.html'
-    }
-  }
+	const hash = window.location.hash
+	const isOAuthReturn = hash && (hash.includes('access_token') || hash.includes('code'))
+
+	if (!isOAuthReturn) {
+  	const { data: { session: existing } } = await db.auth.getSession()
+  	if (existing && sessionStorage.getItem('vtm_role')) {
+    	window.location.href = 'dashboard.html'
+  	}
+  }    
 
   // ── Email / password sign-in ─────────────────────────────────────────────
   async function signInWithEmail() {

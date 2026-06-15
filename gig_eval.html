@@ -45,49 +45,6 @@
     .vtm-nav-dropdown a.active { color:var(--white); }
     .vtm-dropdown-user { padding:12px 32px 4px; display:flex; align-items:center; gap:10px; border-top:1px solid rgba(255,255,255,0.08); margin-top:4px; }
     @media (max-width:768px) { .vtm-nav,.vtm-header-right{display:none} .vtm-hamburger{display:flex} .vtm-header-inner{padding:0 20px} }
-    
-    /* evaluation specific styles (unchanged from original) */
-    .col-badge { font-size:9px; letter-spacing:0.1em; text-transform:uppercase; padding:2px 6px; border-radius:0; font-weight:600; display:inline-block; margin-bottom:6px; }
-    .rover-badge { background:var(--green); color:var(--white); }
-    .pacer-badge { background:var(--red); color:var(--white); }
-    .rating-cell { min-width:140px; }
-    .stars { display:inline-flex; gap:2px; margin-right:8px; }
-    .stars input { display:none; }
-    .stars label { font-size:18px; color:#ccc; cursor:pointer; transition:color 0.1s; }
-    .stars input:checked ~ label, .stars label:hover, .stars label:hover ~ label { color:#f5b042; }
-    .stars input:checked + label { color:#f5b042; }
-    .star-slider { width:100px; margin-left:4px; vertical-align:middle; }
-    .score-cell { text-align:center; font-weight:500; font-family:var(--font-mono); }
-    .dim-score-row td { background:var(--light); font-weight:500; }
-    .eval-table { width:100%; border-collapse:collapse; margin-bottom:32px; background:white; }
-    .eval-table th { background:var(--black); color:var(--white); padding:14px 10px; font-size:10px; font-weight:500; text-align:left; }
-    .eval-table td { padding:14px 10px; border-bottom:1px solid var(--light); vertical-align:middle; }
-    .eval-table .center { text-align:center; }
-    .attr-name { font-weight:600; margin-bottom:3px; font-size:14px; }
-    .attr-desc { font-size:11px; color:var(--stone); }
-    .section-head { display:flex; align-items:baseline; gap:14px; margin:32px 0 16px; }
-    .section-num { font-family:var(--font-mono); font-size:28px; font-weight:500; color:var(--red); line-height:1; }
-    .section-title { font-family:var(--font-display); font-size:18px; letter-spacing:-0.01em; }
-    .section-weight { font-size:10px; color:var(--stone); font-family:var(--font-mono); margin-top:3px; }
-    .gig-meta { background:var(--light); padding:24px; margin-bottom:24px; }
-    .gig-meta-grid { display:grid; grid-template-columns:100px 1fr 80px 1fr; gap:12px 16px; align-items:center; }
-    .meta-label { font-size:10px; text-transform:uppercase; letter-spacing:0.08em; font-weight:600; color:var(--charcoal); }
-    .meta-input { background:white; border:1px solid #ddd; padding:8px 10px; font-family:var(--font-body); font-size:13px; }
-    .meta-input.wide { grid-column:span 2; }
-    .notes-input { width:100%; padding:12px; border:1px solid #ddd; font-family:var(--font-body); font-size:13px; min-height:100px; }
-    .final-block { background:var(--black); color:white; padding:20px; margin:32px 0; text-align:center; }
-    .final-label { font-size:10px; letter-spacing:0.12em; text-transform:uppercase; margin-bottom:8px; }
-    .final-value { font-size:28px; font-weight:600; font-family:var(--font-mono); }
-    .final-stars { letter-spacing:4px; }
-    .reflection-row { display:flex; gap:20px; align-items:center; margin:20px 0; flex-wrap:wrap; }
-    .notes-block { margin:28px 0; }
-    .submit-block { margin:32px 0 60px; text-align:right; }
-    .btn-submit { background:var(--red); border:none; color:white; padding:12px 28px; font-size:12px; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; font-family:var(--font-body); transition:background 0.2s; }
-    .btn-submit:hover { background:var(--red-dark); }
-    .load-gig-bar { background:var(--light); padding:12px 24px; display:flex; align-items:center; gap:16px; margin-bottom:8px; font-size:12px; }
-    .load-gig-label { font-weight:600; text-transform:uppercase; font-size:10px; letter-spacing:0.1em; }
-    .toggle-pair input[type="radio"] { margin-right:4px; }
-    .toggle-pair label { margin-right:12px; font-size:12px; }
   </style>
 </head>
 <body data-page="evaluate">
@@ -159,10 +116,10 @@
       <input class="meta-input" id="gigDate" type="date" />
       <div class="meta-label">Gig Name</div>
       <input class="meta-input wide" id="gigName" placeholder="Short title of the gig" />
-      <div class="meta-label">Doer</div>
-      <input class="meta-input" id="roverDisplay" placeholder="Doer name" readonly />
-      <div class="meta-label">Lead</div>
-      <input class="meta-input" id="pacerDisplay" placeholder="Lead name" readonly />
+      <div class="meta-label">Rover</div>
+      <input class="meta-input" id="roverDisplay" placeholder="Rover name" readonly />
+      <div class="meta-label">Pacer</div>
+      <input class="meta-input" id="pacerDisplay" placeholder="Pacer name" readonly />
       <div class="meta-label">Description</div>
       <textarea class="meta-input wide notes-input" id="gigDesc" placeholder="What was this gig about?" style="min-height:60px;"></textarea>
     </div>
@@ -222,7 +179,7 @@
         <td><div class="attr-name">Planning</div><div class="attr-desc">Ability to foresee needs, think long term</div></td>
         <td style="text-align:center">33%</td>
         <td><div class="rating-cell"><div class="stars"><input type="radio" name="d2p1rover" value="5" onchange="syncSlider('d2p1rover',5);calcScores()"><label>★</label><input type="radio" name="d2p1rover" value="4" onchange="syncSlider('d2p1rover',4);calcScores()"><label>★</label><input type="radio" name="d2p1rover" value="3" onchange="syncSlider('d2p1rover',3);calcScores()"><label>★</label><input type="radio" name="d2p1rover" value="2" onchange="syncSlider('d2p1rover',2);calcScores()"><label>★</label><input type="radio" name="d2p1rover" value="1" onchange="syncSlider('d2p1rover',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d2p1rover" min="1" max="5" value="1" oninput="syncStars('d2p1rover',this.value);calcScores()"></div></td>
-        <tr><div class="rating-cell"><div class="stars"><input type="radio" name="d2p1pacer" value="5" onchange="syncSlider('d2p1pacer',5);calcScores()"><label>★</label><input type="radio" name="d2p1pacer" value="4" onchange="syncSlider('d2p1pacer',4);calcScores()"><label>★</label><input type="radio" name="d2p1pacer" value="3" onchange="syncSlider('d2p1pacer',3);calcScores()"><label>★</label><input type="radio" name="d2p1pacer" value="2" onchange="syncSlider('d2p1pacer',2);calcScores()"><label>★</label><input type="radio" name="d2p1pacer" value="1" onchange="syncSlider('d2p1pacer',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d2p1pacer" min="1" max="5" value="1" oninput="syncStars('d2p1pacer',this.value);calcScores()"></div></td>
+        <td><div class="rating-cell"><div class="stars"><input type="radio" name="d2p1pacer" value="5" onchange="syncSlider('d2p1pacer',5);calcScores()"><label>★</label><input type="radio" name="d2p1pacer" value="4" onchange="syncSlider('d2p1pacer',4);calcScores()"><label>★</label><input type="radio" name="d2p1pacer" value="3" onchange="syncSlider('d2p1pacer',3);calcScores()"><label>★</label><input type="radio" name="d2p1pacer" value="2" onchange="syncSlider('d2p1pacer',2);calcScores()"><label>★</label><input type="radio" name="d2p1pacer" value="1" onchange="syncSlider('d2p1pacer',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d2p1pacer" min="1" max="5" value="1" oninput="syncStars('d2p1pacer',this.value);calcScores()"></div></td>
         <td class="score-cell" id="d2p1score">—</td>
       </tr>
       <tr>
@@ -280,7 +237,7 @@
       <tr>
         <td><div class="attr-name">Timeline</div><div class="attr-desc">Delivered on time as agreed</div></td>
         <td style="text-align:center" id="wTimeline">34%</td>
-        <tr><div class="rating-cell"><div class="stars"><input type="radio" name="d3p3rover" value="5" onchange="syncSlider('d3p3rover',5);calcScores()"><label>★</label><input type="radio" name="d3p3rover" value="4" onchange="syncSlider('d3p3rover',4);calcScores()"><label>★</label><input type="radio" name="d3p3rover" value="3" onchange="syncSlider('d3p3rover',3);calcScores()"><label>★</label><input type="radio" name="d3p3rover" value="2" onchange="syncSlider('d3p3rover',2);calcScores()"><label>★</label><input type="radio" name="d3p3rover" value="1" onchange="syncSlider('d3p3rover',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d3p3rover" min="1" max="5" value="1" oninput="syncStars('d3p3rover',this.value);calcScores()"></div></td>
+        <td><div class="rating-cell"><div class="stars"><input type="radio" name="d3p3rover" value="5" onchange="syncSlider('d3p3rover',5);calcScores()"><label>★</label><input type="radio" name="d3p3rover" value="4" onchange="syncSlider('d3p3rover',4);calcScores()"><label>★</label><input type="radio" name="d3p3rover" value="3" onchange="syncSlider('d3p3rover',3);calcScores()"><label>★</label><input type="radio" name="d3p3rover" value="2" onchange="syncSlider('d3p3rover',2);calcScores()"><label>★</label><input type="radio" name="d3p3rover" value="1" onchange="syncSlider('d3p3rover',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d3p3rover" min="1" max="5" value="1" oninput="syncStars('d3p3rover',this.value);calcScores()"></div></td>
         <td><div class="rating-cell"><div class="stars"><input type="radio" name="d3p3pacer" value="5" onchange="syncSlider('d3p3pacer',5);calcScores()"><label>★</label><input type="radio" name="d3p3pacer" value="4" onchange="syncSlider('d3p3pacer',4);calcScores()"><label>★</label><input type="radio" name="d3p3pacer" value="3" onchange="syncSlider('d3p3pacer',3);calcScores()"><label>★</label><input type="radio" name="d3p3pacer" value="2" onchange="syncSlider('d3p3pacer',2);calcScores()"><label>★</label><input type="radio" name="d3p3pacer" value="1" onchange="syncSlider('d3p3pacer',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d3p3pacer" min="1" max="5" value="1" oninput="syncStars('d3p3pacer',this.value);calcScores()"></div></td>
         <td class="score-cell" id="d3p3score">—</td>
       </tr>
@@ -338,7 +295,7 @@
       ['Gig Name', document.getElementById('gigName').value || ''],
       ['Date',     document.getElementById('gigDate').value || ''],
       [],
-      ['Dimension','Attribute','Doer','Lead','Score'],
+      ['Dimension','Attribute','Rover','Pacer','Score'],
       ['D2','Planning',   getVal('d2p1rover'), getVal('d2p1pacer'), _t('d2p1score')],
       ['D2','Execution',  getVal('d2p2rover'), getVal('d2p2pacer'), _t('d2p2score')],
       ['D2','Reflection', getVal('d2p3rover'), getVal('d2p3pacer'), _t('d2p3score')],
@@ -360,6 +317,10 @@
   }
   
   window.downloadEvalXLSX = downloadEvalXLSX;
+  window.getVal = function(name) {
+    const checked = document.querySelector(`input[name="${name}"]:checked`);
+    return checked ? parseFloat(checked.value) : null;
+  }
 </script>
 
 <script type="module" src="assets/gig_eval.js"></script>
@@ -372,7 +333,7 @@
     });
     const s = vtmGetSession();
     if (s) {
-      const rl = {admin:'Admin',pacer:'Lead',rover:'Doer'};
+      const rl = {admin:'Admin',pacer:'Pacer',rover:'Rover'};
       const rc = {admin:'role-admin',pacer:'role-pacer',rover:'role-rover'};
       ['headerRolePill','mobileRolePill'].forEach(id => {
         const el = document.getElementById(id);
@@ -389,6 +350,10 @@
     document.getElementById('hamburgerBtn').classList.toggle('open');
   }
   window.toggleMobileNav = toggleMobileNav;
+  window.resetPicker = function() { location.reload(); };
+  window.submitRoverEval = function() { alert("Self-rating saved (stub)"); };
+  window.submitPacerEval = function() { alert("Evaluation saved (stub)"); };
+  window.submitEval = function() { alert("Final evaluation saved (stub)"); };
 </script>
 </body>
 </html>

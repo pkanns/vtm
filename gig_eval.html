@@ -46,10 +46,10 @@
     .vtm-dropdown-user { padding:12px 32px 4px; display:flex; align-items:center; gap:10px; border-top:1px solid rgba(255,255,255,0.08); margin-top:4px; }
     @media (max-width:768px) { .vtm-nav,.vtm-header-right{display:none} .vtm-hamburger{display:flex} .vtm-header-inner{padding:0 20px} }
     
-    /* evaluation specific styles */
+    /* evaluation specific styles (unchanged from original) */
     .col-badge { font-size:9px; letter-spacing:0.1em; text-transform:uppercase; padding:2px 6px; border-radius:0; font-weight:600; display:inline-block; margin-bottom:6px; }
-    .doer-badge { background:var(--green); color:var(--white); }
-    .lead-badge { background:var(--red); color:var(--white); }
+    .rover-badge { background:var(--green); color:var(--white); }
+    .pacer-badge { background:var(--red); color:var(--white); }
     .rating-cell { min-width:140px; }
     .stars { display:inline-flex; gap:2px; margin-right:8px; }
     .stars input { display:none; }
@@ -92,6 +92,7 @@
 </head>
 <body data-page="evaluate">
 
+<!-- ── UNIFIED HEADER ──────────────────────────────────────────────────── -->
 <div class="vtm-header">
   <div class="vtm-header-inner">
     <a href="dashboard.html" class="vtm-brand">Vidai <span>to</span> Mulai</a>
@@ -211,8 +212,8 @@
     <thead>
       <tr>
         <th style="width:35%">Attribute</th><th style="width:10%" class="center">Weight</th>
-        <th style="width:22%" class="center"><span class="col-badge doer-badge">Doer</span><br/>Self-Rating</th>
-        <th style="width:22%" class="center"><span class="col-badge lead-badge">Lead</span><br/>Rating</th>
+        <th style="width:22%" class="center"><span class="col-badge rover-badge">Doer</span><br/>Self-Rating</th>
+        <th style="width:22%" class="center"><span class="col-badge pacer-badge">Lead</span><br/>Rating</th>
         <th style="width:11%" class="center">Score</th>
       </tr>
     </thead>
@@ -221,7 +222,7 @@
         <td><div class="attr-name">Planning</div><div class="attr-desc">Ability to foresee needs, think long term</div></td>
         <td style="text-align:center">33%</td>
         <td><div class="rating-cell"><div class="stars"><input type="radio" name="d2p1rover" value="5" onchange="syncSlider('d2p1rover',5);calcScores()"><label>★</label><input type="radio" name="d2p1rover" value="4" onchange="syncSlider('d2p1rover',4);calcScores()"><label>★</label><input type="radio" name="d2p1rover" value="3" onchange="syncSlider('d2p1rover',3);calcScores()"><label>★</label><input type="radio" name="d2p1rover" value="2" onchange="syncSlider('d2p1rover',2);calcScores()"><label>★</label><input type="radio" name="d2p1rover" value="1" onchange="syncSlider('d2p1rover',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d2p1rover" min="1" max="5" value="1" oninput="syncStars('d2p1rover',this.value);calcScores()"></div></td>
-        <td><div class="rating-cell"><div class="stars"><input type="radio" name="d2p1pacer" value="5" onchange="syncSlider('d2p1pacer',5);calcScores()"><label>★</label><input type="radio" name="d2p1pacer" value="4" onchange="syncSlider('d2p1pacer',4);calcScores()"><label>★</label><input type="radio" name="d2p1pacer" value="3" onchange="syncSlider('d2p1pacer',3);calcScores()"><label>★</label><input type="radio" name="d2p1pacer" value="2" onchange="syncSlider('d2p1pacer',2);calcScores()"><label>★</label><input type="radio" name="d2p1pacer" value="1" onchange="syncSlider('d2p1pacer',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d2p1pacer" min="1" max="5" value="1" oninput="syncStars('d2p1pacer',this.value);calcScores()"></div></td>
+        <tr><div class="rating-cell"><div class="stars"><input type="radio" name="d2p1pacer" value="5" onchange="syncSlider('d2p1pacer',5);calcScores()"><label>★</label><input type="radio" name="d2p1pacer" value="4" onchange="syncSlider('d2p1pacer',4);calcScores()"><label>★</label><input type="radio" name="d2p1pacer" value="3" onchange="syncSlider('d2p1pacer',3);calcScores()"><label>★</label><input type="radio" name="d2p1pacer" value="2" onchange="syncSlider('d2p1pacer',2);calcScores()"><label>★</label><input type="radio" name="d2p1pacer" value="1" onchange="syncSlider('d2p1pacer',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d2p1pacer" min="1" max="5" value="1" oninput="syncStars('d2p1pacer',this.value);calcScores()"></div></td>
         <td class="score-cell" id="d2p1score">—</td>
       </tr>
       <tr>
@@ -256,8 +257,8 @@
     <thead>
       <tr>
         <th style="width:35%">Attribute</th><th style="width:10%" class="center">Weight</th>
-        <th style="width:22%" class="center"><span class="col-badge doer-badge">Doer</span><br/>Self-Rating</th>
-        <th style="width:22%" class="center"><span class="col-badge lead-badge">Lead</span><br/>Rating</th>
+        <th style="width:22%" class="center"><span class="col-badge rover-badge">Doer</span><br/>Self-Rating</th>
+        <th style="width:22%" class="center"><span class="col-badge pacer-badge">Lead</span><br/>Rating</th>
         <th style="width:11%" class="center">Score</th>
       </tr>
     </thead>
@@ -272,4 +273,122 @@
       <tr>
         <td><div class="attr-name">Quality</div><div class="attr-desc">Quality of deliverable meets agreed standard</div></td>
         <td style="text-align:center" id="wQuality">33%</td>
-        <td><div class="rating-cell"><div class="stars"><input type="radio" name="d3p2rover" value="5" onchange="syncSlider('d3p2rover',5);calcScores()"><label>★</label><input type="radio" name="d3p2rover" value="4" onchange="syncSlider('d3p2rover',4);calcScores()"><label>★</label><input type="radio" name="d3p2rover" value="3" onchange="syncSlider('d3p2rover',3);calcScores()"><label>★</label><input type="radio" name="d3p2rover" value="2" onchange="syncSlider('d3p2rover',2);calcScores()"><label>★</label><input type="radio" name="d3p2rover" value="1" onchange="syncSlider('d3p2ro
+        <td><div class="rating-cell"><div class="stars"><input type="radio" name="d3p2rover" value="5" onchange="syncSlider('d3p2rover',5);calcScores()"><label>★</label><input type="radio" name="d3p2rover" value="4" onchange="syncSlider('d3p2rover',4);calcScores()"><label>★</label><input type="radio" name="d3p2rover" value="3" onchange="syncSlider('d3p2rover',3);calcScores()"><label>★</label><input type="radio" name="d3p2rover" value="2" onchange="syncSlider('d3p2rover',2);calcScores()"><label>★</label><input type="radio" name="d3p2rover" value="1" onchange="syncSlider('d3p2rover',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d3p2rover" min="1" max="5" value="1" oninput="syncStars('d3p2rover',this.value);calcScores()"></div></td>
+        <td><div class="rating-cell"><div class="stars"><input type="radio" name="d3p2pacer" value="5" onchange="syncSlider('d3p2pacer',5);calcScores()"><label>★</label><input type="radio" name="d3p2pacer" value="4" onchange="syncSlider('d3p2pacer',4);calcScores()"><label>★</label><input type="radio" name="d3p2pacer" value="3" onchange="syncSlider('d3p2pacer',3);calcScores()"><label>★</label><input type="radio" name="d3p2pacer" value="2" onchange="syncSlider('d3p2pacer',2);calcScores()"><label>★</label><input type="radio" name="d3p2pacer" value="1" onchange="syncSlider('d3p2pacer',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d3p2pacer" min="1" max="5" value="1" oninput="syncStars('d3p2pacer',this.value);calcScores()"></div></td>
+        <td class="score-cell" id="d3p2score">—</td>
+      </tr>
+      <tr>
+        <td><div class="attr-name">Timeline</div><div class="attr-desc">Delivered on time as agreed</div></td>
+        <td style="text-align:center" id="wTimeline">34%</td>
+        <tr><div class="rating-cell"><div class="stars"><input type="radio" name="d3p3rover" value="5" onchange="syncSlider('d3p3rover',5);calcScores()"><label>★</label><input type="radio" name="d3p3rover" value="4" onchange="syncSlider('d3p3rover',4);calcScores()"><label>★</label><input type="radio" name="d3p3rover" value="3" onchange="syncSlider('d3p3rover',3);calcScores()"><label>★</label><input type="radio" name="d3p3rover" value="2" onchange="syncSlider('d3p3rover',2);calcScores()"><label>★</label><input type="radio" name="d3p3rover" value="1" onchange="syncSlider('d3p3rover',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d3p3rover" min="1" max="5" value="1" oninput="syncStars('d3p3rover',this.value);calcScores()"></div></td>
+        <td><div class="rating-cell"><div class="stars"><input type="radio" name="d3p3pacer" value="5" onchange="syncSlider('d3p3pacer',5);calcScores()"><label>★</label><input type="radio" name="d3p3pacer" value="4" onchange="syncSlider('d3p3pacer',4);calcScores()"><label>★</label><input type="radio" name="d3p3pacer" value="3" onchange="syncSlider('d3p3pacer',3);calcScores()"><label>★</label><input type="radio" name="d3p3pacer" value="2" onchange="syncSlider('d3p3pacer',2);calcScores()"><label>★</label><input type="radio" name="d3p3pacer" value="1" onchange="syncSlider('d3p3pacer',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d3p3pacer" min="1" max="5" value="1" oninput="syncStars('d3p3pacer',this.value);calcScores()"></div></td>
+        <td class="score-cell" id="d3p3score">—</td>
+      </tr>
+      <tr class="dim-score-row">
+        <td colspan="2" style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;">Effectiveness Score</td>
+        <td class="score-cell" id="d3rover-avg" style="background:var(--light);color:var(--charcoal);">—</td>
+        <td class="score-cell" id="d3pacer-avg" style="background:var(--light);color:var(--charcoal);">—</td>
+        <td class="score-cell" id="d3final">—</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- FINAL SCORE — Lead weighted average only, no rewards -->
+  <div class="final-block">
+    <div class="final-item" style="grid-column:1/-1;text-align:center;">
+      <div class="final-label">Final Score — Lead Rating</div>
+      <div class="final-value red final-stars" id="finalStarsDisplay">— ★</div>
+    </div>
+  </div>
+
+  <!-- REFLECTION DATE -->
+  <div class="reflection-row">
+    <label>Reflection Session Date</label>
+    <input class="meta-input" id="reflectionDate" type="date" style="max-width:180px;" />
+    <label style="color:var(--stone);font-size:12px;text-transform:none;">Both parties must be present. Payout conditional on completed reflection.</label>
+  </div>
+
+  <!-- NOTES -->
+  <div class="notes-block">
+    <div class="notes-label">Discussion Notes</div>
+    <textarea class="notes-input" id="notes" placeholder="Key points from the discussion session…"></textarea>
+  </div>
+
+  <!-- SUBMIT -->
+  <div class="submit-block">
+    <p class="submit-note" id="submitNote">Evaluation saved to database. Gig marked completed.</p>
+    <button class="btn-submit" id="submitRoverBtn" style="display:none;background:var(--green);" onclick="submitRoverEval()">Save Self-Rating &rarr;</button>
+    <button class="btn-submit" id="submitPacerBtn" style="display:none;" onclick="submitPacerEval()">Save Evaluation &rarr;</button>
+    <button class="btn-submit" id="submitBtn" onclick="submitEval()">Save Evaluation &rarr;</button>
+  </div>
+
+</main>
+
+<script>
+  function updateTitle() {
+    const code = document.getElementById('gigCode').value || 'Gig'
+    document.title = code + ' Evaluation — Vidai to Mulai'
+  }
+
+  function downloadEvalXLSX() {
+    const code = document.getElementById('gigCode').value || 'G00'
+    const _t   = id => document.getElementById(id)?.textContent || ''
+    const rows = [
+      ['Gig Code', code],
+      ['Gig Name', document.getElementById('gigName').value || ''],
+      ['Date',     document.getElementById('gigDate').value || ''],
+      [],
+      ['Dimension','Attribute','Doer','Lead','Score'],
+      ['D2','Planning',   getVal('d2p1rover'), getVal('d2p1pacer'), _t('d2p1score')],
+      ['D2','Execution',  getVal('d2p2rover'), getVal('d2p2pacer'), _t('d2p2score')],
+      ['D2','Reflection', getVal('d2p3rover'), getVal('d2p3pacer'), _t('d2p3score')],
+      ['D2 Score','','',  _t('d2rover-avg'), _t('d2pacer-avg'), _t('d2final')],
+      [],
+      ['D3','Cost',     getVal('d3p1rover'), getVal('d3p1pacer'), _t('d3p1score')],
+      ['D3','Quality',  getVal('d3p2rover'), getVal('d3p2pacer'), _t('d3p2score')],
+      ['D3','Timeline', getVal('d3p3rover'), getVal('d3p3pacer'), _t('d3p3score')],
+      ['D3 Score','','', _t('d3rover-avg'), _t('d3pacer-avg'), _t('d3final')],
+      [],
+      ['Final Score (Lead)', _t('finalStarsDisplay')],
+      [],
+      ['Notes', document.getElementById('notes')?.value || ''],
+    ]
+    const ws = XLSX.utils.aoa_to_sheet(rows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, code)
+    XLSX.writeFile(wb, code + '_eval.xlsx')
+  }
+  
+  window.downloadEvalXLSX = downloadEvalXLSX;
+</script>
+
+<script type="module" src="assets/gig_eval.js"></script>
+
+<script>
+  (function() {
+    const page = document.body.dataset.page;
+    document.querySelectorAll('.vtm-nav a, .vtm-nav-dropdown a').forEach(a => {
+      if (a.dataset.page === page) a.classList.add('active');
+    });
+    const s = vtmGetSession();
+    if (s) {
+      const rl = {admin:'Admin',pacer:'Lead',rover:'Doer'};
+      const rc = {admin:'role-admin',pacer:'role-pacer',rover:'role-rover'};
+      ['headerRolePill','mobileRolePill'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.textContent = rl[s.role]||s.role; el.classList.add(rc[s.role]||''); }
+      });
+      ['headerUserName','mobileUserName'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = s.name;
+      });
+    }
+  })();
+  function toggleMobileNav() {
+    document.getElementById('mobileNav').classList.toggle('open');
+    document.getElementById('hamburgerBtn').classList.toggle('open');
+  }
+  window.toggleMobileNav = toggleMobileNav;
+</script>
+</body>
+</html>

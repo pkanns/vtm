@@ -33,25 +33,24 @@ async function vtmCheckAndRestoreSession() {
     // Fetch user from vtm_users
     const { data: vtmUser, error } = await db
       .from('vtm_users')
-      .select('role, name, user_id, ref_id')
+      .select('role, name, user_id, active')
       .eq('auth_user_id', supabaseSession.user.id)
       .single()
     
     if (error || !vtmUser) return null
-    
+    if (vtmUser.active === false) return null
+
     // Restore to sessionStorage
-    sessionStorage.setItem('vtm_role', vtmUser.role)
-    sessionStorage.setItem('vtm_name', vtmUser.name)
+    sessionStorage.setItem('vtm_role',    vtmUser.role)
+    sessionStorage.setItem('vtm_name',    vtmUser.name)
     sessionStorage.setItem('vtm_user_id', vtmUser.user_id)
-    sessionStorage.setItem('vtm_ref_id', vtmUser.ref_id || '')
-    sessionStorage.setItem('vtm_email', supabaseSession.user.email)
+    sessionStorage.setItem('vtm_email',   supabaseSession.user.email)
     
     return {
-      role: vtmUser.role,
-      name: vtmUser.name,
+      role:    vtmUser.role,
+      name:    vtmUser.name,
       user_id: vtmUser.user_id,
-      ref_id: vtmUser.ref_id || '',
-      email: supabaseSession.user.email
+      email:   supabaseSession.user.email
     }
   } catch (err) {
     console.error('Session restore error:', err)
@@ -64,10 +63,9 @@ function vtmGetSession() {
   if (!role) return null;
   return {
     role,
-    name: sessionStorage.getItem('vtm_name') || '',
+    name:    sessionStorage.getItem('vtm_name')    || '',
     user_id: sessionStorage.getItem('vtm_user_id') || '',
-    ref_id: sessionStorage.getItem('vtm_ref_id') || '',
-    email: sessionStorage.getItem('vtm_email') || '',
+    email:   sessionStorage.getItem('vtm_email')   || '',
   };
 }
 

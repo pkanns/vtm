@@ -143,8 +143,6 @@
   </div>
 </div>
 
-// Just replace the script section in your login.html (from line ~120 to the end)
-
 <script type="module">
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -155,7 +153,7 @@
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: true,
+      detectSessionInUrl: true,   // Supabase auto-exchanges the OAuth code
       storageKey: 'vtm-auth'
     }
   })
@@ -165,12 +163,10 @@
   const signinBtn = document.getElementById('signinBtn')
   const googleBtn = document.getElementById('googleBtn')
   const errorDiv = document.getElementById('errorMsg')
-  const debugDiv = document.getElementById('debugMsg')
 
   function showError(msg) {
     errorDiv.textContent = msg
     errorDiv.classList.add('visible')
-    if (debugDiv) debugDiv.classList.remove('visible')
   }
 
   function resetBtn() {
@@ -178,44 +174,86 @@
     signinBtn.textContent = 'Sign In →'
   }
 
-  // Show timeout message if redirected due to inactivity
-  const reason = new URLSearchParams(window.location.search).get('reason')
-  if (reason === 'timeout') {
-    const errDiv = document.getElementById('errorMsg')
-    if (errDiv) {
-      errDiv.textContent = 'You were signed out after 30 minutes of inactivity.'
-      errDiv.classList.add('visible')
-      errDiv.style.borderLeftColor = '#8a6200'
-      errDiv.style.background = '#fdf5e0'
-      errDiv.style.color = '#8a6200'
-    }
-  }
+  // ── Detect OAuth return ─────────────────────────────────────────────────
+  // Google PKCE puts `code` in the query string, not the hash.
+  // Implicit flow puts `access_token` in the hash.
+  // We check both.
+  const hash   = window.location.hash
+  const search = window.location.search
+  const isOAuthReturn = (hash   && (hash.includes('access_token') || hash.includes('code')))
+                     || (search && search.includes('code='))
 
-  // Check if already logged in (but NOT if returning from OAuth)
-  const hash = window.location.hash
-  const isOAuthReturn = hash && (hash.includes('access_token') || hash.includes('code'))
-  
-  if (!isOAuthReturn) {
+  // ── Handle OAuth callback ───────────────────────────────────────────────
+  if (isOAuthReturn) {
+    // detectSessionInUrl:true means Supabase already exchanged the code.
+    // We just need to wait for it, then fetch the vtm profile.
+    const { data: { session }, error } = await db.auth.getSession()
+
+    if (error || !session) {
+      showError('Google sign-in failed — please try again.')
+    } else {
+      await finishLogin(session.user, null)
+    }
+
+  } else {
+    // ── Not an OAuth return — show timeout warning if applicable ──────────
+    const reason = new URLSearchParams(search).get('reason')
+    if (reason === 'timeout') {
+      errorDiv.textContent = 'You were signed out after 30 minutes of inactivity.'
+      errorDiv.classList.add('visible')
+      errorDiv.style.borderLeftColor = '#8a6200'
+      errorDiv.style.background      = '#fdf5e0'
+      errorDiv.style.color           = '#8a6200'
+    }
+
+    // ── Already logged in? Skip the form ─────────────────────────────────
     const { data: { session: existing } } = await db.auth.getSession()
     if (existing && sessionStorage.getItem('vtm_role')) {
       window.location.href = 'dashboard.html'
     }
   }
 
-  // Email/password sign-in
-  async function signInWithEmail() {
-    errorDiv.classList.remove('visible')
-    if (debugDiv) debugDiv.classList.remove('visible')
+  // ── Shared: fetch vtm profile and write session ─────────────────────────
+  async function finishLogin(authUser, emailOverride) {
+    const { data: vtmUser, error: vtmError } = await db
+      .from('vtm_users')
+      .select('user_id, name, role, ref_id')
+      .eq('auth_user_id', authUser.id)
+      .maybeSingle()
 
-    const email = emailInput.value.trim()
-    const password = passwordInput.value
-
-    if (!email || !password) {
-      showError('Please enter your email and password.')
+    if (vtmError) {
+      showError('Could not read user profile — ' + vtmError.message)
+      await db.auth.signOut()
+      resetBtn()
       return
     }
 
-    signinBtn.disabled = true
+    if (!vtmUser) {
+      showError('No profile found for this account. Ask your admin to add you to vtm_users.')
+      await db.auth.signOut()
+      resetBtn()
+      return
+    }
+
+    sessionStorage.setItem('vtm_role',    vtmUser.role    || 'pacer')
+    sessionStorage.setItem('vtm_name',    vtmUser.name    || emailOverride || authUser.email)
+    sessionStorage.setItem('vtm_user_id', vtmUser.user_id || '')
+    sessionStorage.setItem('vtm_ref_id',  vtmUser.ref_id  || '')
+    sessionStorage.setItem('vtm_email',   emailOverride   || authUser.email)
+
+    window.location.href = 'dashboard.html'
+  }
+
+  // ── Email/password sign-in ──────────────────────────────────────────────
+  async function signInWithEmail() {
+    errorDiv.classList.remove('visible')
+
+    const email    = emailInput.value.trim()
+    const password = passwordInput.value
+
+    if (!email || !password) { showError('Please enter your email and password.'); return }
+
+    signinBtn.disabled    = true
     signinBtn.textContent = 'Signing in…'
 
     const { data: authData, error: authError } = await db.auth.signInWithPassword({ email, password })
@@ -226,49 +264,26 @@
       return
     }
 
-    const { data: vtmUser, error: vtmError } = await db
-      .from('vtm_users')
-      .select('user_id, name, role')
-      .eq('auth_user_id', authData.user.id)
-      .maybeSingle()
-
-    if (vtmError) {
-      showError('Could not read user profile. Error: ' + vtmError.message)
-      await db.auth.signOut()
-      resetBtn()
-      return
-    }
-
-    if (!vtmUser) {
-      showError('Authenticated but no user profile found. Ask your admin to add you to the vtm_users table.')
-      await db.auth.signOut()
-      resetBtn()
-      return
-    }
-
-    sessionStorage.setItem('vtm_role', vtmUser.role || 'pacer')
-    sessionStorage.setItem('vtm_name', vtmUser.name || email)
-    sessionStorage.setItem('vtm_user_id', vtmUser.user_id || '')
-    sessionStorage.setItem('vtm_email', email)
-
-    window.location.href = 'dashboard.html'
+    await finishLogin(authData.user, email)
   }
 
-  // Google OAuth
+  // ── Google OAuth ────────────────────────────────────────────────────────
+  // Redirect back to login.html — not dashboard.html — so this page
+  // can receive the OAuth callback and handle the session properly.
   async function signInWithGoogle() {
     errorDiv.classList.remove('visible')
     const { error } = await db.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + '/dashboard.html' }
+      options: {
+        redirectTo: window.location.origin + '/login.html'
+      }
     })
     if (error) showError(error.message)
   }
 
   signinBtn.addEventListener('click', signInWithEmail)
   googleBtn.addEventListener('click', signInWithGoogle)
-  passwordInput.addEventListener('keypress', e => {
-    if (e.key === 'Enter') signInWithEmail()
-  })
+  passwordInput.addEventListener('keypress', e => { if (e.key === 'Enter') signInWithEmail() })
 
 </script>
 </body>

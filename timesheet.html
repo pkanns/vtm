@@ -18,7 +18,6 @@
       top: 0;
       z-index: 100;
     }
-
     .vtm-header-inner {
       display: flex;
       align-items: center;
@@ -28,8 +27,6 @@
       max-width: 1200px;
       margin: 0 auto;
     }
-
-    /* Brand */
     .vtm-brand {
       font-family: var(--font-display);
       font-size: 1rem;
@@ -40,13 +37,7 @@
     }
     .vtm-brand span { color: var(--red); }
 
-    /* Nav */
-    .vtm-nav {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
+    .vtm-nav { display: flex; align-items: center; gap: 4px; }
     .vtm-nav a {
       font-size: 11px;
       letter-spacing: 0.1em;
@@ -59,22 +50,11 @@
       font-weight: 500;
       white-space: nowrap;
     }
-
     .vtm-nav a:hover { color: var(--white); }
-    .vtm-nav a.active {
-      color: var(--white);
-      background: rgba(247,246,242,0.08);
-    }
+    .vtm-nav a.active { color: var(--white); background: rgba(247,246,242,0.08); }
 
-    /* Right side */
-    .vtm-header-right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-shrink: 0;
-    }
+    .vtm-header-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
 
-    /* Timer indicator */
     .vtm-timer-pill {
       display: none;
       align-items: center;
@@ -104,8 +84,6 @@
       color: var(--green);
       letter-spacing: 0.06em;
     }
-
-    /* Role pill */
     .vtm-role-pill {
       font-size: 9px;
       letter-spacing: 0.12em;
@@ -115,15 +93,9 @@
       font-family: var(--font-mono);
     }
     .vtm-role-pill.role-admin { background: rgba(247,246,242,0.15); color: var(--white); }
-    .vtm-role-pill.role-pacer { background: var(--red); color: var(--white); }
+    .vtm-role-pill.role-pacer { background: var(--red);   color: var(--white); }
     .vtm-role-pill.role-rover { background: var(--green); color: var(--white); }
-
-    .vtm-user-name {
-      font-size: 12px;
-      color: rgba(247,246,242,0.6);
-      font-family: var(--font-body);
-    }
-
+    .vtm-user-name { font-size: 12px; color: rgba(247,246,242,0.6); font-family: var(--font-body); }
     .vtm-signout {
       background: none;
       border: 1px solid rgba(247,246,242,0.2);
@@ -138,7 +110,6 @@
     }
     .vtm-signout:hover { border-color: rgba(247,246,242,0.5); color: var(--white); }
 
-    /* Hamburger */
     .vtm-hamburger {
       display: none;
       flex-direction: column;
@@ -148,18 +119,11 @@
       background: none;
       border: none;
     }
-    .vtm-hamburger span {
-      display: block;
-      width: 22px;
-      height: 2px;
-      background: rgba(247,246,242,0.6);
-      transition: all 0.2s;
-    }
+    .vtm-hamburger span { display: block; width: 22px; height: 2px; background: rgba(247,246,242,0.6); transition: all 0.2s; }
     .vtm-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
     .vtm-hamburger.open span:nth-child(2) { opacity: 0; }
     .vtm-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
-    /* Mobile dropdown */
     .vtm-nav-dropdown {
       display: none;
       flex-direction: column;
@@ -169,24 +133,17 @@
     }
     .vtm-nav-dropdown.open { display: flex; }
     .vtm-nav-dropdown a {
-      font-size: 12px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: rgba(247,246,242,0.5);
-      text-decoration: none;
-      padding: 12px 32px;
-      font-family: var(--font-body);
-      font-weight: 500;
+      font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: rgba(247,246,242,0.5); text-decoration: none;
+      padding: 12px 32px; font-family: var(--font-body); font-weight: 500;
       border-bottom: 1px solid rgba(255,255,255,0.04);
       transition: color 0.15s, background 0.15s;
     }
-    .vtm-nav-dropdown a:hover { color: var(--white); background: rgba(255,255,255,0.04); }
+    .vtm-nav-dropdown a:hover  { color: var(--white); background: rgba(255,255,255,0.04); }
     .vtm-nav-dropdown a.active { color: var(--white); }
     .vtm-nav-dropdown .vtm-dropdown-user {
       padding: 12px 32px 4px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      display: flex; align-items: center; gap: 10px;
       border-top: 1px solid rgba(255,255,255,0.08);
       margin-top: 4px;
     }
@@ -198,50 +155,48 @@
       .vtm-header-inner { padding: 0 20px; }
     }
 
-    /* ── PAGE STYLES ────────────────────────────────────────────────────── */
+    /* ── PAGE ───────────────────────────────────────────────────────────── */
     .page-wrap { max-width: 960px; margin: 0 auto; padding: 32px 24px 80px; }
 
-    /* Active timer block */
+    /* ── ACTIVE TIMER BLOCK ─────────────────────────────────────────────── */
     .active-timer-block {
       display: none;
       background: var(--black);
       border-top: 4px solid var(--green);
       padding: 24px 32px;
       margin-bottom: 24px;
+      gap: 24px;
+      flex-direction: column;
+    }
+    .active-timer-block.visible { display: flex; }
+    .active-timer-top {
+      display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 24px;
-    }
-    .active-timer-block.visible { display: flex; }
-
-    .timer-gig-code {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--green);
-      letter-spacing: 0.1em;
-      margin-bottom: 4px;
-    }
-    .timer-gig-title {
-      font-family: var(--font-display);
-      font-size: 1.2rem;
-      color: var(--white);
-      margin-bottom: 6px;
-    }
-    .timer-meta {
-      font-size: 11px;
-      color: rgba(247,246,242,0.45);
-      font-family: var(--font-mono);
-      display: flex;
-      gap: 16px;
       flex-wrap: wrap;
     }
+    .timer-gig-code { font-family: var(--font-mono); font-size: 11px; color: var(--green); letter-spacing: 0.1em; margin-bottom: 4px; }
+    .timer-gig-title { font-family: var(--font-display); font-size: 1.2rem; color: var(--white); margin-bottom: 6px; }
+    .timer-meta { font-size: 11px; color: rgba(247,246,242,0.45); font-family: var(--font-mono); display: flex; gap: 16px; flex-wrap: wrap; }
     .timer-meta span { display: flex; align-items: center; gap: 5px; }
-    .timer-dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--green);
-      animation: vtm-pulse 1.8s ease-in-out infinite;
+    .timer-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: vtm-pulse 1.8s ease-in-out infinite; }
+    .active-timer-notes { display: flex; flex-direction: column; gap: 6px; }
+    .active-timer-notes label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(247,246,242,0.4); font-weight: 500; }
+    .active-timer-notes input {
+      background: rgba(255,255,255,0.06);
+      border: none;
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+      color: var(--white);
+      font-family: var(--font-body);
+      font-size: 13px;
+      padding: 8px 0;
+      outline: none;
+      width: 100%;
+      transition: border-color 0.2s;
     }
+    .active-timer-notes input:focus { border-bottom-color: var(--green); }
+    .active-timer-notes input::placeholder { color: rgba(247,246,242,0.25); }
 
     .btn-clockout {
       background: var(--green);
@@ -257,36 +212,67 @@
       transition: opacity 0.2s, transform 0.15s;
       white-space: nowrap;
       flex-shrink: 0;
+      align-self: flex-start;
     }
     .btn-clockout:hover { opacity: 0.85; transform: translateY(-1px); }
+    .btn-clockout:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-    /* Clock in section */
-    .clockin-card {
-      background: var(--white);
-      border-top: 4px solid var(--red);
-      padding: 28px 32px;
+    /* ── ENTRY TOGGLE ───────────────────────────────────────────────────── */
+    .entry-toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 0;
       margin-bottom: 24px;
     }
-    .card-title {
-      font-family: var(--font-display);
-      font-size: 1.3rem;
-      color: var(--black);
-      margin-bottom: 4px;
-    }
-    .card-subtitle {
-      font-size: 11px;
+    .entry-toggle-row .tog-label {
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
       color: var(--stone);
       font-family: var(--font-mono);
-      margin-bottom: 24px;
-      letter-spacing: 0.04em;
+      margin-right: 16px;
+      font-weight: 500;
     }
 
-    .clockin-row {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 16px;
-      align-items: end;
+    /* Toggle — same pattern as create_gig */
+    .vtm-toggle { display: flex; gap: 0; }
+    .vtm-toggle input[type="radio"] { display: none; }
+    .vtm-toggle label {
+      padding: 9px 22px;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-family: var(--font-mono);
+      font-weight: 500;
+      background: var(--light);
+      color: var(--stone);
+      cursor: pointer;
+      border: 1px solid #ddd;
+      border-right: none;
+      transition: all 0.15s;
+      user-select: none;
     }
+    .vtm-toggle label:last-of-type { border-right: 1px solid #ddd; }
+    .vtm-toggle input[type="radio"]:checked + label {
+      background: var(--black);
+      color: var(--white);
+      border-color: var(--black);
+    }
+    .vtm-toggle input[type="radio"]#tog-auto:checked + label  { background: var(--green); border-color: var(--green); }
+    .vtm-toggle input[type="radio"]#tog-manual:checked + label { background: var(--charcoal); border-color: var(--charcoal); }
+
+    /* ── ENTRY PANELS ───────────────────────────────────────────────────── */
+    .entry-panel {
+      background: var(--white);
+      border-top: 4px solid var(--green);
+      padding: 28px 32px;
+      margin-bottom: 24px;
+      display: none;
+    }
+    .entry-panel.manual-panel { border-top-color: var(--charcoal); }
+
+    .card-title { font-family: var(--font-display); font-size: 1.3rem; color: var(--black); margin-bottom: 4px; }
+    .card-subtitle { font-size: 11px; color: var(--stone); font-family: var(--font-mono); margin-bottom: 24px; letter-spacing: 0.04em; }
 
     .form-row { margin-bottom: 0; }
     .form-row label {
@@ -311,13 +297,50 @@
       color: var(--black);
       outline: none;
       transition: border-color 0.2s;
+      box-sizing: border-box;
     }
     .form-row select:focus,
     .form-row input:focus,
     .form-row textarea:focus { border-bottom-color: var(--red); }
 
+    .cascade-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .form-grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .form-grid-4 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .form-bottom {
+      display: flex;
+      gap: 16px;
+      align-items: flex-end;
+      margin-top: 16px;
+    }
+    .form-bottom .form-row { flex: 1; }
+
+    .optional-tag {
+      font-size: 9px;
+      letter-spacing: 0.06em;
+      color: var(--stone);
+      font-family: var(--font-mono);
+      margin-left: 6px;
+      font-weight: 400;
+      text-transform: none;
+    }
+
     .btn-clockin {
-      background: var(--red);
+      background: var(--green);
       color: var(--white);
       border: none;
       padding: 12px 28px;
@@ -329,46 +352,10 @@
       font-weight: 500;
       transition: background 0.2s, transform 0.15s;
       white-space: nowrap;
+      align-self: flex-end;
     }
-    .btn-clockin:hover { background: var(--red-dark); transform: translateY(-1px); }
+    .btn-clockin:hover { opacity: 0.85; transform: translateY(-1px); }
     .btn-clockin:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-
-    /* Manual entry */
-    .manual-card {
-      background: var(--white);
-      border-top: 4px solid var(--charcoal);
-      padding: 28px 32px;
-      margin-bottom: 24px;
-    }
-
-    .form-grid-4 {
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr 1fr;
-      gap: 16px;
-      align-items: end;
-      margin-bottom: 16px;
-    }
-
-    .form-grid-2 {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 16px;
-      align-items: end;
-    }
-
-    .duration-display {
-      background: var(--light);
-      border-bottom: 2px solid var(--charcoal);
-      padding: 10px 12px;
-      font-family: var(--font-mono);
-      font-size: 15px;
-      color: var(--charcoal);
-      min-height: 44px;
-      display: flex;
-      align-items: center;
-    }
-    .duration-display.valid   { color: var(--green); border-bottom-color: var(--green); }
-    .duration-display.invalid { color: var(--red);   border-bottom-color: var(--red); }
 
     .btn-save {
       background: var(--red);
@@ -384,7 +371,7 @@
       transition: background 0.2s, transform 0.15s;
       white-space: nowrap;
     }
-    .btn-save:hover { background: var(--red-dark); transform: translateY(-1px); }
+    .btn-save:hover { background: var(--red-dark, #a93226); transform: translateY(-1px); }
     .btn-save:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
     .btn-clear {
@@ -401,36 +388,74 @@
     }
     .btn-clear:hover { border-color: var(--charcoal); }
 
-    /* Time log */
+    /* ── OPEN TIMESHEETS ────────────────────────────────────────────────── */
+    #openSection {
+      display: none;
+      margin-bottom: 24px;
+    }
+    .open-card {
+      background: var(--white);
+      border-top: 4px solid var(--red);
+      padding: 28px 32px;
+    }
+    .open-entry {
+      border-bottom: 1px solid var(--light);
+      padding: 20px 0;
+    }
+    .open-entry:last-child { border-bottom: none; }
+    .open-entry-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .open-entry-title { font-size: 13px; color: var(--charcoal); font-family: var(--font-body); flex: 1; }
+    .open-entry-fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 2fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .open-entry-actions { display: flex; gap: 8px; align-items: center; }
+
+    .auto-closed-badge {
+      font-size: 9px;
+      font-family: var(--font-mono);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: rgba(192,57,43,0.1);
+      color: var(--red);
+      padding: 2px 7px;
+      font-weight: 600;
+    }
+
+    .btn-delete {
+      background: none;
+      border: 1px solid #ccc;
+      color: var(--stone);
+      padding: 6px 14px;
+      font-size: 11px;
+      cursor: pointer;
+      font-family: var(--font-body);
+      transition: all 0.2s;
+    }
+    .btn-delete:hover { border-color: var(--red); color: var(--red); }
+
+    /* ── LOG ────────────────────────────────────────────────────────────── */
     .log-card {
       background: var(--white);
       border-top: 4px solid var(--charcoal);
       padding: 28px 32px;
     }
-
-    .log-header {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      margin-bottom: 4px;
-    }
-    .log-total {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--stone);
-    }
+    .log-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 4px; }
+    .log-total { font-family: var(--font-mono); font-size: 11px; color: var(--stone); }
     .log-total strong { color: var(--red); font-size: 13px; }
 
-    .db-status {
-      font-size: 11px;
-      font-family: var(--font-mono);
-      color: var(--stone);
-      padding: 4px 0 16px;
-    }
+    .db-status { font-size: 11px; font-family: var(--font-mono); color: var(--stone); padding: 4px 0 16px; }
     .db-status.ok  { color: var(--green); }
     .db-status.err { color: var(--red); }
 
-    /* Week tabs */
     .week-tabs { display: flex; gap: 2px; margin-bottom: 20px; }
     .week-tab {
       padding: 6px 14px;
@@ -443,10 +468,9 @@
       cursor: pointer;
       transition: all 0.15s;
     }
-    .week-tab:hover { background: #e0ddd5; color: var(--charcoal); }
+    .week-tab:hover  { background: #e0ddd5; color: var(--charcoal); }
     .week-tab.active { background: var(--charcoal); color: var(--white); }
 
-    /* Log table */
     .log-table { width: 100%; border-collapse: collapse; font-size: 13px; }
     .log-table thead tr { background: var(--black); color: var(--white); }
     .log-table th { padding: 10px 14px; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; text-align: left; }
@@ -454,76 +478,38 @@
     .log-table tr:last-child td { border-bottom: none; }
     .log-table tr:hover td { background: var(--light); }
 
-    .gig-code-pill {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      background: var(--light);
-      color: var(--charcoal);
-      padding: 2px 8px;
-      font-weight: 600;
-    }
+    .gig-code-pill { font-family: var(--font-mono); font-size: 11px; background: var(--light); color: var(--charcoal); padding: 2px 8px; font-weight: 600; }
+    .duration-pill { font-family: var(--font-mono); font-size: 12px; color: var(--green); font-weight: 600; }
 
-    .duration-pill {
-      font-family: var(--font-mono);
-      font-size: 12px;
-      color: var(--green);
-      font-weight: 600;
-    }
-
-    .type-badge {
-      font-size: 9px;
-      font-family: var(--font-mono);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      padding: 2px 7px;
-      font-weight: 600;
-    }
-    .type-badge.auto   { background: #e8f5ee; color: var(--green); }
+    .type-badge { font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 7px; font-weight: 600; }
+    .type-badge.live   { background: #e8f5ee; color: var(--green); }
     .type-badge.manual { background: var(--light); color: var(--stone); }
 
-    .btn-delete {
-      background: none;
-      border: 1px solid #ccc;
-      color: var(--stone);
-      padding: 3px 10px;
-      font-size: 11px;
-      cursor: pointer;
-      font-family: var(--font-body);
-      transition: all 0.2s;
-    }
-    .btn-delete:hover { border-color: var(--red); color: var(--red); }
-
-    .empty-state {
-      text-align: center;
-      padding: 48px 0;
-      color: var(--stone);
-      font-size: 13px;
-    }
+    .empty-state { text-align: center; padding: 48px 0; color: var(--stone); font-size: 13px; }
 
     @media (max-width: 768px) {
-      .form-grid-4 { grid-template-columns: 1fr 1fr; }
-      .clockin-row { grid-template-columns: 1fr; }
-      .active-timer-block { flex-direction: column; align-items: flex-start; }
-      .btn-clockout { width: 100%; text-align: center; }
-      .form-grid-2 { grid-template-columns: 1fr; }
+      .cascade-grid        { grid-template-columns: 1fr; }
+      .form-grid-3         { grid-template-columns: 1fr 1fr; }
+      .form-grid-4         { grid-template-columns: 1fr 1fr; }
+      .open-entry-fields   { grid-template-columns: 1fr 1fr; }
+      .active-timer-top    { flex-direction: column; align-items: flex-start; }
+      .btn-clockout        { width: 100%; text-align: center; }
     }
   </style>
 </head>
 <body data-page="timesheet">
 
-<!-- ── UNIFIED HEADER ──────────────────────────────────────────────────── -->
+<!-- ── HEADER ──────────────────────────────────────────────────────────── -->
 <div class="vtm-header">
   <div class="vtm-header-inner">
     <a href="dashboard.html" class="vtm-brand">Vidai <span>to</span> Mulai</a>
-
     <nav class="vtm-nav">
-      <a href="dashboard.html"         data-page="home">Home</a>
-      <a href="project_index.html" data-page="projects">Projects</a>
-      <a href="gig_index.html"     data-page="gigs">Gigs</a>
-      <a href="gig_eval.html"      data-page="evaluate">Evaluate</a>
-      <a href="timesheet.html"     data-page="timesheet">Timesheet</a>
+      <a href="dashboard.html"      data-page="home">Home</a>
+      <a href="project_index.html"  data-page="projects">Projects</a>
+      <a href="gig_index.html"      data-page="gigs">Gigs</a>
+      <a href="gig_eval.html"       data-page="evaluate">Evaluate</a>
+      <a href="timesheet.html"      data-page="timesheet">Timesheet</a>
     </nav>
-
     <div class="vtm-header-right">
       <a href="timesheet.html" class="vtm-timer-pill" id="headerTimerPill">
         <span class="vtm-timer-dot"></span>
@@ -533,19 +519,16 @@
       <span class="vtm-user-name" id="headerUserName"></span>
       <button class="vtm-signout" onclick="vtmSignOut()">Sign out</button>
     </div>
-
     <button class="vtm-hamburger" id="hamburgerBtn" onclick="toggleMobileNav()" aria-label="Menu">
       <span></span><span></span><span></span>
     </button>
   </div>
-
-  <!-- Mobile dropdown -->
   <div class="vtm-nav-dropdown" id="mobileNav">
-    <a href="dashboard.html"         data-page="home">Home</a>
-    <a href="project_index.html" data-page="projects">Projects</a>
-    <a href="gig_index.html"     data-page="gigs">Gigs</a>
-    <a href="gig_eval.html"      data-page="evaluate">Evaluate</a>
-    <a href="timesheet.html"     data-page="timesheet">Timesheet</a>
+    <a href="dashboard.html"      data-page="home">Home</a>
+    <a href="project_index.html"  data-page="projects">Projects</a>
+    <a href="gig_index.html"      data-page="gigs">Gigs</a>
+    <a href="gig_eval.html"       data-page="evaluate">Evaluate</a>
+    <a href="timesheet.html"      data-page="timesheet">Timesheet</a>
     <div class="vtm-dropdown-user">
       <span class="vtm-role-pill" id="mobileRolePill"></span>
       <span class="vtm-user-name" id="mobileUserName"></span>
@@ -556,75 +539,118 @@
 
 <div class="page-wrap">
 
-  <!-- ── ACTIVE TIMER BLOCK ────────────────────────────────────────────── -->
+  <!-- ── ACTIVE TIMER BLOCK ─────────────────────────────────────────────── -->
   <div class="active-timer-block" id="activeTimerBlock">
-    <div>
-      <div class="timer-gig-code" id="timerGigCode">—</div>
-      <div class="timer-gig-title" id="timerGigTitle">—</div>
-      <div class="timer-meta">
-        <span><span class="timer-dot"></span><span id="timerClockIn">—</span></span>
-        <span id="timerLocation" style="color:rgba(247,246,242,0.3)">—</span>
+    <div class="active-timer-top">
+      <div>
+        <div class="timer-gig-code" id="timerGigCode">—</div>
+        <div class="timer-gig-title" id="timerGigTitle">—</div>
+        <div class="timer-meta">
+          <span><span class="timer-dot"></span><span id="timerClockIn">—</span></span>
+          <span id="timerLocation" style="color:rgba(247,246,242,0.3)">—</span>
+        </div>
       </div>
+      <button class="btn-clockout" id="clockOutBtn" onclick="clockOut()">Clock Out →</button>
     </div>
-    <button class="btn-clockout" id="clockOutBtn" onclick="clockOut()">Clock Out →</button>
+    <div class="active-timer-notes">
+      <label>Notes <span class="optional-tag">saved on clock-out</span></label>
+      <input type="text" id="activeNotes" placeholder="What are you working on?">
+    </div>
   </div>
 
-  <!-- ── CLOCK IN ───────────────────────────────────────────────────────── -->
-  <div class="clockin-card" id="clockInCard">
+  <!-- ── ENTRY TOGGLE ───────────────────────────────────────────────────── -->
+  <div class="entry-toggle-row">
+    <span class="tog-label">Log time</span>
+    <div class="vtm-toggle">
+      <input type="radio" name="tog-entry" id="tog-auto"   value="auto">
+      <label for="tog-auto">Auto</label>
+      <input type="radio" name="tog-entry" id="tog-manual" value="manual">
+      <label for="tog-manual">Manual</label>
+    </div>
+  </div>
+
+  <!-- ── AUTO PANEL (Clock In) ──────────────────────────────────────────── -->
+  <div class="entry-panel" id="autoPanel">
     <div class="card-title">Clock In</div>
-    <div class="card-subtitle">Select a gig and clock in — location captured automatically</div>
-    <div class="clockin-row">
+    <div class="card-subtitle">Select project and gig — location captured automatically</div>
+
+    <div class="cascade-grid">
+      <div class="form-row">
+        <label>Project</label>
+        <select id="autoProject" onchange="onProjectChange('autoProject','autoGig')">
+          <option value="">— All Projects —</option>
+        </select>
+      </div>
       <div class="form-row">
         <label>Gig *</label>
-        <select id="clockInGig">
-          <option value="">— Loading gigs —</option>
+        <select id="autoGig">
+          <option value="">— Select Gig —</option>
         </select>
+      </div>
+    </div>
+
+    <div class="form-bottom">
+      <div class="form-row">
+        <label>Notes <span class="optional-tag">optional</span></label>
+        <input type="text" id="autoNotesIn" placeholder="What will you be working on?">
       </div>
       <button class="btn-clockin" id="clockInBtn" onclick="clockIn()">Clock In →</button>
     </div>
   </div>
 
-  <!-- ── MANUAL ENTRY ───────────────────────────────────────────────────── -->
-  <div class="manual-card">
+  <!-- ── MANUAL PANEL ───────────────────────────────────────────────────── -->
+  <div class="entry-panel manual-panel" id="manualPanel">
     <div class="card-title">Manual Entry</div>
-    <div class="card-subtitle">Log time worked manually</div>
+    <div class="card-subtitle">Log time worked — end time is optional, entry stays open until added</div>
 
-    <div class="form-grid-4">
+    <div class="cascade-grid">
+      <div class="form-row">
+        <label>Project</label>
+        <select id="manualProject" onchange="onProjectChange('manualProject','manualGig')">
+          <option value="">— All Projects —</option>
+        </select>
+      </div>
       <div class="form-row">
         <label>Gig *</label>
         <select id="manualGig">
           <option value="">— Select Gig —</option>
         </select>
       </div>
+    </div>
+
+    <div class="form-grid-4">
       <div class="form-row">
         <label>Date *</label>
         <input type="date" id="manualDate">
       </div>
       <div class="form-row">
         <label>Start Time *</label>
-        <input type="time" id="manualStart" oninput="calcDuration()">
+        <input type="time" id="manualStart">
       </div>
       <div class="form-row">
-        <label>End Time *</label>
-        <input type="time" id="manualEnd" oninput="calcDuration()">
+        <label>End Time <span class="optional-tag">optional</span></label>
+        <input type="time" id="manualEnd">
+      </div>
+      <div class="form-row">
+        <label>Notes <span class="optional-tag">optional</span></label>
+        <input type="text" id="manualNotes" placeholder="What did you work on?">
       </div>
     </div>
 
-    <div class="form-grid-2">
-      <div style="display:grid;grid-template-columns:1fr 120px;gap:16px;align-items:end;">
-        <div class="form-row">
-          <label>Notes</label>
-          <input type="text" id="manualNotes" placeholder="What did you work on?">
-        </div>
-        <div class="form-row">
-          <label>Duration</label>
-          <div class="duration-display" id="durationDisplay">—</div>
-        </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn-save" onclick="saveManual()">Save →</button>
+      <button class="btn-clear" onclick="resetManual()">Clear</button>
+    </div>
+  </div>
+
+  <!-- ── OPEN TIMESHEETS ────────────────────────────────────────────────── -->
+  <div id="openSection">
+    <div class="open-card">
+      <div class="log-header">
+        <div class="card-title">Open Timesheets</div>
       </div>
-      <div style="display:flex;gap:8px;align-items:flex-end;">
-        <button class="btn-save" onclick="saveManual()">Save →</button>
-        <button class="btn-clear" onclick="resetManual()">Clear</button>
-      </div>
+      <div class="card-subtitle">Entries without an end time — add times to complete them</div>
+      <div id="openEntriesBody"></div>
     </div>
   </div>
 
@@ -635,13 +661,11 @@
       <div class="log-total">This week: <strong id="weekTotal">0h 0m</strong></div>
     </div>
     <div class="db-status" id="dbStatus">Loading…</div>
-
     <div class="week-tabs">
       <button class="week-tab active" data-filter="week"  onclick="setFilter('week')">This Week</button>
       <button class="week-tab"        data-filter="month" onclick="setFilter('month')">This Month</button>
       <button class="week-tab"        data-filter="all"   onclick="setFilter('all')">All Time</button>
     </div>
-
     <table class="log-table">
       <thead>
         <tr>
@@ -671,7 +695,7 @@
     if (a.dataset.page === currentPage) a.classList.add('active')
   })
 
-  // ── Header user info from session ─────────────────────────────────────
+  // ── Header user info ──────────────────────────────────────────────────
   const _s = vtmGetSession()
   if (_s) {
     const roleLabels = { admin: 'Admin', pacer: 'Lead', rover: 'Doer' }
@@ -690,41 +714,6 @@
   function toggleMobileNav() {
     document.getElementById('mobileNav').classList.toggle('open')
     document.getElementById('hamburgerBtn').classList.toggle('open')
-  }
-
-  // ── Duration calculator ───────────────────────────────────────────────
-  function calcDuration() {
-    const start = document.getElementById('manualStart').value
-    const end   = document.getElementById('manualEnd').value
-    const el    = document.getElementById('durationDisplay')
-    if (!start || !end) { el.textContent = '—'; el.className = 'duration-display'; return }
-    const [sh, sm] = start.split(':').map(Number)
-    const [eh, em] = end.split(':').map(Number)
-    const diff = (eh * 60 + em) - (sh * 60 + sm)
-    if (diff <= 0) { el.textContent = 'Invalid'; el.className = 'duration-display invalid'; return }
-    el.textContent = fmtDuration(diff)
-    el.className   = 'duration-display valid'
-  }
-
-  function fmtDuration(mins) {
-    if (!mins && mins !== 0) return '—'
-    const h = Math.floor(mins / 60)
-    const m = mins % 60
-    if (h === 0) return `${m}m`
-    if (m === 0) return `${h}h`
-    return `${h}h ${m}m`
-  }
-
-  function fmtDate(iso) {
-    if (!iso) return '—'
-    const [y, mo, d] = iso.split('-')
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-    return `${parseInt(d)} ${months[parseInt(mo)-1]} ${y}`
-  }
-
-  function fmtTime(t) {
-    if (!t) return '—'
-    return t.slice(0, 5)
   }
 
   function esc(str) {

@@ -3,537 +3,748 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mulai, From Start to Finish</title>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <title>Mulai · Time, kept honestly</title>
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&family=Special+Elite&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --red:      #c0392b;
-      --red-dark: #8b1a10;
-      --green:    #2d5a3d;
-      --black:    #111111;
-      --charcoal: #2c2c2c;
-      --mid:      #555555;
-      --stone:    #8a8a8a;
-      --light:    #eeece6;
-      --white:    #f7f6f2;
-      --font-display: 'Playfair Display', serif;
-      --font-body:    'DM Sans', sans-serif;
-      --font-mono:    'DM Mono', monospace;
+      --card:    #f0ead8;
+      --card2:   #e8e0c8;
+      --ink:     #1a1410;
+      --red:     #b5201a;
+      --faded:   #6b5f4e;
+      --hole:    #c8bfa8;
+      --punch:   rgba(26,20,16,0.85);
+      --green:   #1e4d2b;
     }
 
     html { scroll-behavior: smooth; }
 
     body {
-      font-family: var(--font-body);
-      background: var(--light);
-      color: var(--black);
+      background: var(--card);
+      color: var(--ink);
+      font-family: 'Courier Prime', monospace;
       font-size: 15px;
-      line-height: 1.7;
+      line-height: 1.6;
+      overflow-x: hidden;
     }
 
-    /* ── NAV ─────────────────────────────────────────────────────────── */
+    /* ── PUNCH HOLES ROW ────────────────────────────────────────────── */
+    .punch-strip {
+      background: var(--card2);
+      border-top: 2px solid var(--ink);
+      border-bottom: 2px solid var(--ink);
+      padding: 10px 0;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      overflow: hidden;
+      position: relative;
+    }
+    .punch-strip::before,
+    .punch-strip::after {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 48px;
+      z-index: 2;
+    }
+    .punch-strip::before { left: 0;  background: linear-gradient(to right, var(--card2), transparent); }
+    .punch-strip::after  { right: 0; background: linear-gradient(to left,  var(--card2), transparent); }
+
+    .punch-holes {
+      display: flex;
+      gap: 18px;
+      padding: 0 24px;
+      animation: scroll-holes 18s linear infinite;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .punch-holes-2 {
+      animation: scroll-holes 18s linear infinite;
+      animation-delay: -9s;
+    }
+    @keyframes scroll-holes {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-100%); }
+    }
+
+    .hole {
+      width: 18px; height: 28px;
+      border-radius: 3px;
+      border: 1.5px solid rgba(26,20,16,0.25);
+      flex-shrink: 0;
+      position: relative;
+    }
+    .hole.punched {
+      background: var(--ink);
+      border-color: var(--ink);
+    }
+    .hole.punched::after {
+      content: '';
+      position: absolute;
+      inset: 2px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 1px;
+    }
+
+    /* ── NAV ───────────────────────────────────────────────────────── */
     nav {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 100;
+      background: var(--ink);
+      border-bottom: 3px solid var(--red);
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 0 48px;
-      height: 56px;
-      background: rgba(17,17,17,0.92);
-      backdrop-filter: blur(8px);
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+      height: 52px;
+      position: sticky; top: 0; z-index: 100;
     }
-
     .nav-brand {
-      font-family: var(--font-display);
-      font-size: 1rem;
-      color: var(--white);
-      letter-spacing: 0.04em;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      color: var(--card);
+      letter-spacing: 0.12em;
       text-decoration: none;
     }
-    .nav-brand span { color: var(--red); }
-
-    .nav-links {
-      display: flex;
-      gap: 32px;
-      list-style: none;
-    }
+    .nav-brand .sep { color: var(--red); }
+    .nav-links { display: flex; gap: 28px; list-style: none; }
     .nav-links a {
-      font-size: 11px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: rgba(247,246,242,0.4);
-      text-decoration: none;
-      transition: color 0.2s;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(240,234,216,0.35); text-decoration: none; transition: color 0.2s;
     }
-    .nav-links a:hover { color: var(--white); }
-
+    .nav-links a:hover { color: var(--card); }
     .nav-login {
-      font-size: 11px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--white);
-      text-decoration: none;
-      border: 1px solid rgba(247,246,242,0.2);
-      padding: 7px 18px;
-      transition: all 0.2s;
-      font-family: var(--font-body);
-      font-weight: 500;
-      flex-shrink: 0;
-      margin-left: 32px;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--ink); background: var(--card);
+      padding: 7px 18px; text-decoration: none; transition: background 0.2s;
     }
-    .nav-login:hover { border-color: var(--red); background: var(--red); }
+    .nav-login:hover { background: #fff; }
 
     @media (max-width: 640px) {
-      nav { padding: 0 24px; }
+      nav { padding: 0 20px; }
       .nav-links { display: none; }
-      .nav-login { margin-left: 0; }
     }
 
-    /* ── HERO ────────────────────────────────────────────────────────── */
+    /* ── HERO ──────────────────────────────────────────────────────── */
     .hero {
-      background: var(--black);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      padding: 120px 48px 80px;
+      background: var(--card);
+      border-bottom: 3px solid var(--ink);
+      padding: 0;
       position: relative;
       overflow: hidden;
     }
 
-    .hero::before {
-      content: '';
+    /* Big stamp — IN */
+    .hero-stamp {
       position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 3px;
-      background: var(--red);
+      top: 40px; right: 60px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(120px, 18vw, 240px);
+      color: transparent;
+      -webkit-text-stroke: 2px rgba(181,32,26,0.12);
+      letter-spacing: -0.02em;
+      line-height: 0.85;
+      pointer-events: none;
+      user-select: none;
     }
 
-    /* Subtle grid texture */
-    .hero::after {
-      content: '';
+    .hero-form {
+      padding: 56px 60px 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* The card header — like the top of a time register */
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 40px;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+
+    .card-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .card-field-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--faded);
+      border-bottom: 1px solid var(--faded);
+      padding-bottom: 2px;
+      margin-bottom: 2px;
+    }
+    .card-field-val {
+      font-family: 'Courier Prime', monospace;
+      font-size: 13px;
+      color: var(--ink);
+      font-weight: 700;
+    }
+    .card-field-val.typed {
+      font-family: 'Special Elite', cursive;
+      font-size: 14px;
+      color: var(--red);
+    }
+
+    /* The big headline — typewriter stamped */
+    .hero-headline {
+      margin-bottom: 0;
+    }
+
+    .hero-h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(3.8rem, 9vw, 9.5rem);
+      line-height: 0.88;
+      letter-spacing: 0.04em;
+      color: var(--ink);
+      margin-bottom: 12px;
+    }
+    .hero-h1 .red { color: var(--red); }
+    .hero-h1 .ghost {
+      color: transparent;
+      -webkit-text-stroke: 2px var(--ink);
+    }
+
+    .hero-sub {
+      font-family: 'Courier Prime', monospace;
+      font-size: 13px;
+      color: var(--faded);
+      max-width: 520px;
+      line-height: 1.9;
+      margin-bottom: 48px;
+      font-style: italic;
+    }
+
+    /* The time register grid */
+    .register-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      border-top: 2px solid var(--ink);
+      border-left: 2px solid var(--ink);
+      margin: 0 -60px;
+    }
+    .register-cell {
+      border-right: 2px solid var(--ink);
+      border-bottom: 2px solid var(--ink);
+      padding: 16px 20px;
+    }
+    .register-cell.wide { grid-column: span 2; }
+    .register-cell-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--faded);
+      margin-bottom: 8px;
+    }
+    .register-cell-val {
+      font-family: 'Special Elite', cursive;
+      font-size: 15px;
+      color: var(--ink);
+      line-height: 1.4;
+    }
+    .register-cell-val.red { color: var(--red); }
+    .register-cell-val.live {
+      color: var(--green);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+    }
+    .register-cell-val.blank {
+      color: transparent;
+      border-bottom: 1px solid rgba(107,95,78,0.3);
+      display: block;
+      height: 22px;
+    }
+
+    @media (max-width: 900px) {
+      .register-grid { grid-template-columns: repeat(2, 1fr); margin: 0 -24px; }
+      .register-cell.wide { grid-column: span 1; }
+    }
+    @media (max-width: 640px) {
+      .hero-form { padding: 40px 24px 0; }
+      .hero-h1 { font-size: 3.5rem; }
+    }
+
+    /* ── SECTION COMMON ─────────────────────────────────────────────── */
+    .section-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--faded);
+      margin-bottom: 6px;
+    }
+    .section-h {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(1.8rem, 3.5vw, 3rem);
+      letter-spacing: 0.06em;
+      color: var(--ink);
+      line-height: 1;
+      margin-bottom: 24px;
+    }
+
+    /* ── THE ARGUMENT ───────────────────────────────────────────────── */
+    .argument {
+      background: var(--ink);
+      padding: 80px 60px;
+      position: relative;
+      overflow: hidden;
+    }
+    .argument::before {
+      content: 'TIME';
       position: absolute;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(192,57,43,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(192,57,43,0.03) 1px, transparent 1px);
-      background-size: 60px 60px;
+      right: -20px; top: -30px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28vw;
+      color: rgba(240,234,216,0.03);
+      line-height: 1;
       pointer-events: none;
     }
 
-    .hero-inner {
-      max-width: 900px;
+    .argument-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: start;
       position: relative;
       z-index: 1;
     }
 
-    .hero-eyebrow {
-      font-size: 10px;
-      letter-spacing: 0.28em;
+    .argument .section-label { color: rgba(240,234,216,0.25); }
+    .argument .section-h { color: var(--card); }
+
+    .argument-left {}
+
+    .argument-right {}
+    .argument-para {
+      font-family: 'Courier Prime', monospace;
+      font-size: 14px;
+      color: rgba(240,234,216,0.5);
+      line-height: 2;
+      margin-bottom: 20px;
+    }
+    .argument-para strong { color: var(--card); font-weight: 700; }
+
+    /* The old punch card legend */
+    .punch-legend {
+      margin-top: 40px;
+      border: 1px solid rgba(240,234,216,0.1);
+      padding: 24px;
+    }
+    .punch-legend-title {
+      font-family: 'DM Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
-      color: var(--red);
-      font-family: var(--font-mono);
-      margin-bottom: 28px;
+      color: rgba(240,234,216,0.2);
+      margin-bottom: 16px;
     }
-
-    .hero h1 {
-      font-family: var(--font-display);
-      font-size: clamp(2.8rem, 6vw, 5.5rem);
-      font-weight: 600;
-      color: var(--white);
-      line-height: 1.05;
-      margin-bottom: 32px;
-      letter-spacing: -0.01em;
-    }
-
-    .hero h1 em {
-      font-style: italic;
-      color: var(--red);
-    }
-
-    .hero-statement {
-      font-size: clamp(1rem, 2vw, 1.2rem);
-      color: rgba(247,246,242,0.5);
-      font-weight: 300;
-      max-width: 560px;
-      line-height: 1.8;
-    }
-
-    .hero-tamil {
-      margin-top: 48px;
-      font-size: 11px;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: rgba(247,246,242,0.18);
-      font-family: var(--font-mono);
+    .punch-legend-row {
       display: flex;
       align-items: center;
       gap: 16px;
+      margin-bottom: 12px;
     }
-    .hero-tamil::before {
-      content: '';
-      display: block;
-      width: 40px;
-      height: 1px;
-      background: rgba(192,57,43,0.4);
+    .punch-legend-row:last-child { margin-bottom: 0; }
+    .mini-holes {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
     }
-
-    /* ── PHILOSOPHY ──────────────────────────────────────────────────── */
-    .philosophy {
-      background: var(--white);
-      padding: 100px 48px;
-      border-top: 4px solid var(--red);
+    .mini-hole {
+      width: 8px; height: 14px;
+      border-radius: 1px;
+      border: 1px solid rgba(240,234,216,0.2);
     }
-
-    .philosophy-inner {
-      max-width: 760px;
-      margin: 0 auto;
-    }
-
-    .section-label {
-      font-size: 10px;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: var(--red);
-      font-family: var(--font-mono);
-      margin-bottom: 24px;
+    .mini-hole.p { background: rgba(240,234,216,0.7); border-color: rgba(240,234,216,0.7); }
+    .punch-legend-text {
+      font-family: 'Courier Prime', monospace;
+      font-size: 12px;
+      color: rgba(240,234,216,0.35);
+      font-style: italic;
     }
 
-    .philosophy h2 {
-      font-family: var(--font-display);
-      font-size: clamp(1.6rem, 3vw, 2.4rem);
-      color: var(--black);
-      margin-bottom: 28px;
-      line-height: 1.25;
+    @media (max-width: 768px) {
+      .argument { padding: 64px 24px; }
+      .argument-inner { grid-template-columns: 1fr; gap: 40px; }
     }
 
-    .philosophy p {
-      font-size: 1rem;
-      color: var(--mid);
-      line-height: 1.9;
-      margin-bottom: 20px;
-      font-weight: 300;
-    }
-
-    .philosophy p strong {
-      color: var(--black);
-      font-weight: 500;
-    }
-
-    /* ── THREE ROLES ─────────────────────────────────────────────────── */
+    /* ── THREE ROLES ────────────────────────────────────────────────── */
     .roles {
-      background: var(--black);
-      padding: 100px 48px;
+      background: var(--card2);
+      border-top: 3px solid var(--ink);
+      border-bottom: 3px solid var(--ink);
+      padding: 80px 60px;
     }
-
     .roles-inner { max-width: 1100px; margin: 0 auto; }
 
-    .roles-eyebrow {
-      font-size: 10px;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: rgba(247,246,242,0.25);
-      font-family: var(--font-mono);
-      margin-bottom: 16px;
+    /* Columnar layout like a form */
+    .roles-form {
+      margin-top: 48px;
+      border: 2px solid var(--ink);
     }
-
-    .roles h2 {
-      font-family: var(--font-display);
-      font-size: clamp(1.4rem, 3vw, 2rem);
-      color: var(--white);
-      margin-bottom: 56px;
-    }
-
-    .roles-grid {
+    .roles-form-header {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 2px;
+      grid-template-columns: 48px 1fr 1fr 1fr;
+      background: var(--ink);
+      color: var(--card);
     }
-
-    @media (max-width: 768px) {
-      .roles-grid { grid-template-columns: 1fr; }
-    }
-
-    .role-card {
-      background: rgba(247,246,242,0.03);
-      border-top: 3px solid transparent;
-      padding: 40px 36px;
-      transition: background 0.2s;
-    }
-    .role-card:hover { background: rgba(247,246,242,0.06); }
-
-    .role-card.creator { border-top-color: var(--red); }
-    .role-card.doer    { border-top-color: var(--green); }
-    .role-card.builder { border-top-color: rgba(247,246,242,0.2); }
-
-    .role-icon {
-      font-size: 10px;
-      letter-spacing: 0.2em;
+    .rfh-cell {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.18em;
       text-transform: uppercase;
-      font-family: var(--font-mono);
+      padding: 10px 20px;
+      border-right: 1px solid rgba(240,234,216,0.1);
+    }
+    .rfh-cell:last-child { border-right: none; }
+
+    .roles-form-body {
+      display: grid;
+      grid-template-columns: 48px 1fr 1fr 1fr;
+    }
+    .rfc-num {
+      border-right: 2px solid var(--ink);
+      border-bottom: 2px solid var(--ink);
+      padding: 28px 0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 32px;
+    }
+    .rfc-num span {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      color: var(--faded);
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+    }
+    .rfc {
+      padding: 28px 24px;
+      border-right: 2px solid var(--ink);
+      border-bottom: 2px solid var(--ink);
+    }
+    .rfc:last-child { border-right: none; }
+    .rfc-role {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2rem;
+      letter-spacing: 0.08em;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+    .rfc-role.red { color: var(--red); }
+    .rfc-role.grn { color: var(--green); }
+    .rfc-who {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--faded);
       margin-bottom: 20px;
     }
-    .role-card.creator .role-icon { color: var(--red); }
-    .role-card.doer    .role-icon { color: var(--green); }
-    .role-card.builder .role-icon { color: rgba(247,246,242,0.3); }
-
-    .role-title {
-      font-family: var(--font-display);
-      font-size: 1.5rem;
-      color: var(--white);
-      margin-bottom: 16px;
-    }
-
-    .role-desc {
+    .rfc-body {
+      font-family: 'Courier Prime', monospace;
       font-size: 13px;
-      color: rgba(247,246,242,0.45);
-      line-height: 1.8;
-      font-weight: 300;
+      color: var(--faded);
+      line-height: 1.85;
+      margin-bottom: 20px;
     }
-
-    .role-detail {
-      margin-top: 28px;
-      padding-top: 20px;
-      border-top: 1px solid rgba(255,255,255,0.06);
-      font-size: 11px;
-      font-family: var(--font-mono);
-      color: rgba(247,246,242,0.2);
+    .rfc-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .rfc-list li {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
       letter-spacing: 0.06em;
-      line-height: 2;
+      color: var(--faded);
+      display: flex; gap: 8px; align-items: flex-start;
+    }
+    .rfc-list li::before { content: '▪'; color: var(--hole); flex-shrink: 0; }
+
+    @media (max-width: 900px) {
+      .roles { padding: 64px 24px; }
+      .roles-form-header,
+      .roles-form-body { grid-template-columns: 1fr; }
+      .rfh-cell:not(:first-child) { display: none; }
+      .rfc-num { display: none; }
+      .rfc { border-right: none; }
     }
 
-    /* ── THE FLOW ────────────────────────────────────────────────────── */
-    .flow-section {
-      background: var(--light);
-      padding: 100px 48px;
-      border-top: 4px solid var(--charcoal);
+    /* ── THE FLOW ───────────────────────────────────────────────────── */
+    .flow {
+      background: var(--card);
+      padding: 80px 60px;
+      border-bottom: 3px solid var(--ink);
     }
+    .flow-inner { max-width: 1100px; margin: 0 auto; }
 
-    .flow-inner { max-width: 960px; margin: 0 auto; }
-
-    .flow-section h2 {
-      font-family: var(--font-display);
-      font-size: clamp(1.4rem, 3vw, 2rem);
-      color: var(--black);
-      margin-bottom: 8px;
-    }
-
-    .flow-section .sub {
-      font-size: 13px;
-      color: var(--stone);
-      margin-bottom: 56px;
-      font-weight: 300;
-    }
-
-    .flow-steps {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 2px;
-    }
-
-    @media (max-width: 640px) {
-      .flow-steps { grid-template-columns: 1fr; }
-    }
-
-    .flow-step {
-      background: var(--white);
-      padding: 32px 28px;
-      border-top: 3px solid var(--charcoal);
-      position: relative;
-    }
-
-    .flow-step-num {
-      font-family: var(--font-display);
-      font-size: 3rem;
-      color: var(--light);
-      -webkit-text-stroke: 1px #ccc;
-      line-height: 1;
-      margin-bottom: 16px;
-    }
-
-    .flow-step-name {
-      font-family: var(--font-display);
-      font-size: 1.2rem;
-      color: var(--black);
-      margin-bottom: 8px;
-    }
-
-    .flow-step-desc {
-      font-size: 12px;
-      color: var(--stone);
-      line-height: 1.7;
-      font-weight: 300;
-    }
-
-    .flow-arrow {
-      display: none;
-    }
-
-    /* ── CAPABILITIES ────────────────────────────────────────────────── */
-    .capabilities {
-      background: var(--white);
-      padding: 100px 48px;
-      border-top: 4px solid var(--red);
-    }
-
-    .cap-inner { max-width: 1100px; margin: 0 auto; }
-
-    .capabilities h2 {
-      font-family: var(--font-display);
-      font-size: clamp(1.4rem, 3vw, 2rem);
-      color: var(--black);
-      margin-bottom: 8px;
-    }
-
-    .capabilities .sub {
-      font-size: 13px;
-      color: var(--stone);
-      margin-bottom: 56px;
-      font-weight: 300;
-    }
-
-    .cap-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 2px;
-    }
-
-    @media (max-width: 768px) {
-      .cap-grid { grid-template-columns: 1fr 1fr; }
-    }
-    @media (max-width: 480px) {
-      .cap-grid { grid-template-columns: 1fr; }
-    }
-
-    .cap-card {
-      padding: 32px 28px;
-      background: var(--light);
-      border-top: 2px solid transparent;
-      transition: border-top-color 0.2s, background 0.2s;
-    }
-    .cap-card:hover {
-      border-top-color: var(--red);
-      background: var(--white);
-    }
-
-    .cap-marker {
-      font-size: 9px;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--stone);
-      font-family: var(--font-mono);
-      margin-bottom: 14px;
-    }
-
-    .cap-title {
-      font-family: var(--font-display);
-      font-size: 1.1rem;
-      color: var(--black);
-      margin-bottom: 10px;
-    }
-
-    .cap-desc {
-      font-size: 12px;
-      color: var(--mid);
-      line-height: 1.7;
-      font-weight: 300;
-    }
-
-    /* ── CLOSING ─────────────────────────────────────────────────────── */
-    .closing {
-      background: var(--black);
-      padding: 120px 48px;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .closing::before {
-      content: '';
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      height: 3px;
-      background: var(--red);
-    }
-
-    .closing-inner {
-      max-width: 640px;
-      margin: 0 auto;
-      position: relative;
-      z-index: 1;
-    }
-
-    .closing-label {
-      font-size: 10px;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: rgba(247,246,242,0.2);
-      font-family: var(--font-mono);
-      margin-bottom: 32px;
-    }
-
-    .closing h2 {
-      font-family: var(--font-display);
-      font-size: clamp(1.8rem, 4vw, 3rem);
-      color: var(--white);
-      line-height: 1.2;
-      margin-bottom: 24px;
-    }
-
-    .closing h2 em {
-      font-style: italic;
-      color: var(--red);
-    }
-
-    .closing p {
-      font-size: 14px;
-      color: rgba(247,246,242,0.35);
-      font-weight: 300;
-      line-height: 1.9;
-    }
-
-    .closing-mono {
+    /* Time register strip */
+    .flow-register {
       margin-top: 56px;
-      font-size: 10px;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: rgba(247,246,242,0.12);
-      font-family: var(--font-mono);
+      border: 2px solid var(--ink);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
     }
-
-    /* ── FOOTER ──────────────────────────────────────────────────────── */
-    footer {
-      background: var(--black);
-      border-top: 1px solid rgba(255,255,255,0.06);
-      padding: 24px 48px;
+    .flow-col {
+      border-right: 2px solid var(--ink);
+      padding: 0;
+    }
+    .flow-col:last-child { border-right: none; }
+    .flow-col-head {
+      background: var(--ink);
+      padding: 10px 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
-
-    .footer-brand {
-      font-family: var(--font-display);
-      font-size: 0.9rem;
-      color: rgba(247,246,242,0.2);
+    .flow-col-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.6rem;
+      color: var(--red);
+      letter-spacing: 0.06em;
     }
-    .footer-brand span { color: rgba(192,57,43,0.5); }
-
-    .footer-note {
-      font-size: 10px;
-      letter-spacing: 0.1em;
-      color: rgba(247,246,242,0.15);
-      font-family: var(--font-mono);
+    .flow-col-tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 0.16em;
       text-transform: uppercase;
+      color: rgba(240,234,216,0.3);
+    }
+    .flow-col-body { padding: 28px 24px; }
+    .flow-col-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.2rem;
+      letter-spacing: 0.06em;
+      color: var(--ink);
+      line-height: 1;
+      margin-bottom: 16px;
+    }
+    .flow-col-desc {
+      font-family: 'Courier Prime', monospace;
+      font-size: 13px;
+      color: var(--faded);
+      line-height: 1.9;
+    }
+    /* Punch marks on the right edge of each column */
+    .flow-punches {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 16px 0 16px 24px;
+      border-top: 1px solid rgba(26,20,16,0.1);
+      margin: 0 24px;
+    }
+    .flow-punch-row {
+      display: flex; gap: 5px;
+    }
+    .fp {
+      width: 10px; height: 16px;
+      border-radius: 2px;
+      border: 1px solid rgba(26,20,16,0.15);
+    }
+    .fp.in { background: var(--ink); border-color: var(--ink); }
+    .fp.red { background: var(--red); border-color: var(--red); }
+
+    @media (max-width: 768px) {
+      .flow { padding: 64px 24px; }
+      .flow-register { grid-template-columns: 1fr; }
+      .flow-col { border-right: none; border-bottom: 2px solid var(--ink); }
+      .flow-col:last-child { border-bottom: none; }
     }
 
+    /* ── CAPABILITIES ───────────────────────────────────────────────── */
+    .cap {
+      background: var(--ink);
+      padding: 80px 60px;
+    }
+    .cap-inner { max-width: 1100px; margin: 0 auto; }
+    .cap .section-label { color: rgba(240,234,216,0.2); }
+    .cap .section-h { color: var(--card); }
+
+    /* Card-reader grid */
+    .cap-grid {
+      margin-top: 48px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-top: 1px solid rgba(240,234,216,0.1);
+      border-left: 1px solid rgba(240,234,216,0.1);
+    }
+    .cap-card {
+      border-right: 1px solid rgba(240,234,216,0.1);
+      border-bottom: 1px solid rgba(240,234,216,0.1);
+      padding: 28px 24px;
+      position: relative;
+    }
+    /* The punched corner */
+    .cap-card::before {
+      content: '';
+      position: absolute;
+      top: 12px; right: 14px;
+      width: 8px; height: 14px;
+      border-radius: 2px;
+      background: rgba(240,234,216,0.08);
+      border: 1px solid rgba(240,234,216,0.12);
+    }
+    .cap-card.active::before { background: var(--red); border-color: var(--red); }
+
+    .cap-marker {
+      font-family: 'DM Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-bottom: 12px;
+    }
+    .cap-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.3rem;
+      letter-spacing: 0.06em;
+      color: var(--card);
+      margin-bottom: 12px;
+      line-height: 1.1;
+    }
+    .cap-desc {
+      font-family: 'Courier Prime', monospace;
+      font-size: 12px;
+      color: rgba(240,234,216,0.35);
+      line-height: 1.85;
+    }
+
+    @media (max-width: 900px) {
+      .cap { padding: 64px 24px; }
+      .cap-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 560px) {
+      .cap-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── CLOSING ────────────────────────────────────────────────────── */
+    .closing {
+      background: var(--card2);
+      border-top: 3px solid var(--ink);
+      padding: 0 60px;
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+    }
+
+    .closing-left {
+      border-right: 2px solid var(--ink);
+      padding: 80px 60px 80px 0;
+    }
+    .closing-number {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(5rem, 12vw, 10rem);
+      color: transparent;
+      -webkit-text-stroke: 2px rgba(26,20,16,0.15);
+      line-height: 0.85;
+      margin-bottom: 24px;
+      letter-spacing: -0.02em;
+    }
+    .closing .section-h { font-size: clamp(1.8rem, 3vw, 2.6rem); }
+
+    .closing-right {
+      padding: 80px 0 80px 60px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 40px;
+    }
+    .closing-para {
+      font-family: 'Courier Prime', monospace;
+      font-size: 14px;
+      color: var(--faded);
+      line-height: 2;
+    }
+    .closing-para strong { color: var(--ink); }
+
+    /* The time-in / time-out stamp */
+    .closing-stamps {
+      display: flex;
+      gap: 32px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+    .stamp {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .stamp-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--faded);
+    }
+    .stamp-val {
+      font-family: 'Special Elite', cursive;
+      font-size: 22px;
+      color: var(--red);
+      line-height: 1;
+    }
+    .stamp-val.out { color: var(--ink); }
+
+    .closing-cta {
+      display: inline-block;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.1rem;
+      letter-spacing: 0.1em;
+      color: var(--card);
+      background: var(--ink);
+      padding: 14px 36px;
+      text-decoration: none;
+      border: 2px solid var(--ink);
+      transition: background 0.2s, color 0.2s;
+      align-self: flex-start;
+    }
+    .closing-cta:hover { background: var(--red); border-color: var(--red); }
+
+    @media (max-width: 768px) {
+      .closing { grid-template-columns: 1fr; padding: 0 24px; }
+      .closing-left { border-right: none; border-bottom: 2px solid var(--ink); padding: 56px 0 40px; }
+      .closing-right { padding: 40px 0 64px; }
+    }
+
+    /* ── FOOTER ─────────────────────────────────────────────────────── */
+    footer {
+      background: var(--ink);
+      border-top: 3px solid var(--red);
+      padding: 20px 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .footer-brand {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 18px;
+      color: rgba(240,234,216,0.4);
+      letter-spacing: 0.1em;
+    }
+    .footer-brand .sep { color: var(--red); }
+    .footer-note {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(240,234,216,0.15);
+    }
     @media (max-width: 640px) {
-      .philosophy, .roles, .flow-section, .capabilities, .closing { padding: 72px 24px; }
-      footer { padding: 20px 24px; flex-direction: column; gap: 8px; text-align: center; }
+      footer { flex-direction: column; gap: 12px; padding: 20px 24px; text-align: center; }
     }
   </style>
 </head>
@@ -541,251 +752,453 @@
 
 <!-- NAV -->
 <nav>
-  <a href="index.html" class="nav-brand">Vidai <span>to</span> Mulai</a>
+  <a href="index.html" class="nav-brand">MULAI<span class="sep"> · </span>VTM</a>
   <ul class="nav-links">
-    <li><a href="#philosophy">Philosophy</a></li>
-    <li><a href="#roles">Who It's For</a></li>
-    <li><a href="#flow">The Flow</a></li>
-    <li><a href="#capabilities">What's Built</a></li>
+    <li><a href="#argument">Why</a></li>
+    <li><a href="#roles">Who</a></li>
+    <li><a href="#flow">How</a></li>
+    <li><a href="#cap">Built</a></li>
   </ul>
-  <a href="login.html" id="navLoginBtn" class="nav-login">Login →</a>
+  <a href="login.html" id="navLogin" class="nav-login">Login →</a>
 </nav>
+
+<!-- PUNCH STRIP TOP -->
+<div class="punch-strip" id="topStrip"></div>
 
 <!-- HERO -->
 <section class="hero">
-  <div class="hero-inner">
-    <div class="hero-eyebrow">Vidai to Mulai · An organic build</div>
-    <h1>Work,<br>kept <em>honest.</em></h1>
-    <p class="hero-statement">
-      A place for people who place work, people who do the work,
-      and the time both spend doing it. Built slowly, used daily,
-      growing the way a seed does, with patience rather than a push.
-    </p>
-    <div class="hero-tamil">Vidai to Mulai, From Start to Finish</div>
+  <div class="hero-stamp">IN</div>
+  <div class="hero-form">
+
+    <div class="card-header">
+      <div class="card-field">
+        <div class="card-field-label">Employee / Worker</div>
+        <div class="card-field-val typed">You</div>
+      </div>
+      <div class="card-field">
+        <div class="card-field-label">Department / Gig</div>
+        <div class="card-field-val typed">To be assigned</div>
+      </div>
+      <div class="card-field">
+        <div class="card-field-label">Date</div>
+        <div class="card-field-val" id="heroDate">—</div>
+      </div>
+      <div class="card-field">
+        <div class="card-field-label">Card No.</div>
+        <div class="card-field-val">VTM-001</div>
+      </div>
+      <div class="card-field">
+        <div class="card-field-label">Status</div>
+        <div class="card-field-val typed" style="color:var(--green)">● Active</div>
+      </div>
+    </div>
+
+    <div class="hero-headline">
+      <h1 class="hero-h1">
+        <span class="ghost">TIME</span><br>
+        KEPT<br>
+        <span class="red">HONEST.</span>
+      </h1>
+      <p class="hero-sub">
+        The punch card was invented to count you.<br>
+        Every hole was a minute owned by someone else.<br>
+        We start from the same gesture — and try to do something different with it.
+      </p>
+    </div>
+
+  </div>
+
+  <!-- THE REGISTER ROW -->
+  <div class="register-grid">
+    <div class="register-cell">
+      <div class="register-cell-label">Time In</div>
+      <div class="register-cell-val red" id="heroTimeIn">——:——</div>
+    </div>
+    <div class="register-cell">
+      <div class="register-cell-label">Time Out</div>
+      <div class="register-cell-val"><span class="register-cell-val blank"></span></div>
+    </div>
+    <div class="register-cell">
+      <div class="register-cell-label">Duration</div>
+      <div class="register-cell-val"><span class="register-cell-val blank"></span></div>
+    </div>
+    <div class="register-cell">
+      <div class="register-cell-label">Supervisor</div>
+      <div class="register-cell-val">You decide.</div>
+    </div>
+    <div class="register-cell">
+      <div class="register-cell-label">Remarks</div>
+      <div class="register-cell-val live">● Running</div>
+    </div>
   </div>
 </section>
 
-<!-- PHILOSOPHY -->
-<section class="philosophy" id="philosophy">
-  <div class="philosophy-inner">
-    <div class="section-label">Why this exists</div>
-    <h2>Most tools count tasks.<br>We are trying to notice what happened.</h2>
-    <p>
-      There is a gap between handing someone a task and knowing how it actually went.
-      Most platforms close a ticket and move on. That gap is where the real story lives,
-      and most tools never look at it.
-    </p>
-    <p>
-      Mulai starts with the gig. A single piece of work, with a name, a person who placed it,
-      a person who is doing it, a beginning and an end. Nothing more is assumed.
-      Every gig carries its own small reflection at the end, a few honest questions
-      asked of both people involved.
-    </p>
-    <p>
-      We are not measuring busyness. The clock has done that for too long,
-      and not particularly well. We are trying to build a quieter record,
-      one that remembers how work actually felt and went, for the people who did it.
-    </p>
+<!-- PUNCH STRIP BETWEEN -->
+<div class="punch-strip" id="midStrip1"></div>
+
+<!-- THE ARGUMENT -->
+<section class="argument" id="argument">
+  <div class="argument-inner">
+    <div class="argument-left">
+      <div class="section-label">Why this exists</div>
+      <h2 class="section-h">THE CLOCK HAS BEEN COUNTING THE WRONG THING.</h2>
+
+      <div class="punch-legend">
+        <div class="punch-legend-title">How to read a punch card</div>
+        <div class="punch-legend-row">
+          <div class="mini-holes">
+            <div class="mini-hole p"></div>
+            <div class="mini-hole"></div>
+            <div class="mini-hole"></div>
+            <div class="mini-hole p"></div>
+          </div>
+          <div class="punch-legend-text">Arrived on time. Left on time. Nothing else recorded.</div>
+        </div>
+        <div class="punch-legend-row">
+          <div class="mini-holes">
+            <div class="mini-hole p"></div>
+            <div class="mini-hole p"></div>
+            <div class="mini-hole p"></div>
+            <div class="mini-hole p"></div>
+          </div>
+          <div class="punch-legend-text">Present. Productive. How would you know?</div>
+        </div>
+        <div class="punch-legend-row">
+          <div class="mini-holes">
+            <div class="mini-hole p"></div>
+            <div class="mini-hole"></div>
+            <div class="mini-hole p"></div>
+            <div class="mini-hole"></div>
+          </div>
+          <div class="punch-legend-text">There and gone. The work? Not in the card.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="argument-right">
+      <p class="argument-para">
+        The time register was invented in the 1880s. A machine at the factory gate.
+        You put your card in, it punched a hole — <strong>you were counted.</strong>
+        You put it in again on the way out — <strong>you were released.</strong>
+        Everything in between was assumed.
+      </p>
+      <p class="argument-para">
+        Most software still works this way.
+        A ticket opened, a ticket closed.
+        Hours logged. A number at the bottom.
+        The person who did the work — what they felt,
+        how it actually went, whether it was worth it —
+        <strong>none of that makes it into the record.</strong>
+      </p>
+      <p class="argument-para">
+        Mulai starts the same way. Clock in. Clock out.
+        But then it asks: <strong>how was it?</strong>
+        One person who placed the work. One person who did it.
+        Both answering honestly. The final word with whoever
+        placed the gig. That reflection is where the value sits.
+        Most tools skip it entirely.
+      </p>
+    </div>
   </div>
 </section>
+
+<!-- PUNCH STRIP -->
+<div class="punch-strip" id="midStrip2"></div>
 
 <!-- THREE ROLES -->
 <section class="roles" id="roles">
   <div class="roles-inner">
-    <div class="roles-eyebrow">Three ways to be here</div>
-    <h2>Who is Mulai for?</h2>
-    <div class="roles-grid">
+    <div class="section-label">Three ways to be here</div>
+    <h2 class="section-h">DEPARTMENT REGISTER</h2>
 
-      <div class="role-card creator">
-        <div class="role-icon">Those who place the work</div>
-        <div class="role-title">The Creator</div>
-        <p class="role-desc">
-          You see what needs doing before anyone else does. You shape it into something
-          someone else can pick up, hand it to the right person, and hold the line on
-          what good looks like. Mulai gives you one place to see everything you have
-          placed, what is moving, what has gone quiet, and what is finished.
-        </p>
-        <div class="role-detail">
-          Projects and gigs · what needs placing<br>
-          what is overdue · recurring work<br>
-          that takes care of itself
+    <div class="roles-form">
+      <div class="roles-form-header">
+        <div class="rfh-cell">#</div>
+        <div class="rfh-cell">THE CREATOR — those who place the work</div>
+        <div class="rfh-cell">THE DOER — those who do the work</div>
+        <div class="rfh-cell">THE BUILDER — those shaping what comes next</div>
+      </div>
+      <div class="roles-form-body">
+        <div class="rfc-num"><span>EMPLOYEE CLASS</span></div>
+
+        <div class="rfc">
+          <div class="rfc-role red">Creator</div>
+          <div class="rfc-who">Pacer · Lead · Placer</div>
+          <p class="rfc-body">
+            You see what needs doing before anyone else does.
+            You shape it, name it, hand it to the right person,
+            and hold the line on what good looks like.
+            Mulai gives you one place to see everything you have placed —
+            what is moving, what has gone quiet, what is finished.
+          </p>
+          <ul class="rfc-list">
+            <li>Projects and gigs, named clearly</li>
+            <li>Overdue work, visible at a glance</li>
+            <li>Recurring work that looks after itself</li>
+            <li>Final word on every evaluation</li>
+          </ul>
+        </div>
+
+        <div class="rfc">
+          <div class="rfc-role grn">Doer</div>
+          <div class="rfc-who">Rover · Worker · Executor</div>
+          <p class="rfc-body">
+            Your list is clear. When you start, you start —
+            one tap, your location noted, nothing to fill in.
+            When you stop, you stop. Later you sit with the finished work
+            and say honestly how it went. That honesty
+            becomes part of a record that is yours.
+          </p>
+          <ul class="rfc-list">
+            <li>A clear task list, nothing extra</li>
+            <li>Time logged live or after the fact</li>
+            <li>A personal record that grows with you</li>
+            <li>Your evaluation sits alongside the lead's</li>
+          </ul>
+        </div>
+
+        <div class="rfc">
+          <div class="rfc-role">Builder</div>
+          <div class="rfc-who">Contributor · Shaper · Planter</div>
+          <p class="rfc-body">
+            This is early, and it is meant to be seen that way.
+            Nothing here pretends to be finished.
+            If you are someone who notices a gap and wants to help close it —
+            with code, with an idea, with time —
+            there is room. Time is the currency here.
+          </p>
+          <ul class="rfc-list">
+            <li>An open build, still growing</li>
+            <li>Time over capital</li>
+            <li>Room for those willing to plant</li>
+            <li>Built with patience, not a roadmap</li>
+          </ul>
         </div>
       </div>
-
-      <div class="role-card doer">
-        <div class="role-icon">Those who do the work</div>
-        <div class="role-title">The Doer</div>
-        <p class="role-desc">
-          Your list is clear. When you start, you start, a button and your location,
-          nothing to fill in. When you stop, you stop. Later, you sit with the work
-          for a moment and say honestly how it went. That honesty becomes part of
-          a record that is yours.
-        </p>
-        <div class="role-detail">
-          A clear task list · time logged simply<br>
-          a personal record · that grows<br>
-          with every gig
-        </div>
-      </div>
-
-      <div class="role-card builder">
-        <div class="role-icon">Those shaping what comes next</div>
-        <div class="role-title">The Builder</div>
-        <p class="role-desc">
-          This is early, and it is meant to be seen that way. Nothing here pretends
-          to be finished. If you are someone who notices a gap and wants to help close
-          it, with code, with an idea, with time, there is room. Time is the currency
-          here, more than anything else.
-        </p>
-        <div class="role-detail">
-          An open build · still growing<br>
-          time over capital · room<br>
-          for those willing to plant
-        </div>
-      </div>
-
     </div>
   </div>
 </section>
+
+<!-- PUNCH STRIP -->
+<div class="punch-strip" id="midStrip3"></div>
 
 <!-- THE FLOW -->
-<section class="flow-section" id="flow">
+<section class="flow" id="flow">
   <div class="flow-inner">
     <div class="section-label">How a gig moves</div>
-    <h2>Three steps, nothing hidden.</h2>
-    <p class="sub">From the moment work is written down to the moment it is understood.</p>
+    <h2 class="section-h">THE TIME REGISTER</h2>
 
-    <div class="flow-steps">
-      <div class="flow-step">
-        <div class="flow-step-num">01</div>
-        <div class="flow-step-name">Place</div>
-        <p class="flow-step-desc">
-          A gig is written down. A name, who it is for, who will do it, when it should
-          start and finish. If it repeats, it is set up once and looks after itself
-          from there. If it cannot wait, it starts straight away.
-        </p>
+    <div class="flow-register">
+      <div class="flow-col">
+        <div class="flow-col-head">
+          <span class="flow-col-num">01</span>
+          <span class="flow-col-tag">Entry</span>
+        </div>
+        <div class="flow-col-body">
+          <div class="flow-col-name">PLACE</div>
+          <p class="flow-col-desc">
+            A gig is written down. A name, who placed it,
+            who will do it, when it starts and finishes.
+            If it repeats, set it once.
+            It takes care of itself from there.
+          </p>
+        </div>
+        <div class="flow-punches">
+          <div class="flow-punch-row">
+            <div class="fp in"></div><div class="fp"></div><div class="fp"></div><div class="fp in"></div><div class="fp"></div>
+          </div>
+        </div>
       </div>
-      <div class="flow-step">
-        <div class="flow-step-num">02</div>
-        <div class="flow-step-name">Do</div>
-        <p class="flow-step-desc">
-          The work happens. Time is logged as it goes, or afterwards if that is easier.
-          The gig moves from waiting to in progress. Nothing about it disappears
-          once it is done.
-        </p>
+
+      <div class="flow-col">
+        <div class="flow-col-head">
+          <span class="flow-col-num">02</span>
+          <span class="flow-col-tag">Active</span>
+        </div>
+        <div class="flow-col-body">
+          <div class="flow-col-name">DO</div>
+          <p class="flow-col-desc">
+            The work happens. Time is logged as it goes
+            or added afterwards. The gig moves from waiting
+            to running to done. Nothing disappears
+            once it is finished.
+          </p>
+        </div>
+        <div class="flow-punches">
+          <div class="flow-punch-row">
+            <div class="fp in"></div><div class="fp in"></div><div class="fp"></div><div class="fp in"></div><div class="fp in"></div>
+          </div>
+        </div>
       </div>
-      <div class="flow-step">
-        <div class="flow-step-num">03</div>
-        <div class="flow-step-name">Reflect</div>
-        <p class="flow-step-desc">
-          Both people sit with the finished gig and answer a few honest questions,
-          about how it went and how it felt to work together. The final word belongs
-          to the person who placed the work. This is the part most tools skip.
-          For us, it is where the value sits.
-        </p>
+
+      <div class="flow-col">
+        <div class="flow-col-head">
+          <span class="flow-col-num">03</span>
+          <span class="flow-col-tag">Exit</span>
+        </div>
+        <div class="flow-col-body">
+          <div class="flow-col-name">REFLECT</div>
+          <p class="flow-col-desc">
+            Both people answer a few honest questions.
+            The final word belongs to whoever placed the work.
+            This is the part most tools skip entirely.
+            For us, it is where the value sits.
+          </p>
+        </div>
+        <div class="flow-punches">
+          <div class="flow-punch-row">
+            <div class="fp in"></div><div class="fp in"></div><div class="fp in"></div><div class="fp in"></div><div class="fp in"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </section>
+
+<!-- PUNCH STRIP -->
+<div class="punch-strip" id="midStrip4"></div>
 
 <!-- CAPABILITIES -->
-<section class="capabilities" id="capabilities">
+<section class="cap" id="cap">
   <div class="cap-inner">
-    <div class="section-label">What's Built</div>
-    <h2>Quiet things, working.</h2>
-    <p class="sub">Everything below is live, used today, on real work.</p>
+    <div class="section-label">What is built</div>
+    <h2 class="section-h">FUNCTIONS INSTALLED</h2>
+    <p style="font-family:'Courier Prime',monospace;font-size:13px;color:rgba(240,234,216,0.3);margin-bottom:0">All of the below is live. Used today. On real work.</p>
 
     <div class="cap-grid">
-
-      <div class="cap-card">
+      <div class="cap-card active">
         <div class="cap-marker">Structure</div>
-        <div class="cap-title">A place for everything, named simply</div>
-        <p class="cap-desc">
-          Every gig sits inside a project, and carries its own short code so you
-          always know what it is and where it belongs, without opening it.
-          Nothing is ever placed without context.
-        </p>
+        <div class="cap-title">EVERY GIG HAS A NAME AND A CODE</div>
+        <p class="cap-desc">Sits inside a project. Named simply. You always know what it is and where it belongs without opening it.</p>
       </div>
-
-      <div class="cap-card">
+      <div class="cap-card active">
         <div class="cap-marker">Accountability</div>
-        <div class="cap-title">One person placed it, one person is doing it</div>
-        <p class="cap-desc">
-          Every gig has both. Each person sees only what is theirs to see,
-          no more, no less. Nobody is guessing who is responsible for what.
-        </p>
+        <div class="cap-title">ONE PLACED IT. ONE DID IT.</div>
+        <p class="cap-desc">Every gig has both. Each person sees what is theirs. Nobody guesses who is responsible for what.</p>
       </div>
-
-      <div class="cap-card">
+      <div class="cap-card active">
         <div class="cap-marker">Reflection</div>
-        <div class="cap-title">A few honest questions, every time</div>
-        <p class="cap-desc">
-          How the work felt and how it went, asked of both people. The final word
-          rests with whoever placed the gig. What this is worth, in money or in
-          anything else, is a separate question for another day. The reflection
-          stands on its own.
-        </p>
+        <div class="cap-title">HONEST QUESTIONS, EVERY TIME</div>
+        <p class="cap-desc">How the work felt and how it went. Asked of both people. Final word rests with whoever placed the gig.</p>
       </div>
-
-      <div class="cap-card">
+      <div class="cap-card active">
         <div class="cap-marker">Time</div>
-        <div class="cap-title">The clock, kept honestly</div>
-        <p class="cap-desc">
-          Start with one tap, your place and time noted without being asked.
-          Stop the same way. If you forgot, add it afterwards. Either way,
-          your time is yours to look back on, simply.
-        </p>
+        <div class="cap-title">THE CLOCK, KEPT HONESTLY</div>
+        <p class="cap-desc">Start with one tap. Your place and time noted without being asked. Stop the same way. Add it later if you forgot.</p>
       </div>
-
-      <div class="cap-card">
+      <div class="cap-card active">
         <div class="cap-marker">Recurrence</div>
-        <div class="cap-title">Work that repeats, without being repeated</div>
-        <p class="cap-desc">
-          Set a gig up once if it happens every week or every month, and it takes
-          care of itself from there. The person doing it can change for next time
-          without disturbing this time.
-        </p>
+        <div class="cap-title">WORK THAT REPEATS WITHOUT REPEATING</div>
+        <p class="cap-desc">Set a gig once if it happens weekly or monthly. It takes care of itself from there.</p>
       </div>
-
       <div class="cap-card">
         <div class="cap-marker">Care</div>
-        <div class="cap-title">Looked after, quietly</div>
-        <p class="cap-desc">
-          Signed in, and signed out if you step away for too long, with a gentle
-          warning first. Nothing dramatic. Just looked after.
-        </p>
+        <div class="cap-title">LOOKED AFTER, QUIETLY</div>
+        <p class="cap-desc">Signed in, and signed out if you step away too long — with a gentle warning first. Nothing dramatic.</p>
       </div>
-
     </div>
   </div>
 </section>
+
+<!-- PUNCH STRIP -->
+<div class="punch-strip" id="midStrip5"></div>
 
 <!-- CLOSING -->
 <section class="closing">
-  <div class="closing-inner">
-    <div class="closing-label">An open door</div>
-    <h2>If any of this sounds familiar,<br>your <em>time</em> is welcome here.</h2>
-    <p>
-      This is not finished, and it is not meant to be sold to you. It is being built
-      slowly, used daily, on real work. If you place work, do work, or simply want
-      to help something grow the way a seed does, with patience, with care,
-      and without rushing toward an answer, there may be a place for you here.
+  <div class="closing-left">
+    <div class="section-label">An open door</div>
+    <div class="closing-number">VTM</div>
+    <h2 class="section-h">YOUR TIME IS WELCOME HERE.</h2>
+  </div>
+  <div class="closing-right">
+    <p class="closing-para">
+      This is not finished, and it is not meant to be sold to you.
+      It is being built slowly, used daily, on real work.
+      <strong>If you place work, do work, or simply want to help something grow</strong>
+      the way a seed does — with patience, with care,
+      and without rushing toward an answer — there may be a place for you here.
     </p>
-    <div class="closing-mono">Vidai to Mulai · still growing</div>
+    <div class="closing-stamps">
+      <div class="stamp">
+        <div class="stamp-label">Time In</div>
+        <div class="stamp-val" id="closingTimeIn">——:——</div>
+      </div>
+      <div class="stamp">
+        <div class="stamp-label">Time Out</div>
+        <div class="stamp-val out">Your call.</div>
+      </div>
+      <div class="stamp">
+        <div class="stamp-label">Remarks</div>
+        <div class="stamp-val out" style="font-size:14px;font-family:'DM Mono',monospace;letter-spacing:0.06em">Still running.</div>
+      </div>
+    </div>
+    <a href="login.html" id="closingCta" class="closing-cta">Enter the register →</a>
   </div>
 </section>
 
 <!-- FOOTER -->
 <footer>
-  <div class="footer-brand">Vidai <span>to</span> Mulai</div>
-  <div class="footer-note">Built with intention · Early access</div>
+  <div class="footer-brand">MULAI<span class="sep"> · </span>VTM</div>
+  <div class="footer-note">Vidai to Mulai · Built with intention · Early access</div>
 </footer>
 
 <script>
-  // If already signed in, send Login button straight to the dashboard
+  // ── Punch strip generator ──────────────────────────────────────────
+  // Each strip has a random but repeating pattern of punched holes
+  const patterns = [
+    [1,0,0,1,0,1,1,0,1,0,0,1,1,0,0,1,0,1,0,1,1,0,1,0,1,0,0,1,0,1],
+    [0,1,1,0,1,0,0,1,0,1,1,0,0,1,1,0,1,0,1,0,0,1,0,1,0,1,1,0,1,0],
+    [1,1,0,1,0,0,1,0,1,1,0,1,0,1,0,0,1,1,0,0,1,0,1,0,1,1,0,1,0,0],
+  ]
+
+  function buildStrip(id, patternIdx) {
+    const strip = document.getElementById(id)
+    if (!strip) return
+    const pat = patterns[patternIdx % patterns.length]
+    // Two sets for seamless scroll
+    for (let s = 0; s < 2; s++) {
+      const div = document.createElement('div')
+      div.className = 'punch-holes' + (s === 1 ? ' punch-holes-2' : '')
+      // Repeat pattern 6x to fill wide screens
+      for (let r = 0; r < 6; r++) {
+        pat.forEach(p => {
+          const h = document.createElement('div')
+          h.className = 'hole' + (p ? ' punched' : '')
+          div.appendChild(h)
+        })
+      }
+      strip.appendChild(div)
+    }
+  }
+
+  buildStrip('topStrip',   0)
+  buildStrip('midStrip1',  1)
+  buildStrip('midStrip2',  2)
+  buildStrip('midStrip3',  0)
+  buildStrip('midStrip4',  1)
+  buildStrip('midStrip5',  2)
+
+  // ── Live clock in hero ─────────────────────────────────────────────
+  function updateClock() {
+    const now = new Date()
+    const t = now.toTimeString().slice(0,5)
+    const d = now.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })
+    const el = document.getElementById('heroTimeIn')
+    const dt = document.getElementById('heroDate')
+    const ct = document.getElementById('closingTimeIn')
+    if (el) el.textContent = t
+    if (dt) dt.textContent = d
+    if (ct) ct.textContent = t
+  }
+  updateClock()
+  setInterval(updateClock, 30000)
+
+  // ── Already logged in ──────────────────────────────────────────────
   if (sessionStorage.getItem('vtm_role')) {
-    document.getElementById('navLoginBtn').href = 'dashboard.html'
-    document.getElementById('navLoginBtn').textContent = 'Dashboard →'
+    ['navLogin','closingCta'].forEach(id => {
+      const el = document.getElementById(id)
+      if (el) { el.href = 'dashboard.html'; el.textContent = 'Dashboard →' }
+    })
   }
 </script>
 </body>

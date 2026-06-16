@@ -1,9 +1,8 @@
 /**
  * timesheet.js — Vidai to Mulai · Timesheet
- * Auto clock-in/out with GPS + manual entry.
- * All durations stored as duration_mins (integer).
- * Displayed always as Xh Ym — never decimal.
- * Week starts Monday.
+ * Rewritten: toggle Auto/Manual, project→gig cascade,
+ * Open Timesheets (null end_time), midnight-safe duration via DB,
+ * auto-close guard on sign-out, owner+admin edit.
  */
 
 import { db } from './vtm_db.js'
@@ -13,29 +12,112 @@ import { db } from './vtm_db.js'
 const session = vtmGetSession()
 if (!session) { window.location.replace('login.html'); throw new Error() }
 
-const userId = session.user_id
-const TODAY  = new Date().toISOString().split('T')[0]
+const userId   = session.user_id
+const isAdmin  = session.role === 'admin'
+const TODAY    = new Date().toISOString().split('T')[0]
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 
-let activeEntry   = null   // current is_active=true entry if any
+let activeEntry   = null
 let allEntries    = []
+let openEntries   = []
 let currentFilter = 'week'
-let gigMap        = {}     // gig_id → { code, title }
+let gigMap        = {}   // gig_id → { code, title, project_id }
+let projectMap    = {}   // project_id → { code, name }
 
 // ── INIT ──────────────────────────────────────────────────────────────────
 
 document.getElementById('manualDate').value = TODAY
 
+await loadProjects()
 await loadGigs()
 await checkActiveTimer()
 await loadEntries()
+initToggle()
+patchSignOut()
 
-// ── LOAD GIG DROPDOWN ─────────────────────────────────────────────────────
+// ── PATCH SIGN-OUT to warn about active timer ─────────────────────────────
+
+function patchSignOut() {
+  window._vtmSignOutOriginal = window.vtmSignOut
+  window.vtmSignOut = async function() {
+    if (activeEntry) {
+      const go = confirm('You have an active timer running. Sign out anyway? The timer will keep running and auto-close after 24 hours.')
+      if (!go) return
+    }
+    await window._vtmSignOutOriginal()
+  }
+}
+
+// ── TOGGLE INIT ───────────────────────────────────────────────────────────
+
+function initToggle() {
+  document.querySelectorAll('input[name="tog-entry"]').forEach(radio => {
+    radio.addEventListener('change', onToggleChange)
+  })
+  // Start with nothing shown
+  showEntryPanel(null)
+}
+
+function onToggleChange() {
+  const val = getToggle('tog-entry')
+  showEntryPanel(val)
+}
+
+function showEntryPanel(mode) {
+  const autoPanel   = document.getElementById('autoPanel')
+  const manualPanel = document.getElementById('manualPanel')
+  const blocked     = document.getElementById('manualBlocked')
+
+  autoPanel.style.display   = 'none'
+  manualPanel.style.display = 'none'
+  if (blocked) blocked.style.display = 'none'
+
+  if (mode === 'auto') {
+    // Auto blocked if already clocked in
+    if (activeEntry) {
+      showToast('Already clocked in — clock out first', 'err')
+      // Deselect toggle
+      document.querySelectorAll('input[name="tog-entry"]').forEach(r => r.checked = false)
+      return
+    }
+    autoPanel.style.display = 'block'
+  }
+
+  if (mode === 'manual') {
+    manualPanel.style.display = 'block'
+  }
+}
+
+// ── LOAD PROJECTS ─────────────────────────────────────────────────────────
+
+async function loadProjects() {
+  const { data, error } = await db
+    .from('projects')
+    .select('project_id, project_code, project_name')
+    .order('project_code')
+
+  if (error || !data?.length) return
+
+  projectMap = {}
+  data.forEach(p => { projectMap[p.project_id] = { code: p.project_code, name: p.project_name } })
+
+  const blankOpt = '<option value="">— All Projects —</option>'
+  const opts = blankOpt + data.map(p =>
+    `<option value="${p.project_id}">${esc(p.project_code)} · ${esc(p.project_name)}</option>`
+  ).join('')
+
+  const autoProj   = document.getElementById('autoProject')
+  const manualProj = document.getElementById('manualProject')
+  if (autoProj)   autoProj.innerHTML   = opts
+  if (manualProj) manualProj.innerHTML = opts
+}
+
+// ── LOAD GIGS ─────────────────────────────────────────────────────────────
 
 async function loadGigs() {
   let query = db.from('gigs')
-    .select('gig_id, gig_code, title, status, pacer_id, rover_id')
+    .select('gig_id, gig_code, title, project_id, status, pacer_id, rover_id')
     .not('status', 'eq', 'completed')
     .order('gig_code')
 
@@ -43,21 +125,38 @@ async function loadGigs() {
   if (session.role === 'rover') query = query.eq('rover_id', userId)
 
   const { data, error } = await query
+  if (error || !data?.length) return
 
-  if (error || !data?.length) {
-    document.getElementById('clockInGig').innerHTML = '<option value="">— No active gigs —</option>'
-    document.getElementById('manualGig').innerHTML  = '<option value="">— No active gigs —</option>'
+  gigMap = {}
+  data.forEach(g => {
+    gigMap[g.gig_id] = { code: g.gig_code, title: g.title, project_id: g.project_id }
+  })
+
+  populateGigDropdown('autoGig',   null)
+  populateGigDropdown('manualGig', null)
+}
+
+function populateGigDropdown(selectId, projectId) {
+  const select = document.getElementById(selectId)
+  if (!select) return
+
+  const gigs = Object.entries(gigMap)
+    .filter(([, g]) => !projectId || g.project_id === projectId)
+    .map(([id, g]) => ({ id, ...g }))
+
+  if (!gigs.length) {
+    select.innerHTML = '<option value="">— No gigs —</option>'
     return
   }
 
-  gigMap = {}
-  data.forEach(g => { gigMap[g.gig_id] = { code: g.gig_code, title: g.title } })
+  select.innerHTML = '<option value="">— Select Gig —</option>' +
+    gigs.map(g => `<option value="${g.id}">${esc(g.code)} · ${esc(g.title)}</option>`).join('')
+}
 
-  const opts = '<option value="">— Select Gig —</option>' +
-    data.map(g => `<option value="${g.gig_id}">${esc(g.gig_code)} · ${esc(g.title)}</option>`).join('')
-
-  document.getElementById('clockInGig').innerHTML = opts
-  document.getElementById('manualGig').innerHTML  = opts
+// Project filter cascades to gig dropdown
+window.onProjectChange = function(sourceId, targetId) {
+  const projectId = document.getElementById(sourceId).value || null
+  populateGigDropdown(targetId, projectId)
 }
 
 // ── CHECK ACTIVE TIMER ────────────────────────────────────────────────────
@@ -79,34 +178,32 @@ async function checkActiveTimer() {
 }
 
 function showActiveTimer(entry) {
-  const block    = document.getElementById('activeTimerBlock')
-  const clockIn  = document.getElementById('clockInCard')
-  const pill     = document.getElementById('headerTimerPill')
-  const label    = document.getElementById('headerTimerLabel')
+  const block  = document.getElementById('activeTimerBlock')
+  const pill   = document.getElementById('headerTimerPill')
+  const label  = document.getElementById('headerTimerLabel')
 
-  const gig      = entry.gigs || gigMap[entry.gig_id] || {}
-  const code     = gig.gig_code || gig.code || '—'
-  const title    = gig.title    || '—'
-  const timeIn   = entry.start_time ? entry.start_time.slice(0,5) : '—'
-  const dateIn   = entry.entry_date ? fmtDate(entry.entry_date) : '—'
-  const loc      = entry.location_label || null
+  const gig    = entry.gigs || gigMap[entry.gig_id] || {}
+  const code   = gig.gig_code || gig.code || '—'
+  const title  = gig.title    || '—'
+  const timeIn = entry.start_time ? entry.start_time.slice(0,5) : '—'
+  const dateIn = entry.entry_date ? fmtDate(entry.entry_date)   : '—'
+  const loc    = entry.location_label || null
 
   document.getElementById('timerGigCode').textContent  = code
   document.getElementById('timerGigTitle').textContent = title
   document.getElementById('timerClockIn').textContent  = `Clocked in at ${timeIn} · ${dateIn}`
   document.getElementById('timerLocation').textContent = loc || ''
+  // Pre-fill notes if any
+  const notesEl = document.getElementById('activeNotes')
+  if (notesEl) notesEl.value = entry.notes || ''
 
   block.classList.add('visible')
-  clockIn.style.display = 'none'
-
-  // Header pill
   if (pill)  pill.classList.add('visible')
   if (label) label.textContent = `In · ${timeIn}`
 }
 
 function hideActiveTimer() {
   document.getElementById('activeTimerBlock').classList.remove('visible')
-  document.getElementById('clockInCard').style.display = 'block'
   const pill = document.getElementById('headerTimerPill')
   if (pill) pill.classList.remove('visible')
   activeEntry = null
@@ -115,14 +212,13 @@ function hideActiveTimer() {
 // ── CLOCK IN ──────────────────────────────────────────────────────────────
 
 window.clockIn = async function() {
-  const gigId = document.getElementById('clockInGig').value
+  const gigId = document.getElementById('autoGig').value
   if (!gigId) { showToast('Please select a gig', 'err'); return }
 
   const btn = document.getElementById('clockInBtn')
   btn.disabled    = true
   btn.textContent = 'Clocking in…'
 
-  // Get GPS location
   let lat = null, lng = null, locationLabel = null
   try {
     const pos = await new Promise((resolve, reject) => {
@@ -136,7 +232,8 @@ window.clockIn = async function() {
   }
 
   const now       = new Date()
-  const startTime = now.toTimeString().slice(0,5)  // HH:MM
+  const startTime = now.toTimeString().slice(0,5)
+  const notes     = document.getElementById('autoNotesIn')?.value.trim() || null
 
   const payload = {
     gig_id:         gigId,
@@ -148,7 +245,7 @@ window.clockIn = async function() {
     clock_in_lat:   lat,
     clock_in_lng:   lng,
     location_label: locationLabel,
-    notes:          null,
+    notes:          notes,
   }
 
   const { data, error } = await db.from('time_entries').insert(payload).select().single()
@@ -162,8 +259,16 @@ window.clockIn = async function() {
 
   activeEntry = { ...data, gigs: gigMap[gigId] ? { gig_code: gigMap[gigId].code, title: gigMap[gigId].title } : null }
   showActiveTimer(activeEntry)
+
+  // Reset toggle and hide auto panel
+  document.querySelectorAll('input[name="tog-entry"]').forEach(r => r.checked = false)
+  showEntryPanel(null)
+
   showToast('Clocked in ✓', 'ok')
   await loadEntries()
+
+  btn.disabled    = false
+  btn.textContent = 'Clock In →'
 }
 
 // ── CLOCK OUT ─────────────────────────────────────────────────────────────
@@ -175,7 +280,6 @@ window.clockOut = async function() {
   btn.disabled    = true
   btn.textContent = 'Clocking out…'
 
-  // Get GPS location on clock out
   let lat = null, lng = null
   try {
     const pos = await new Promise((resolve, reject) => {
@@ -187,27 +291,17 @@ window.clockOut = async function() {
 
   const now     = new Date()
   const endTime = now.toTimeString().slice(0,5)
+  const notes   = document.getElementById('activeNotes')?.value.trim() || activeEntry.notes || null
 
-  // Calculate duration in minutes
-  const [sh, sm] = (activeEntry.start_time || '00:00').split(':').map(Number)
-  const [eh, em] = endTime.split(':').map(Number)
-  const durationMins = (eh * 60 + em) - (sh * 60 + sm)
-
-  if (durationMins <= 0) {
-    showToast('End time is before start time — check clock', 'err')
-    btn.disabled    = false
-    btn.textContent = 'Clock Out →'
-    return
-  }
-
+  // No duration calc — DB generated column handles it including midnight crossover
   const { error } = await db
     .from('time_entries')
     .update({
-      end_time:       endTime,
-      duration_mins:  durationMins,
-      is_active:      false,
-      clock_out_lat:  lat,
-      clock_out_lng:  lng,
+      end_time:      endTime,
+      is_active:     false,
+      clock_out_lat: lat,
+      clock_out_lng: lng,
+      notes:         notes,
     })
     .eq('entry_id', activeEntry.entry_id)
 
@@ -218,7 +312,7 @@ window.clockOut = async function() {
     return
   }
 
-  showToast(`Clocked out · ${fmtDuration(durationMins)}`, 'ok')
+  showToast('Clocked out ✓', 'ok')
   hideActiveTimer()
   await loadEntries()
 }
@@ -229,34 +323,26 @@ window.saveManual = async function() {
   const gigId = document.getElementById('manualGig').value
   const date  = document.getElementById('manualDate').value
   const start = document.getElementById('manualStart').value
-  const end   = document.getElementById('manualEnd').value
+  const end   = document.getElementById('manualEnd').value     // optional
   const notes = document.getElementById('manualNotes').value.trim()
 
   if (!gigId) { showToast('Please select a gig',       'err'); return }
   if (!date)  { showToast('Please enter a date',       'err'); return }
   if (!start) { showToast('Please enter a start time', 'err'); return }
-  if (!end)   { showToast('Please enter an end time',  'err'); return }
-
-  const [sh, sm] = start.split(':').map(Number)
-  const [eh, em] = end.split(':').map(Number)
-  const durationMins = (eh * 60 + em) - (sh * 60 + sm)
-
-  if (durationMins <= 0) { showToast('End time must be after start time', 'err'); return }
 
   const btn = document.querySelector('.btn-save')
   btn.disabled    = true
   btn.textContent = 'Saving…'
 
   const { error } = await db.from('time_entries').insert({
-    gig_id:        gigId,
-    user_id:       userId,
-    entry_date:    date,
-    start_time:    start,
-    end_time:      end,
-    duration_mins: durationMins,
-    entry_type:    'manual',
-    is_active:     false,
-    notes:         notes || null,
+    gig_id:     gigId,
+    user_id:    userId,
+    entry_date: date,
+    start_time: start,
+    end_time:   end   || null,
+    entry_type: 'manual',
+    is_active:  false,
+    notes:      notes || null,
   })
 
   if (error) {
@@ -266,23 +352,65 @@ window.saveManual = async function() {
     return
   }
 
-  showToast('Time logged ✓', 'ok')
+  showToast(end ? 'Time logged ✓' : 'Entry saved — add end time later ✓', 'ok')
   btn.disabled    = false
   btn.textContent = 'Save →'
   resetManual()
   await loadEntries()
 }
 
+// ── EDIT OPEN ENTRY (save updated times/notes) ────────────────────────────
+
+window.saveOpenEntry = async function(entryId) {
+  const startEl = document.getElementById(`oe-start-${entryId}`)
+  const endEl   = document.getElementById(`oe-end-${entryId}`)
+  const dateEl  = document.getElementById(`oe-date-${entryId}`)
+  const notesEl = document.getElementById(`oe-notes-${entryId}`)
+
+  const start = startEl?.value || null
+  const end   = endEl?.value   || null
+  const date  = dateEl?.value  || null
+  const notes = notesEl?.value.trim() || null
+
+  if (!start) { showToast('Start time required', 'err'); return }
+
+  const btn = document.getElementById(`oe-btn-${entryId}`)
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…' }
+
+  const { error } = await db
+    .from('time_entries')
+    .update({
+      entry_date: date,
+      start_time: start,
+      end_time:   end || null,
+      notes:      notes,
+    })
+    .eq('entry_id', entryId)
+
+  if (error) {
+    showToast('Update failed — ' + error.message, 'err')
+    if (btn) { btn.disabled = false; btn.textContent = 'Save →' }
+    return
+  }
+
+  showToast(end ? 'Entry completed ✓' : 'Entry updated ✓', 'ok')
+  await loadEntries()
+}
+
 // ── LOAD ENTRIES ──────────────────────────────────────────────────────────
 
 async function loadEntries() {
-  const { data, error } = await db
+  let query = db
     .from('time_entries')
     .select('*, gigs(gig_code, title)')
-    .eq('user_id', userId)
-    .eq('is_active', false)   // only completed entries in log
+    .eq('is_active', false)
     .order('entry_date', { ascending: false })
     .order('start_time', { ascending: false })
+
+  // Admin sees all; others see own
+  if (!isAdmin) query = query.eq('user_id', userId)
+
+  const { data, error } = await query
 
   const statusEl = document.getElementById('dbStatus')
 
@@ -292,14 +420,75 @@ async function loadEntries() {
     return
   }
 
-  allEntries = data || []
+  const all = data || []
+
+  // Split: open = no end_time, done = has end_time
+  openEntries = all.filter(e => !e.end_time)
+  allEntries  = all.filter(e =>  e.end_time)
+
   statusEl.textContent = `● ${allEntries.length} entr${allEntries.length !== 1 ? 'ies' : 'y'}`
   statusEl.className   = 'db-status ok'
 
+  renderOpenEntries()
   renderEntries()
 }
 
-// ── RENDER ENTRIES ────────────────────────────────────────────────────────
+// ── RENDER OPEN TIMESHEETS ────────────────────────────────────────────────
+
+function renderOpenEntries() {
+  const container = document.getElementById('openEntriesBody')
+  if (!container) return
+
+  const section = document.getElementById('openSection')
+
+  if (!openEntries.length) {
+    if (section) section.style.display = 'none'
+    return
+  }
+
+  if (section) section.style.display = 'block'
+
+  container.innerHTML = openEntries.map(e => {
+    const gig      = e.gigs || {}
+    const code     = gig.gig_code || '—'
+    const isAuto   = e.entry_type === 'live'
+    const autoNote = e.notes?.includes('Auto-closed') ? '<span class="auto-closed-badge">Auto-closed</span>' : ''
+
+    return `
+      <div class="open-entry" id="open-${e.entry_id}">
+        <div class="open-entry-header">
+          <span class="gig-code-pill">${esc(code)}</span>
+          <span class="open-entry-title">${esc(gig.title || '')}</span>
+          ${autoNote}
+          <span class="type-badge ${isAuto ? 'live' : 'manual'}">${isAuto ? 'live' : 'manual'}</span>
+        </div>
+        <div class="open-entry-fields">
+          <div class="form-row">
+            <label>Date</label>
+            <input type="date" id="oe-date-${e.entry_id}" value="${e.entry_date || ''}">
+          </div>
+          <div class="form-row">
+            <label>Start</label>
+            <input type="time" id="oe-start-${e.entry_id}" value="${(e.start_time || '').slice(0,5)}">
+          </div>
+          <div class="form-row">
+            <label>End</label>
+            <input type="time" id="oe-end-${e.entry_id}" value="${(e.end_time || '').slice(0,5)}">
+          </div>
+          <div class="form-row open-notes">
+            <label>Notes</label>
+            <input type="text" id="oe-notes-${e.entry_id}" value="${esc(e.notes || '')}" placeholder="What did you work on?">
+          </div>
+        </div>
+        <div class="open-entry-actions">
+          <button class="btn-save" id="oe-btn-${e.entry_id}" onclick="saveOpenEntry('${e.entry_id}')">Save →</button>
+          <button class="btn-delete" onclick="deleteEntry('${e.entry_id}')">Delete</button>
+        </div>
+      </div>`
+  }).join('')
+}
+
+// ── RENDER COMPLETED LOG ──────────────────────────────────────────────────
 
 function renderEntries() {
   const now   = new Date(); now.setHours(0,0,0,0)
@@ -308,8 +497,7 @@ function renderEntries() {
   // Week starts Monday
   const weekStart = new Date(now)
   const day = weekStart.getDay()
-  const diffToMon = (day === 0) ? -6 : 1 - day
-  weekStart.setDate(weekStart.getDate() + diffToMon)
+  weekStart.setDate(weekStart.getDate() + ((day === 0) ? -6 : 1 - day))
 
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
 
@@ -320,7 +508,7 @@ function renderEntries() {
     return true
   })
 
-  // Week total — always from Monday
+  // Week total
   const weekMins = allEntries
     .filter(e => { const d = new Date(e.entry_date); d.setHours(0,0,0,0); return d >= weekStart })
     .reduce((sum, e) => sum + (e.duration_mins || 0), 0)
@@ -328,7 +516,7 @@ function renderEntries() {
   document.getElementById('weekTotal').textContent = fmtDuration(weekMins)
 
   if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state">No entries${currentFilter !== 'all' ? ' for this period' : ''}.</div></td></tr>`
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state">No completed entries${currentFilter !== 'all' ? ' for this period' : ''}.</div></td></tr>`
     return
   }
 
@@ -336,7 +524,7 @@ function renderEntries() {
     const gig  = e.gigs || {}
     const code = gig.gig_code || '—'
     const dur  = e.duration_mins ? fmtDuration(e.duration_mins) : '—'
-    const type = e.entry_type || 'manual'
+    const type = e.entry_type === 'live' ? 'live' : 'manual'
     const loc  = e.location_label || '—'
 
     return `
@@ -380,17 +568,20 @@ window.deleteEntry = async function(id) {
 // ── RESET MANUAL FORM ─────────────────────────────────────────────────────
 
 window.resetManual = function() {
-  document.getElementById('manualGig').value   = ''
+  document.getElementById('manualProject').value = ''
+  populateGigDropdown('manualGig', null)
   document.getElementById('manualDate').value  = TODAY
   document.getElementById('manualStart').value = ''
   document.getElementById('manualEnd').value   = ''
   document.getElementById('manualNotes').value = ''
-  const el = document.getElementById('durationDisplay')
-  el.textContent = '—'
-  el.className   = 'duration-display'
 }
 
-// ── HELPERS (module scope) ────────────────────────────────────────────────
+// ── HELPERS ───────────────────────────────────────────────────────────────
+
+function getToggle(name) {
+  const checked = document.querySelector(`input[name="${name}"]:checked`)
+  return checked ? checked.value : null
+}
 
 function fmtDuration(mins) {
   if (!mins && mins !== 0) return '—'

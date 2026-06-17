@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mulai · Time, kept honestly</title>
+  <title>Mulai · Work, kept honestly</title>
   <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&family=Special+Elite&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -57,18 +57,18 @@
       display: flex;
       gap: 18px;
       padding: 0 24px;
-      animation: scroll-holes 18s linear infinite;
+      animation: drift-left 70s linear infinite;
       white-space: nowrap;
       flex-shrink: 0;
     }
     .punch-holes-2 {
-      animation: scroll-holes 18s linear infinite;
-      animation-delay: -9s;
+      animation: drift-left 70s linear infinite;
+      animation-delay: -35s;
     }
-    @keyframes scroll-holes {
-      from { transform: translateX(0); }
-      to   { transform: translateX(-100%); }
-    }
+    .punch-strip.reverse .punch-holes   { animation-name: drift-right; }
+    .punch-strip.reverse .punch-holes-2 { animation-name: drift-right; animation-delay: -35s; }
+    @keyframes drift-left  { from { transform: translateX(0); }    to { transform: translateX(-100%); } }
+    @keyframes drift-right { from { transform: translateX(-100%); } to { transform: translateX(0); } }
 
     .hole {
       width: 18px; height: 28px;
@@ -752,7 +752,7 @@
 
 <!-- NAV -->
 <nav>
-  <a href="index.html" class="nav-brand">MULAI<span class="sep"> · </span>VTM</a>
+  <a href="index.html" class="nav-brand">MULAI</a>
   <ul class="nav-links">
     <li><a href="#argument">Why</a></li>
     <li><a href="#roles">Who</a></li>
@@ -785,7 +785,7 @@
       </div>
       <div class="card-field">
         <div class="card-field-label">Card No.</div>
-        <div class="card-field-val">VTM-001</div>
+        <div class="card-field-val">MLI-001</div>
       </div>
       <div class="card-field">
         <div class="card-field-label">Status</div>
@@ -795,7 +795,7 @@
 
     <div class="hero-headline">
       <h1 class="hero-h1">
-        <span class="ghost">TIME</span><br>
+        <span class="ghost">WORK</span><br>
         KEPT<br>
         <span class="red">HONEST.</span>
       </h1>
@@ -1107,7 +1107,7 @@
 <section class="closing">
   <div class="closing-left">
     <div class="section-label">An open door</div>
-    <div class="closing-number">VTM</div>
+    <div class="closing-number">MLI</div>
     <h2 class="section-h">YOUR TIME IS WELCOME HERE.</h2>
   </div>
   <div class="closing-right">
@@ -1138,8 +1138,8 @@
 
 <!-- FOOTER -->
 <footer>
-  <div class="footer-brand">MULAI<span class="sep"> · </span>VTM</div>
-  <div class="footer-note">Vidai to Mulai · Built with intention · Early access</div>
+  <div class="footer-brand">MULAI</div>
+  <div class="footer-note">Mulai · Built with intention · Early access</div>
 </footer>
 
 <script>
@@ -1151,15 +1151,14 @@
     [1,1,0,1,0,0,1,0,1,1,0,1,0,1,0,0,1,1,0,0,1,0,1,0,1,1,0,1,0,0],
   ]
 
-  function buildStrip(id, patternIdx) {
+  function buildStrip(id, patternIdx, reverse) {
     const strip = document.getElementById(id)
     if (!strip) return
+    if (reverse) strip.classList.add('reverse')
     const pat = patterns[patternIdx % patterns.length]
-    // Two sets for seamless scroll
     for (let s = 0; s < 2; s++) {
       const div = document.createElement('div')
       div.className = 'punch-holes' + (s === 1 ? ' punch-holes-2' : '')
-      // Repeat pattern 6x to fill wide screens
       for (let r = 0; r < 6; r++) {
         pat.forEach(p => {
           const h = document.createElement('div')
@@ -1171,12 +1170,12 @@
     }
   }
 
-  buildStrip('topStrip',   0)
-  buildStrip('midStrip1',  1)
-  buildStrip('midStrip2',  2)
-  buildStrip('midStrip3',  0)
-  buildStrip('midStrip4',  1)
-  buildStrip('midStrip5',  2)
+  buildStrip('topStrip',  0, false)
+  buildStrip('midStrip1', 1, true)
+  buildStrip('midStrip2', 2, false)
+  buildStrip('midStrip3', 0, true)
+  buildStrip('midStrip4', 1, false)
+  buildStrip('midStrip5', 2, true)
 
   // ── Live clock in hero ─────────────────────────────────────────────
   function updateClock() {

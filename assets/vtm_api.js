@@ -166,7 +166,7 @@ export async function fetchGigsForEval(db) {
   return db
     .from('gigs')
     .select(`
-      gig_id, gig_code, title, status, cadence,
+      gig_id, gig_code, title, description, status, cadence,
       date_due, pacer_id, rover_id,
       project_categories ( category_code )
     `)

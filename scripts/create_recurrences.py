@@ -40,12 +40,22 @@ def calc_next_run(from_date: str, frequency: str) -> str:
     return d.isoformat()
 
 def count_instances(parent_code: str) -> int:
-    """Count existing instances for a recurring parent gig."""
+    """Count direct children only — not grandchildren.
+    A direct child has exactly one more segment than the parent.
+    e.g. parent HOME_RECYCLE_R_001 has 4 parts;
+    direct child HOME_RECYCLE_R_001_001 has 5 parts.
+    """
     res = db.from_('gigs') \
-        .select('gig_id', count='exact') \
+        .select('gig_code') \
         .like('gig_code', f'{parent_code}_%') \
         .execute()
-    return res.count or 0
+
+    parent_parts = len(parent_code.split('_'))
+    direct_children = [
+        g for g in (res.data or [])
+        if len(g['gig_code'].split('_')) == parent_parts + 1
+    ]
+    return len(direct_children)
 
 def generate_instance_code(parent_code: str) -> str:
     """Generate the next instance code: PARENT_001, PARENT_002 ..."""
@@ -74,6 +84,16 @@ def run():
         parent = sched.get('gigs')
         if not parent:
             print(f'  SKIP schedule {sched["schedule_id"]} — parent gig not found')
+            skipped += 1
+            continue
+
+        # Guard — never allow an instance to spawn children
+        if parent.get('parent_gig_id'):
+            print(f'  DEACTIVATE schedule {sched["schedule_id"]} — parent {parent["gig_code"]} is itself an instance')
+            db.from_('recurrence_schedule') \
+                .update({'is_active': False}) \
+                .eq('schedule_id', sched['schedule_id']) \
+                .execute()
             skipped += 1
             continue
 

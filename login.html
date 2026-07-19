@@ -5,17 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sign In — Vidai to Mulai</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <style>
-    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
-    :root {
-      --red: #c0392b; --red-dark: #8b1a10; --green: #2d5a3d;
-      --black: #111111; --charcoal: #2c2c2c; --stone: #8a8a8a;
-      --light: #eeece6; --white: #f7f6f2;
-      --font-display: 'Playfair Display', serif;
-      --font-body: 'DM Sans', sans-serif;
-      --font-mono: 'DM Mono', monospace;
-    }
+  <!-- Shared design tokens + toast component, reused from the app shell -->
+  <link rel="stylesheet" href="vtm.css">
+
+  <style>
+    /* login.html owns its own layout — everything below overrides vtm.css
+       where the two-column, pre-auth screen needs to differ from the app shell. */
 
     body {
       font-family: var(--font-body);
@@ -23,70 +19,148 @@
       min-height: 100vh;
       display: grid;
       grid-template-columns: 1fr 1fr;
+      font-size: 15px;
+      line-height: 1.5;
     }
 
-    /* LEFT */
+    /* ══════════════════════════════════════════════════════════════
+       LEFT — punch card hero, styled after the mulai.ch time register
+       ══════════════════════════════════════════════════════════════ */
     .left {
       background: var(--black);
-      padding: 64px 56px;
+      padding: 56px 56px 48px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       border-right: 1px solid rgba(255,255,255,0.06);
+      gap: 32px;
     }
+
     .brand { font-family: var(--font-display); font-size: 1.2rem; color: var(--white); }
     .brand span { color: var(--red); }
-    .tagline { font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--red); margin-bottom: 20px; }
-    .big-text { font-family: var(--font-display); font-size: 3rem; line-height: 1.1; color: var(--white); margin-bottom: 24px; }
+
+    /* the card itself */
+    .punchcard {
+      background: rgba(247,246,242,0.03);
+      border: 1px solid rgba(247,246,242,0.14);
+      padding: 20px 22px;
+    }
+
+    .punchcard-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px dashed rgba(247,246,242,0.2);
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+    }
+
+    .punchcard-in {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.28em;
+      color: var(--red);
+      border: 1px solid var(--red);
+      padding: 3px 8px;
+    }
+
+    .punchcard-status {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(247,246,242,0.45);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .punchcard-status .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 0 3px rgba(192,57,43,0.18);
+    }
+
+    .punchcard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px 20px;
+    }
+
+    .pc-field { display: flex; flex-direction: column; gap: 3px; }
+    .pc-label {
+      font-family: var(--font-mono);
+      font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(247,246,242,0.32);
+    }
+    .pc-value {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: rgba(247,246,242,0.85);
+    }
+
+    .big-text { font-family: var(--font-display); font-size: 2.6rem; line-height: 1.12; color: var(--white); }
     .big-text span { color: var(--red); }
-    .desc { font-size: 13px; color: rgba(247,246,242,0.4); max-width: 340px; }
+    .desc { font-size: 13px; color: rgba(247,246,242,0.4); max-width: 340px; margin-top: 14px; }
+
+    .punchcard-time {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 18px;
+      padding-top: 18px;
+      border-top: 1px dashed rgba(247,246,242,0.16);
+    }
+    .pt-label {
+      font-family: var(--font-mono);
+      font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: rgba(247,246,242,0.32);
+      margin-bottom: 4px;
+    }
+    .pt-value { font-family: var(--font-mono); font-size: 14px; color: rgba(247,246,242,0.7); }
+
     .pipeline { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(247,246,242,0.2); }
 
-    /* RIGHT */
+    /* ══════════════════════════════════════════════════════════════
+       RIGHT — sign-in form
+       ══════════════════════════════════════════════════════════════ */
     .right { background: var(--light); display: flex; align-items: center; justify-content: center; padding: 64px; }
     .login-box { width: 100%; max-width: 380px; }
     .login-title { font-family: var(--font-display); font-size: 1.8rem; color: var(--black); margin-bottom: 6px; }
-    .login-sub { font-size: 12px; color: var(--stone); margin-bottom: 40px; }
+    .login-sub { font-size: 12px; color: var(--stone); margin-bottom: 36px; }
 
     .form-group { margin-bottom: 20px; }
     label { display: block; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--stone); margin-bottom: 6px; font-weight: 500; }
     input { width: 100%; padding: 11px 14px; background: var(--white); border: 1px solid #d0cec8; font-family: var(--font-body); font-size: 14px; color: var(--black); outline: none; }
     input:focus { border-color: var(--red); }
 
-    .btn-google {
-      width: 100%; display: flex; align-items: center; justify-content: center; gap: 12px;
-      padding: 12px 16px; background: var(--white); border: 1px solid #d0cec8;
-      font-family: var(--font-body); font-size: 13px; font-weight: 500;
-      color: var(--charcoal); cursor: pointer; margin-bottom: 20px; transition: border-color 0.2s;
-    }
-    .btn-google:hover { border-color: var(--charcoal); }
-
-    .divider { display: flex; align-items: center; gap: 12px; margin: 28px 0; }
-    .divider-line { flex: 1; height: 1px; background: #d0cec8; }
-    .divider-text { font-size: 10px; letter-spacing: 0.12em; color: var(--stone); }
-
     .btn-signin {
       width: 100%; background: var(--red); color: var(--white); border: none;
       padding: 13px 24px; font-size: 12px; font-weight: 500; letter-spacing: 0.1em;
-      text-transform: uppercase; cursor: pointer; margin-top: 8px; transition: background 0.2s;
+      text-transform: uppercase; cursor: pointer; margin-top: 4px; transition: background 0.2s;
       font-family: var(--font-body);
     }
     .btn-signin:hover { background: var(--red-dark); }
     .btn-signin:disabled { opacity: 0.6; cursor: not-allowed; }
 
-    .error {
-      display: none; background: #fceee8; border-left: 3px solid var(--red);
-      padding: 10px 14px; font-size: 12px; color: var(--red); margin-bottom: 20px;
-      line-height: 1.5;
-    }
-    .error.visible { display: block; }
+    .divider { display: flex; align-items: center; gap: 12px; margin: 28px 0; }
+    .divider-line { flex: 1; height: 1px; background: #d0cec8; }
+    .divider-text { font-size: 10px; letter-spacing: 0.12em; color: var(--stone); }
 
-    .debug {
-      display: none; background: #e8f5ee; border-left: 3px solid var(--green);
-      padding: 10px 14px; font-size: 11px; color: var(--green);
-      margin-bottom: 20px; font-family: var(--font-mono); line-height: 1.6;
+    .oauth-group { display: flex; flex-direction: column; gap: 10px; }
+
+    .btn-oauth {
+      width: 100%; display: flex; align-items: center; justify-content: center; gap: 12px;
+      padding: 12px 16px; background: var(--white); border: 1px solid #d0cec8;
+      font-family: var(--font-body); font-size: 13px; font-weight: 500;
+      color: var(--charcoal); cursor: pointer; transition: border-color 0.2s;
     }
-    .debug.visible { display: block; }
+    .btn-oauth:hover { border-color: var(--charcoal); }
+    .btn-oauth:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .timeout-banner {
+      background: #fdf5e0; border-left: 3px solid #8a6200; color: #8a6200;
+      padding: 10px 14px; font-size: 12px; margin-bottom: 20px; line-height: 1.5;
+    }
 
     @media (max-width: 768px) {
       body { grid-template-columns: 1fr; }
@@ -98,37 +172,40 @@
 
 <div class="left">
   <div class="brand">Vidai <span>to</span> Mulai</div>
-  <div>
-    <div class="tagline">Gig Evaluation Platform</div>
-    <div class="big-text">Lead.<br><span>Execute.</span><br>Evaluate.</div>
-    <div class="desc">Track field and desk work packages from placement to reward.</div>
+
+  <div class="punchcard">
+    <div class="punchcard-head">
+      <span class="punchcard-in">IN</span>
+      <span class="punchcard-status"><span class="dot"></span> Awaiting sign-in</span>
+    </div>
+    <div class="punchcard-grid">
+      <div class="pc-field"><span class="pc-label">Employee / Worker</span><span class="pc-value">—</span></div>
+      <div class="pc-field"><span class="pc-label">Department / Gig</span><span class="pc-value">To be assigned</span></div>
+      <div class="pc-field"><span class="pc-label">Date</span><span class="pc-value" id="pcDate">—</span></div>
+      <div class="pc-field"><span class="pc-label">Card No.</span><span class="pc-value">MLI-001</span></div>
+    </div>
   </div>
+
+  <div>
+    <div class="big-text">Lead.<br>Execute.<br><span>Evaluate.</span></div>
+    <div class="desc">The clock has always counted arrivals and departures. This one asks how the work actually went — track field and desk work packages from placement to reward.</div>
+  </div>
+
+  <div class="punchcard-time">
+    <div><div class="pt-label">Time In</div><div class="pt-value">——:——</div></div>
+    <div><div class="pt-label">Time Out</div><div class="pt-value">——:——</div></div>
+    <div><div class="pt-label">Duration</div><div class="pt-value">You decide.</div></div>
+  </div>
+
   <div class="pipeline">Create → Assign → Approve → Deliver → Evaluate → Close</div>
 </div>
 
 <div class="right">
   <div class="login-box">
     <div class="login-title">Sign in</div>
-    <div class="login-sub">Use Google or email to continue</div>
+    <div class="login-sub">Enter the register with your email, or continue with Google or Microsoft.</div>
 
-    <div class="error" id="errorMsg"></div>
-    <div class="debug" id="debugMsg"></div>
-
-    <button class="btn-google" id="googleBtn">
-      <svg width="18" height="18" viewBox="0 0 24 24">
-        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-      </svg>
-      Continue with Google
-    </button>
-
-    <div class="divider">
-      <div class="divider-line"></div>
-      <div class="divider-text">or</div>
-      <div class="divider-line"></div>
-    </div>
+    <div class="timeout-banner" id="timeoutBanner" style="display:none;">You were signed out after 30 minutes of inactivity.</div>
 
     <div class="form-group">
       <label>Email</label>
@@ -140,8 +217,39 @@
     </div>
 
     <button class="btn-signin" id="signinBtn">Sign In →</button>
+
+    <div class="divider">
+      <div class="divider-line"></div>
+      <div class="divider-text">or</div>
+      <div class="divider-line"></div>
+    </div>
+
+    <div class="oauth-group">
+      <button class="btn-oauth" id="googleBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Continue with Google
+      </button>
+
+      <button class="btn-oauth" id="msftBtn">
+        <svg width="18" height="18" viewBox="0 0 21 21">
+          <rect x="1"  y="1"  width="9" height="9" fill="#f25022"/>
+          <rect x="11" y="1"  width="9" height="9" fill="#7fba00"/>
+          <rect x="1"  y="11" width="9" height="9" fill="#00a4ef"/>
+          <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+        </svg>
+        Continue with Microsoft
+      </button>
+    </div>
   </div>
 </div>
+
+<!-- Shared UI behaviours: showToast(), _esc(), vtmGetSession() -->
+<script src="vtm.js"></script>
 
 <script type="module">
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -158,24 +266,28 @@
     }
   })
 
-  const emailInput = document.getElementById('email')
+  const emailInput    = document.getElementById('email')
   const passwordInput = document.getElementById('password')
-  const signinBtn = document.getElementById('signinBtn')
-  const googleBtn = document.getElementById('googleBtn')
-  const errorDiv = document.getElementById('errorMsg')
+  const signinBtn     = document.getElementById('signinBtn')
+  const googleBtn     = document.getElementById('googleBtn')
+  const msftBtn       = document.getElementById('msftBtn')
+  const timeoutBanner = document.getElementById('timeoutBanner')
+  const pcDate         = document.getElementById('pcDate')
 
-  function showError(msg) {
-    errorDiv.textContent = msg
-    errorDiv.classList.add('visible')
-  }
+  pcDate.textContent = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 
   function resetBtn() {
-    signinBtn.disabled = false
+    signinBtn.disabled    = false
     signinBtn.textContent = 'Sign In →'
   }
 
+  function resetOAuthBtns() {
+    googleBtn.disabled = false
+    msftBtn.disabled    = false
+  }
+
   // ── Detect OAuth return ─────────────────────────────────────────────────
-  // Google PKCE puts `code` in the query string, not the hash.
+  // Google/Microsoft PKCE puts `code` in the query string, not the hash.
   // Implicit flow puts `access_token` in the hash.
   // We check both.
   const hash   = window.location.hash
@@ -190,7 +302,7 @@
     const { data: { session }, error } = await db.auth.getSession()
 
     if (error || !session) {
-      showError('Google sign-in failed — please try again.')
+      showToast('Sign-in failed — please try again.', 'err')
     } else {
       await finishLogin(session.user, null)
     }
@@ -199,11 +311,7 @@
     // ── Not an OAuth return — show timeout warning if applicable ──────────
     const reason = new URLSearchParams(search).get('reason')
     if (reason === 'timeout') {
-      errorDiv.textContent = 'You were signed out after 30 minutes of inactivity.'
-      errorDiv.classList.add('visible')
-      errorDiv.style.borderLeftColor = '#8a6200'
-      errorDiv.style.background      = '#fdf5e0'
-      errorDiv.style.color           = '#8a6200'
+      timeoutBanner.style.display = 'block'
     }
 
     // ── Already logged in? Skip the form ─────────────────────────────────
@@ -222,23 +330,23 @@
       .maybeSingle()
 
     if (vtmError) {
-      showError('Could not read user profile — ' + vtmError.message)
+      showToast('Could not read user profile — ' + vtmError.message, 'err')
       await db.auth.signOut()
-      resetBtn()
+      resetBtn(); resetOAuthBtns()
       return
     }
 
     if (!vtmUser) {
-      showError('No profile found for this account. Ask your admin to add you to vtm_users.')
+      showToast('No profile found for this account. Ask your admin to add you to vtm_users.', 'err')
       await db.auth.signOut()
-      resetBtn()
+      resetBtn(); resetOAuthBtns()
       return
     }
 
     if (vtmUser.active === false) {
-      showError('Your account is inactive. Contact your admin.')
+      showToast('Your account is inactive. Contact your admin.', 'err')
       await db.auth.signOut()
-      resetBtn()
+      resetBtn(); resetOAuthBtns()
       return
     }
 
@@ -252,12 +360,10 @@
 
   // ── Email/password sign-in ──────────────────────────────────────────────
   async function signInWithEmail() {
-    errorDiv.classList.remove('visible')
-
     const email    = emailInput.value.trim()
     const password = passwordInput.value
 
-    if (!email || !password) { showError('Please enter your email and password.'); return }
+    if (!email || !password) { showToast('Please enter your email and password.', 'err'); return }
 
     signinBtn.disabled    = true
     signinBtn.textContent = 'Signing in…'
@@ -265,7 +371,7 @@
     const { data: authData, error: authError } = await db.auth.signInWithPassword({ email, password })
 
     if (authError) {
-      showError(authError.message.includes('Invalid') ? 'Incorrect email or password.' : authError.message)
+      showToast(authError.message.includes('Invalid') ? 'Incorrect email or password.' : authError.message, 'err')
       resetBtn()
       return
     }
@@ -277,18 +383,33 @@
   // Redirect back to login.html — not dashboard.html — so this page
   // can receive the OAuth callback and handle the session properly.
   async function signInWithGoogle() {
-    errorDiv.classList.remove('visible')
+    googleBtn.disabled = true
     const { error } = await db.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: window.location.origin + '/login.html'
       }
     })
-    if (error) showError(error.message)
+    if (error) { showToast(error.message, 'err'); googleBtn.disabled = false }
+  }
+
+  // ── Microsoft (Azure AD / Entra ID) OAuth ───────────────────────────────
+  // Provider is already configured in both Azure and Supabase.
+  // Same redirect pattern as Google — back to login.html to receive the callback.
+  async function signInWithMicrosoft() {
+    msftBtn.disabled = true
+    const { error } = await db.auth.signInWithOAuth({
+      provider: 'azure',
+      options: {
+        redirectTo: window.location.origin + '/login.html'
+      }
+    })
+    if (error) { showToast(error.message, 'err'); msftBtn.disabled = false }
   }
 
   signinBtn.addEventListener('click', signInWithEmail)
   googleBtn.addEventListener('click', signInWithGoogle)
+  msftBtn.addEventListener('click', signInWithMicrosoft)
   passwordInput.addEventListener('keypress', e => { if (e.key === 'Enter') signInWithEmail() })
 
 </script>

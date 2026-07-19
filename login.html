@@ -4,158 +4,195 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sign In — Vidai to Mulai</title>
-  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=DM+Sans:wght@300;400;500;700&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
   <!-- Shared design tokens + toast component, reused from the app shell -->
   <link rel="stylesheet" href="assets/vtm.css">
 
   <style>
-    /* login.html owns its own layout AND its own color tokens — this page must
-       render correctly even if assets/vtm.css fails to load for any reason.
-       vtm.css is still linked below for the shared .vtm-toast component. */
-    :root {
-      --red:      #c0392b;
-      --red-dark: #8b1a10;
-      --green:    #2d5a3d;
-      --black:    #111111;
-      --charcoal: #2c2c2c;
-      --stone:    #8a8a8a;
-      --light:    #eeece6;
-      --white:    #f7f6f2;
-      --font-display: 'Archivo Black', sans-serif;
-      --font-body:    'DM Sans', sans-serif;
-      --font-mono:    'DM Mono', monospace;
-    }
+    /* login.html owns its own layout — everything below overrides vtm.css
+       where the two-column, pre-auth screen needs to differ from the app shell. */
 
     body {
       font-family: var(--font-body);
-      background: var(--light);
-      color: var(--black);
+      background: var(--black);
       min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       font-size: 15px;
       line-height: 1.5;
     }
 
     @media (prefers-reduced-motion: no-preference) {
-      .fields-row    { animation: fadeUp .5s ease-out both; }
-      .headline      { animation: fadeUp .5s ease-out .08s both; }
-      .subcopy       { animation: fadeUp .5s ease-out .14s both; }
-      .signin-panel  { animation: fadeUp .5s ease-out .1s both; }
+      .punchcard   { animation: cardIn .6s cubic-bezier(.2,.7,.2,1) both; }
+      .big-text    { animation: fadeUp .6s ease-out .12s both; }
+      .desc        { animation: fadeUp .6s ease-out .2s both; }
+      .punchcard-time, .pipeline { animation: fadeUp .6s ease-out .28s both; }
+      .login-box   { animation: fadeUp .5s ease-out .1s both; }
     }
+    @keyframes cardIn { from { opacity: 0; transform: translateY(10px) rotate(-.6deg); } to { opacity: 1; transform: translateY(0) rotate(0); } }
     @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
     /* ══════════════════════════════════════════════════════════════
-       HEADER — thin black bar, thick red rule, like the home page
+       LEFT — punch card hero, styled after the mulai.ch time register
        ══════════════════════════════════════════════════════════════ */
-    .site-header {
+    .left {
+      position: relative;
       background: var(--black);
-      color: var(--white);
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 18px 48px;
-      border-bottom: 3px solid var(--red);
-    }
-    .site-header .brand { font-family: var(--font-display); font-size: 1rem; letter-spacing: 0.01em; }
-    .site-header .brand span { color: var(--red); }
-    .site-header .tag {
-      font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.22em;
-      text-transform: uppercase; color: rgba(247,246,242,0.4);
-    }
-
-    /* ══════════════════════════════════════════════════════════════
-       TICKET STRIP — a punched tape band, full width
-       ══════════════════════════════════════════════════════════════ */
-    .ticket-strip {
-      display: flex; gap: 9px; overflow: hidden;
-      padding: 16px 48px;
-      background: var(--light);
-      border-bottom: 1px solid rgba(17,17,17,0.08);
-    }
-    .ticket-strip span {
-      width: 15px; height: 15px; flex-shrink: 0;
-      border: 1.5px solid var(--black);
-    }
-    .ticket-strip span.filled { background: var(--black); }
-    .ticket-strip span.accent { background: var(--red); border-color: var(--red); }
-
-    /* ══════════════════════════════════════════════════════════════
-       MAIN — register fields + headline (left), sign-in panel (right)
-       ══════════════════════════════════════════════════════════════ */
-    main {
-      max-width: 1180px;
-      margin: 0 auto;
-      padding: 56px 48px 72px;
-      display: grid;
-      grid-template-columns: 1.25fr 1fr;
-      gap: 64px;
-      align-items: start;
+      background-image:
+        radial-gradient(circle at 85% 0%, rgba(192,57,43,0.10), transparent 55%),
+        radial-gradient(circle at 0% 100%, rgba(45,90,61,0.08), transparent 45%);
+      padding: 52px 56px 44px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-right: 1px solid rgba(255,255,255,0.06);
+      gap: 30px;
     }
 
-    .status-row {
-      display: flex; align-items: center; gap: 14px;
-      margin-bottom: 40px;
-    }
-    .in-tag {
-      font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.24em;
-      color: var(--red); border: 1px solid var(--red); padding: 3px 9px;
-    }
-    .status-pill {
-      font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
-      color: var(--stone); display: flex; align-items: center; gap: 7px;
-    }
-    .status-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--stone); }
+    .brand-row { display: flex; align-items: baseline; justify-content: space-between; }
+    .brand { font-family: var(--font-display); font-size: 1.15rem; color: var(--white); letter-spacing: 0.01em; }
+    .brand span { color: var(--red); font-style: italic; }
+    .brand-tag { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.24em; text-transform: uppercase; color: rgba(247,246,242,0.28); }
 
-    .fields-row {
-      display: flex; flex-wrap: wrap; gap: 32px 44px;
-      margin-bottom: 52px;
+    /* the card itself — die-cut top-right corner, perforation strip along the base */
+    .punchcard {
+      position: relative;
+      background: linear-gradient(180deg, rgba(247,246,242,0.05), rgba(247,246,242,0.02));
+      border: 1px solid rgba(247,246,242,0.16);
+      clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%);
+      padding: 22px 24px 18px;
+      box-shadow: 0 30px 60px -30px rgba(0,0,0,0.6);
     }
-    .field { display: flex; flex-direction: column; gap: 7px; min-width: 108px; }
-    .field-label {
-      font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
-      color: var(--stone); border-bottom: 1px solid rgba(17,17,17,0.14); padding-bottom: 7px;
+    .punchcard::after {
+      /* the die-cut corner fold */
+      content: '';
+      position: absolute;
+      top: 0; right: 0;
+      width: 22px; height: 22px;
+      background: var(--black);
+      clip-path: polygon(0 0, 100% 0, 100% 100%);
+      border-left: 1px solid rgba(247,246,242,0.16);
+      border-bottom: 1px solid rgba(247,246,242,0.16);
     }
-    .field-value { font-family: var(--font-mono); font-size: 15px; font-weight: 500; color: var(--black); font-variant-numeric: tabular-nums; }
-    .field-value.accent { color: var(--red); }
 
-    .headline {
-      font-family: var(--font-display);
-      font-size: clamp(2.4rem, 5.4vw, 3.8rem);
-      line-height: 0.98;
+    .punchcard-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px dashed rgba(247,246,242,0.2);
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+    }
+
+    .punchcard-in {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.28em;
+      color: var(--red);
+      border: 1px solid var(--red);
+      padding: 3px 8px;
+    }
+
+    .punchcard-status {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
-      margin-bottom: 26px;
-    }
-    .headline .accent { color: var(--red); }
-
-    .subcopy {
-      font-family: var(--font-mono); font-style: italic; font-size: 13.5px;
-      line-height: 1.85; color: var(--charcoal); max-width: 460px;
+      color: rgba(247,246,242,0.45);
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
-    .pipeline-footer {
-      margin-top: 52px;
-      font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
-      color: var(--stone);
+    .punchcard-status .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 0 3px rgba(192,57,43,0.18);
     }
+    @media (prefers-reduced-motion: no-preference) {
+      .punchcard-status .dot { animation: pulse 2.2s ease-in-out infinite; }
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 3px rgba(192,57,43,0.18); }
+      50%      { box-shadow: 0 0 0 6px rgba(192,57,43,0.06); }
+    }
+
+    .punchcard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px 20px;
+      margin-bottom: 16px;
+    }
+
+    .pc-field { display: flex; flex-direction: column; gap: 3px; }
+    .pc-label {
+      font-family: var(--font-mono);
+      font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(247,246,242,0.32);
+    }
+    .pc-value {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: rgba(247,246,242,0.85);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* perforation strip — a row of punched holes along the card's base */
+    .perforation {
+      display: flex;
+      gap: 7px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(247,246,242,0.1);
+    }
+    .perforation span {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: rgba(247,246,242,0.14);
+    }
+    .perforation span:nth-child(3n+1) { background: rgba(192,57,43,0.4); }
+
+    .big-text { font-family: var(--font-display); font-size: 2.5rem; line-height: 1.1; color: var(--white); letter-spacing: -0.01em; }
+    .big-text span { color: var(--red); font-style: italic; }
+    .desc { font-size: 13px; color: rgba(247,246,242,0.42); max-width: 340px; margin-top: 14px; line-height: 1.6; }
+
+    .punchcard-time {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 18px;
+      padding-top: 18px;
+      border-top: 1px dashed rgba(247,246,242,0.16);
+    }
+    .pt-label {
+      font-family: var(--font-mono);
+      font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: rgba(247,246,242,0.32);
+      margin-bottom: 4px;
+    }
+    .pt-value { font-family: var(--font-mono); font-size: 14px; color: rgba(247,246,242,0.7); font-variant-numeric: tabular-nums; }
+    .pt-value.live { color: var(--white); }
+
+    .pipeline { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(247,246,242,0.2); }
 
     /* ══════════════════════════════════════════════════════════════
-       SIGN-IN PANEL
+       RIGHT — sign-in form, faint ledger rule for texture
        ══════════════════════════════════════════════════════════════ */
-    .signin-panel {
-      background: var(--white);
-      border: 1px solid rgba(17,17,17,0.08);
-      padding: 40px 36px;
-      box-shadow: 0 30px 60px -38px rgba(0,0,0,0.3);
+    .right {
+      background: var(--light);
+      background-image: repeating-linear-gradient(180deg, transparent, transparent 34px, rgba(0,0,0,0.025) 35px);
+      display: flex; align-items: center; justify-content: center; padding: 64px;
     }
-    .login-title { font-family: var(--font-body); font-weight: 700; font-size: 1.6rem; color: var(--black); margin-bottom: 6px; letter-spacing: -0.01em; }
-    .login-sub { font-size: 12.5px; color: var(--stone); margin-bottom: 32px; line-height: 1.6; }
+    .login-box { width: 100%; max-width: 380px; }
+    .login-title { font-family: var(--font-display); font-size: 2rem; color: var(--black); margin-bottom: 6px; letter-spacing: -0.01em; }
+    .login-sub { font-size: 12.5px; color: var(--stone); margin-bottom: 36px; line-height: 1.6; }
 
     .form-group { margin-bottom: 18px; }
     label { display: block; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--stone); margin-bottom: 7px; font-weight: 500; }
     input {
-      width: 100%; padding: 12px 14px; background: var(--light); border: 1px solid #d0cec8;
+      width: 100%; padding: 12px 14px; background: var(--white); border: 1px solid #d0cec8;
       font-family: var(--font-body); font-size: 14px; color: var(--black); outline: none;
       transition: border-color 0.15s, box-shadow 0.15s;
     }
-    input:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(192,57,43,0.1); background: var(--white); }
+    input:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(192,57,43,0.1); }
     input::placeholder { color: #b7b4ac; }
 
     .btn-signin {
@@ -168,7 +205,7 @@
     .btn-signin:active:not(:disabled) { transform: translateY(0); }
     .btn-signin:disabled { opacity: 0.6; cursor: not-allowed; }
 
-    .divider { display: flex; align-items: center; gap: 12px; margin: 26px 0; }
+    .divider { display: flex; align-items: center; gap: 12px; margin: 28px 0; }
     .divider-line { flex: 1; height: 1px; background: #d0cec8; }
     .divider-text { font-size: 10px; letter-spacing: 0.12em; color: var(--stone); text-transform: uppercase; }
 
@@ -176,11 +213,11 @@
 
     .btn-oauth {
       width: 100%; display: flex; align-items: center; justify-content: center; gap: 12px;
-      padding: 12px 16px; background: var(--light); border: 1px solid #d0cec8;
+      padding: 12px 16px; background: var(--white); border: 1px solid #d0cec8;
       font-family: var(--font-body); font-size: 13px; font-weight: 500;
-      color: var(--charcoal); cursor: pointer; transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s, background 0.15s;
+      color: var(--charcoal); cursor: pointer; transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
     }
-    .btn-oauth:hover:not(:disabled) { border-color: var(--charcoal); background: var(--white); box-shadow: 0 4px 12px -6px rgba(0,0,0,0.2); transform: translateY(-1px); }
+    .btn-oauth:hover:not(:disabled) { border-color: var(--charcoal); box-shadow: 0 4px 12px -6px rgba(0,0,0,0.25); transform: translateY(-1px); }
     .btn-oauth:disabled { opacity: 0.6; cursor: not-allowed; }
 
     button:focus-visible, input:focus-visible {
@@ -192,59 +229,59 @@
       padding: 10px 14px; font-size: 12px; margin-bottom: 20px; line-height: 1.5;
     }
 
-    @media (max-width: 860px) {
-      main { grid-template-columns: 1fr; gap: 44px; padding: 40px 24px 56px; }
-      .site-header, .ticket-strip { padding-left: 24px; padding-right: 24px; }
-      .headline { font-size: 2.6rem; }
+    @media (max-width: 768px) {
+      body { grid-template-columns: 1fr; }
+      .left {
+        padding: 28px 24px; gap: 18px; border-right: none;
+        border-bottom: 3px solid var(--red);
+      }
+      .punchcard, .big-text, .desc, .punchcard-time, .pipeline { display: none; }
+      .right { padding: 40px 24px; }
     }
   </style>
 </head>
 <body>
 
-<header class="site-header">
-  <div class="brand">Vidai <span>to</span> Mulai</div>
-  <div class="tag">Gig Evaluation Platform</div>
-</header>
-
-<div class="ticket-strip" id="ticketStrip"></div>
-
-<main>
-  <div class="register-info">
-    <div class="status-row">
-      <span class="in-tag">IN</span>
-      <span class="status-pill"><span class="dot"></span> Awaiting sign-in</span>
-    </div>
-
-    <div class="fields-row">
-      <div class="field">
-        <span class="field-label">Employee / Worker</span>
-        <span class="field-value">—</span>
-      </div>
-      <div class="field">
-        <span class="field-label">Department / Gig</span>
-        <span class="field-value accent">To be assigned</span>
-      </div>
-      <div class="field">
-        <span class="field-label">Date</span>
-        <span class="field-value" id="pcDate">—</span>
-      </div>
-      <div class="field">
-        <span class="field-label">Card No.</span>
-        <span class="field-value">MLI-001</span>
-      </div>
-      <div class="field">
-        <span class="field-label">Time Now</span>
-        <span class="field-value" id="liveClock">——:——:——</span>
-      </div>
-    </div>
-
-    <div class="headline">Lead.<br>Execute.<br><span class="accent">Evaluate.</span></div>
-    <div class="subcopy">The clock has always counted arrivals and departures. This one asks how the work actually went — track field and desk work packages from placement to reward.</div>
-
-    <div class="pipeline-footer">Create → Assign → Approve → Deliver → Evaluate → Close</div>
+<div class="left">
+  <div class="brand-row">
+    <div class="brand">Vidai <span>to</span> Mulai</div>
+    <div class="brand-tag">Gig Evaluation Platform</div>
   </div>
 
-  <div class="signin-panel">
+  <div class="punchcard">
+    <div class="punchcard-head">
+      <span class="punchcard-in">IN</span>
+      <span class="punchcard-status"><span class="dot"></span> Awaiting sign-in</span>
+    </div>
+    <div class="punchcard-grid">
+      <div class="pc-field"><span class="pc-label">Employee / Worker</span><span class="pc-value">—</span></div>
+      <div class="pc-field"><span class="pc-label">Department / Gig</span><span class="pc-value">To be assigned</span></div>
+      <div class="pc-field"><span class="pc-label">Date</span><span class="pc-value" id="pcDate">—</span></div>
+      <div class="pc-field"><span class="pc-label">Card No.</span><span class="pc-value">MLI-001</span></div>
+    </div>
+    <div class="perforation">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+  </div>
+
+  <div>
+    <div class="big-text">Lead.<br>Execute.<br><span>Evaluate.</span></div>
+    <div class="desc">The clock has always counted arrivals and departures. This one asks how the work actually went — track field and desk work packages from placement to reward.</div>
+  </div>
+
+  <div class="punchcard-time">
+    <div><div class="pt-label">Time Now</div><div class="pt-value live" id="liveClock">——:——:——</div></div>
+    <div><div class="pt-label">Time Out</div><div class="pt-value">——:——</div></div>
+    <div><div class="pt-label">Duration</div><div class="pt-value">You decide.</div></div>
+  </div>
+
+  <div class="pipeline">Create → Assign → Approve → Deliver → Evaluate → Close</div>
+</div>
+
+<div class="right">
+  <div class="login-box">
     <div class="login-title">Sign in</div>
     <div class="login-sub">Enter the register with your email, or continue with Google or Microsoft.</div>
 
@@ -289,7 +326,7 @@
       </button>
     </div>
   </div>
-</main>
+</div>
 
 <!-- Shared UI behaviours: showToast(), _esc(), vtmGetSession() -->
 <script src="assets/vtm.js"></script>
@@ -325,14 +362,6 @@
   }
   tickClock()
   setInterval(tickClock, 1000)
-
-  // Punched-tape strip — deterministic-looking but varied pattern, a few red "reads" mixed in
-  const strip = document.getElementById('ticketStrip')
-  const pattern = [1,0,1,1,0,0,1,0,1,0,0,1,1,0,1,0,1,1,0,0,1,0,1,1,0,1,0,0,1,0,1,1,0,0,1,0,1,0,1,1]
-  strip.innerHTML = pattern.map((v, i) => {
-    if (!v) return '<span></span>'
-    return i % 7 === 0 ? '<span class="filled accent"></span>' : '<span class="filled"></span>'
-  }).join('')
 
   function resetBtn() {
     signinBtn.disabled    = false

@@ -24,17 +24,39 @@ let openEntries   = []
 let currentFilter = 'week'
 let gigMap        = {}   // gig_id → { code, title, project_id }
 let projectMap    = {}   // project_id → { code, name }
+let editingEntryId = null // entry_id currently open for editing in the Time Log
 
 // ── INIT ──────────────────────────────────────────────────────────────────
 
 document.getElementById('manualDate').value = TODAY
 
-await loadProjects()
 await loadGigs()
+await loadProjects()
 await checkActiveTimer()
 await loadEntries()
 initToggle()
 patchSignOut()
+buildPunchStrip()
+
+// ── PUNCH STRIP (decorative — mirrors the mulai.ch register motif) ────────
+
+function buildPunchStrip() {
+  const strip = document.getElementById('topPunchStrip')
+  if (!strip) return
+  const pattern = [1,0,0,1,0,1,1,0,1,0,0,1,1,0,0,1,0,1,0,1,1,0,2,0,1,0,0,1,0,1]
+  for (let s = 0; s < 2; s++) {
+    const div = document.createElement('div')
+    div.className = 'punch-holes' + (s === 1 ? ' punch-holes-2' : '')
+    for (let r = 0; r < 8; r++) {
+      pattern.forEach(p => {
+        const h = document.createElement('div')
+        h.className = 'hole' + (p === 1 ? ' punched' : p === 2 ? ' punched red' : '')
+        div.appendChild(h)
+      })
+    }
+    strip.appendChild(div)
+  }
+}
 
 // ── PATCH SIGN-OUT to warn about active timer ─────────────────────────────
 
@@ -99,11 +121,20 @@ async function loadProjects() {
 
   if (error || !data?.length) return
 
+  // Doers and leads only see projects that contain at least one of their own
+  // gigs — the gig dropdown was already scoped in loadGigs(), this keeps the
+  // project filter from ever pointing them at a project with nothing in it.
+  let visible = data
+  if (!isAdmin) {
+    const ownProjectIds = new Set(Object.values(gigMap).map(g => g.project_id))
+    visible = data.filter(p => ownProjectIds.has(p.project_id))
+  }
+
   projectMap = {}
-  data.forEach(p => { projectMap[p.project_id] = { code: p.project_code, name: p.project_name } })
+  visible.forEach(p => { projectMap[p.project_id] = { code: p.project_code, name: p.project_name } })
 
   const blankOpt = '<option value="">— All Projects —</option>'
-  const opts = blankOpt + data.map(p =>
+  const opts = blankOpt + visible.map(p =>
     `<option value="${p.project_id}">${esc(p.project_code)} · ${esc(p.project_name)}</option>`
   ).join('')
 
@@ -159,6 +190,17 @@ window.onProjectChange = function(sourceId, targetId) {
   populateGigDropdown(targetId, projectId)
 }
 
+// Gig select → mini "Card No." + status display in the panel header
+window.updateCardNo = function(gigSelectId, cardNoTargetId, statusTargetId) {
+  const gigId = document.getElementById(gigSelectId)?.value
+  const target = document.getElementById(cardNoTargetId)
+  const status = statusTargetId ? document.getElementById(statusTargetId) : null
+  if (!target) return
+  const gig = gigId ? gigMap[gigId] : null
+  target.textContent = gig ? gig.code : '— : —'
+  if (status) status.textContent = gig ? '● Ready' : '○ Awaiting'
+}
+
 // ── CHECK ACTIVE TIMER ────────────────────────────────────────────────────
 
 async function checkActiveTimer() {
@@ -178,32 +220,62 @@ async function checkActiveTimer() {
 }
 
 function showActiveTimer(entry) {
-  const block  = document.getElementById('activeTimerBlock')
-  const pill   = document.getElementById('headerTimerPill')
-  const label  = document.getElementById('headerTimerLabel')
-
   const gig    = entry.gigs || gigMap[entry.gig_id] || {}
   const code   = gig.gig_code || gig.code || '—'
   const title  = gig.title    || '—'
   const timeIn = entry.start_time ? entry.start_time.slice(0,5) : '—'
   const dateIn = entry.entry_date ? fmtDate(entry.entry_date)   : '—'
-  const loc    = entry.location_label || null
+  const loc    = entry.location_label || '—'
 
-  document.getElementById('timerGigCode').textContent  = code
-  document.getElementById('timerGigTitle').textContent = title
-  document.getElementById('timerClockIn').textContent  = `Clocked in at ${timeIn} · ${dateIn}`
-  document.getElementById('timerLocation').textContent = loc || ''
-  // Pre-fill notes if any
+  const card = document.getElementById('activeTimerBlock')
+  card.style.borderColor = 'var(--green)'
+  document.getElementById('timerGigCode').textContent    = code
+  document.getElementById('timerGigTitle').textContent   = title
+  document.getElementById('timerWorkerName').textContent = session.name || '—'
+  document.getElementById('timerDate').textContent       = dateIn
+  document.getElementById('timerStatus').textContent     = '● Active'
+  document.getElementById('timerStatus').classList.add('green')
+  document.getElementById('timerClockIn').textContent    = timeIn
+  document.getElementById('timerClockIn').classList.add('red')
+  document.getElementById('timerClockOut').textContent   = '—'
+  document.getElementById('timerLocation').textContent   = loc
+  document.getElementById('timerInCell').classList.add('punched')
+
   const notesEl = document.getElementById('activeNotes')
-  if (notesEl) notesEl.value = entry.notes || ''
+  notesEl.disabled     = false
+  notesEl.placeholder  = 'What are you working on?'
+  notesEl.value        = entry.notes || ''
 
-  block.classList.add('visible')
+  document.getElementById('timerCardBody').style.display = 'flex'
+
+  const pill  = document.getElementById('headerTimerPill')
+  const label = document.getElementById('headerTimerLabel')
   if (pill)  pill.classList.add('visible')
   if (label) label.textContent = `In · ${timeIn}`
 }
 
 function hideActiveTimer() {
-  document.getElementById('activeTimerBlock').classList.remove('visible')
+  const card = document.getElementById('activeTimerBlock')
+  card.style.borderColor = 'var(--stone)'
+  document.getElementById('timerGigCode').textContent    = '— : —'
+  document.getElementById('timerGigTitle').textContent   = 'To be assigned'
+  document.getElementById('timerWorkerName').textContent = session.name || '—'
+  document.getElementById('timerDate').textContent       = fmtDate(TODAY)
+  document.getElementById('timerStatus').textContent     = '○ Not yet in'
+  document.getElementById('timerStatus').classList.remove('green')
+  document.getElementById('timerClockIn').textContent    = '——:——'
+  document.getElementById('timerClockIn').classList.remove('red')
+  document.getElementById('timerClockOut').textContent   = '—'
+  document.getElementById('timerLocation').textContent   = '—'
+  document.getElementById('timerInCell').classList.remove('punched')
+
+  const notesEl = document.getElementById('activeNotes')
+  notesEl.disabled    = true
+  notesEl.placeholder = 'Clock in to start a card…'
+  notesEl.value       = ''
+
+  document.getElementById('timerCardBody').style.display = 'none'
+
   const pill = document.getElementById('headerTimerPill')
   if (pill) pill.classList.remove('visible')
   activeEntry = null
@@ -263,6 +335,9 @@ window.clockIn = async function() {
   // Reset toggle and hide auto panel
   document.querySelectorAll('input[name="tog-entry"]').forEach(r => r.checked = false)
   showEntryPanel(null)
+  document.getElementById('autoGig').value = ''
+  document.getElementById('autoNotesIn').value = ''
+  updateCardNo('autoGig', 'autoCardNo', 'autoCardStatus')
 
   showToast('Clocked in ✓', 'ok')
   await loadEntries()
@@ -527,6 +602,24 @@ function renderEntries() {
     const type = e.entry_type === 'live' ? 'live' : 'manual'
     const loc  = e.location_label || '—'
 
+    if (e.entry_id === editingEntryId) {
+      return `
+      <tr class="edit-row">
+        <td colspan="9">
+          <div class="edit-row-grid">
+            <div class="form-row"><label>Date</label><input type="date" id="ee-date-${e.entry_id}" value="${e.entry_date || ''}"></div>
+            <div class="form-row"><label>Start</label><input type="time" id="ee-start-${e.entry_id}" value="${(e.start_time || '').slice(0,5)}"></div>
+            <div class="form-row"><label>End</label><input type="time" id="ee-end-${e.entry_id}" value="${(e.end_time || '').slice(0,5)}"></div>
+            <div class="form-row"><label>Notes</label><input type="text" id="ee-notes-${e.entry_id}" value="${esc(e.notes || '')}" placeholder="What did you work on?"></div>
+            <div class="row-actions">
+              <button class="btn-save" id="ee-btn-${e.entry_id}" onclick="saveEditEntry('${e.entry_id}')">Save →</button>
+              <button class="btn-clear" onclick="cancelEditEntry()">Cancel</button>
+            </div>
+          </div>
+        </td>
+      </tr>`
+    }
+
     return `
       <tr>
         <td style="font-family:var(--font-mono);font-size:12px;color:var(--stone)">${fmtDate(e.entry_date)}</td>
@@ -540,9 +633,63 @@ function renderEntries() {
         <td><span class="type-badge ${type}">${type}</span></td>
         <td style="font-size:11px;color:var(--stone);font-family:var(--font-mono)">${esc(loc)}</td>
         <td style="color:var(--stone);font-size:12px">${esc(e.notes || '—')}</td>
-        <td><button class="btn-delete" onclick="deleteEntry('${e.entry_id}')">×</button></td>
+        <td>
+          <div class="row-actions">
+            <button class="btn-edit" onclick="editEntry('${e.entry_id}')">Edit</button>
+            <button class="btn-delete" onclick="deleteEntry('${e.entry_id}')">×</button>
+          </div>
+        </td>
       </tr>`
   }).join('')
+}
+
+// ── EDIT COMPLETED ENTRY ──────────────────────────────────────────────────
+// Same field set as the Open Timesheets editor, applied to already-closed
+// entries. Query-level access (own entries, or all entries for admin) is
+// already enforced by loadEntries(), so anyone rendering a row here is
+// already allowed to edit it.
+
+window.editEntry = function(entryId) {
+  editingEntryId = entryId
+  renderEntries()
+}
+
+window.cancelEditEntry = function() {
+  editingEntryId = null
+  renderEntries()
+}
+
+window.saveEditEntry = async function(entryId) {
+  const date  = document.getElementById(`ee-date-${entryId}`)?.value  || null
+  const start = document.getElementById(`ee-start-${entryId}`)?.value || null
+  const end   = document.getElementById(`ee-end-${entryId}`)?.value   || null
+  const notes = document.getElementById(`ee-notes-${entryId}`)?.value.trim() || null
+
+  if (!date)  { showToast('Date required',       'err'); return }
+  if (!start) { showToast('Start time required', 'err'); return }
+
+  const btn = document.getElementById(`ee-btn-${entryId}`)
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…' }
+
+  const { error } = await db
+    .from('time_entries')
+    .update({
+      entry_date: date,
+      start_time: start,
+      end_time:   end,
+      notes:      notes,
+    })
+    .eq('entry_id', entryId)
+
+  if (error) {
+    showToast('Update failed — ' + error.message, 'err')
+    if (btn) { btn.disabled = false; btn.textContent = 'Save →' }
+    return
+  }
+
+  showToast('Entry updated ✓', 'ok')
+  editingEntryId = null
+  await loadEntries()
 }
 
 // ── FILTER ────────────────────────────────────────────────────────────────
@@ -574,6 +721,7 @@ window.resetManual = function() {
   document.getElementById('manualStart').value = ''
   document.getElementById('manualEnd').value   = ''
   document.getElementById('manualNotes').value = ''
+  updateCardNo('manualGig', 'manualCardNo', 'manualCardStatus')
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────

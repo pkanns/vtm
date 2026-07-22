@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Timesheet — Vidai to Mulai</title>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&family=Bebas+Neue&family=Special+Elite&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/vtm.css">
   <script src="assets/vtm.js"></script>
   <script src="assets/vtm_auth_guard.js"></script>
@@ -155,8 +155,99 @@
       .vtm-header-inner { padding: 0 20px; }
     }
 
+    /* ── PUNCH STRIP (mulai.ch register motif) ────────────────────────────── */
+    .punch-strip {
+      background: var(--black);
+      border-bottom: 1px solid rgba(247,246,242,0.06);
+      padding: 7px 0;
+      display: flex;
+      overflow: hidden;
+      position: relative;
+    }
+    .punch-strip::before, .punch-strip::after {
+      content: ''; position: absolute; top: 0; bottom: 0; width: 60px; z-index: 2;
+    }
+    .punch-strip::before { left: 0;  background: linear-gradient(to right, var(--black), transparent); }
+    .punch-strip::after  { right: 0; background: linear-gradient(to left,  var(--black), transparent); }
+    .punch-holes { display: flex; gap: 12px; padding: 0 16px; white-space: nowrap; flex-shrink: 0; animation: scroll-holes 22s linear infinite; }
+    .punch-holes-2 { animation-delay: -11s; }
+    @keyframes scroll-holes { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+    .hole { width: 10px; height: 15px; border-radius: 2px; border: 1px solid rgba(247,246,242,0.12); flex-shrink: 0; }
+    .hole.punched { background: rgba(247,246,242,0.5); border-color: rgba(247,246,242,0.5); }
+    .hole.punched.red { background: var(--red); border-color: var(--red); }
+
     /* ── PAGE ───────────────────────────────────────────────────────────── */
     .page-wrap { max-width: 960px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    /* ── PUNCH CARD (register card look, borrowed from mulai.ch) ──────────── */
+    .punch-card { border: 2px solid var(--black); background: var(--white); margin-bottom: 24px; }
+    .punch-card-header {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      background: var(--black);
+    }
+    .punch-card-header .pc-field {
+      padding: 10px 16px;
+      border-right: 1px solid rgba(247,246,242,0.1);
+    }
+    .punch-card-header .pc-field:last-child { border-right: none; }
+    .pc-label {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(247,246,242,0.35);
+      margin-bottom: 4px;
+    }
+    .pc-val {
+      font-family: 'Special Elite', cursive;
+      font-size: 13px;
+      color: var(--white);
+      line-height: 1.3;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .pc-val.red   { color: #e8a49c; }
+    .pc-val.green { color: #8fc4a3; }
+    .punch-card-body { padding: 24px 28px; }
+
+    .register-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px,1fr));
+      border-top: 2px solid var(--black);
+    }
+    .register-cell {
+      border-right: 1px solid var(--light);
+      border-bottom: 2px solid var(--black);
+      padding: 14px 18px;
+      position: relative;
+    }
+    .register-cell:last-child { border-right: none; }
+    .register-cell::before {
+      content: '';
+      position: absolute; top: 8px; right: 8px;
+      width: 6px; height: 10px; border-radius: 1px;
+      background: rgba(17,17,17,0.06);
+      border: 1px solid rgba(17,17,17,0.1);
+    }
+    .register-cell.punched::before { background: var(--red); border-color: var(--red); }
+    .register-cell-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--stone);
+      margin-bottom: 6px;
+    }
+    .register-cell-val {
+      font-family: 'Special Elite', cursive;
+      font-size: 15px;
+      color: var(--black);
+    }
+    .register-cell-val.red   { color: var(--red); }
+    .register-cell-val.green { color: var(--green); }
+    .register-cell-val.mono  { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.04em; }
 
     /* ── ACTIVE TIMER BLOCK ─────────────────────────────────────────────── */
     .active-timer-block {
@@ -169,6 +260,7 @@
       flex-direction: column;
     }
     .active-timer-block.visible { display: flex; }
+    #activeTimerBlock.visible { display: block; }
     .active-timer-top {
       display: flex;
       align-items: center;
@@ -273,6 +365,10 @@
 
     .card-title { font-family: var(--font-display); font-size: 1.3rem; color: var(--black); margin-bottom: 4px; }
     .card-subtitle { font-size: 11px; color: var(--stone); font-family: var(--font-mono); margin-bottom: 24px; letter-spacing: 0.04em; }
+
+    .card-titlebar { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 4px; flex-wrap: wrap; gap: 8px; }
+    .mini-card-no { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; color: var(--stone); }
+    .mini-card-no strong { font-family: 'Special Elite', cursive; font-size: 12px; color: var(--red); letter-spacing: 0.02em; }
 
     .form-row { margin-bottom: 0; }
     .form-row label {
@@ -442,6 +538,35 @@
     }
     .btn-delete:hover { border-color: var(--red); color: var(--red); }
 
+    .btn-edit {
+      background: none;
+      border: 1px solid #ccc;
+      color: var(--stone);
+      padding: 6px 14px;
+      font-size: 11px;
+      cursor: pointer;
+      font-family: var(--font-body);
+      transition: all 0.2s;
+      margin-right: 6px;
+    }
+    .btn-edit:hover { border-color: var(--charcoal); color: var(--charcoal); }
+    .row-actions { display: flex; gap: 0; white-space: nowrap; }
+
+    .edit-row td { background: var(--light); padding: 16px 14px; }
+    .edit-row-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 2fr auto;
+      gap: 10px;
+      align-items: end;
+    }
+    .edit-row-grid .form-row label { margin-bottom: 4px; }
+    .edit-row-grid input {
+      width: 100%; padding: 8px 10px; background: var(--white);
+      border: none; border-bottom: 2px solid #ccc; font-family: var(--font-body);
+      font-size: 13px; color: var(--black); outline: none;
+    }
+    .edit-row-grid input:focus { border-bottom-color: var(--red); }
+
     /* ── LOG ────────────────────────────────────────────────────────────── */
     .log-card {
       background: var(--white);
@@ -537,24 +662,51 @@
   </div>
 </div>
 
+<div class="punch-strip" id="topPunchStrip"></div>
+
 <div class="page-wrap">
 
-  <!-- ── ACTIVE TIMER BLOCK ─────────────────────────────────────────────── -->
-  <div class="active-timer-block" id="activeTimerBlock">
-    <div class="active-timer-top">
-      <div>
-        <div class="timer-gig-code" id="timerGigCode">—</div>
-        <div class="timer-gig-title" id="timerGigTitle">—</div>
-        <div class="timer-meta">
-          <span><span class="timer-dot"></span><span id="timerClockIn">—</span></span>
-          <span id="timerLocation" style="color:rgba(247,246,242,0.3)">—</span>
-        </div>
+  <!-- ── ACTIVE TIMER BLOCK (punch card register) ──────────────────────── -->
+  <div class="punch-card" id="activeTimerBlock" style="display:none; border-color:var(--green)">
+    <div class="punch-card-header">
+      <div class="pc-field">
+        <div class="pc-label">Worker</div>
+        <div class="pc-val" id="timerWorkerName">—</div>
       </div>
-      <button class="btn-clockout" id="clockOutBtn" onclick="clockOut()">Clock Out →</button>
+      <div class="pc-field">
+        <div class="pc-label">Gig</div>
+        <div class="pc-val" id="timerGigTitle">—</div>
+      </div>
+      <div class="pc-field">
+        <div class="pc-label">Card No.</div>
+        <div class="pc-val" id="timerGigCode">—</div>
+      </div>
+      <div class="pc-field">
+        <div class="pc-label">Date</div>
+        <div class="pc-val" id="timerDate">—</div>
+      </div>
+      <div class="pc-field">
+        <div class="pc-label">Status</div>
+        <div class="pc-val green" id="timerStatus">● Active</div>
+      </div>
     </div>
-    <div class="active-timer-notes">
-      <label>Notes <span class="optional-tag">saved on clock-out</span></label>
-      <input type="text" id="activeNotes" placeholder="What are you working on?">
+    <div class="register-grid">
+      <div class="register-cell punched">
+        <div class="register-cell-label">Time In</div>
+        <div class="register-cell-val red" id="timerClockIn">——:——</div>
+      </div>
+      <div class="register-cell">
+        <div class="register-cell-label">Location</div>
+        <div class="register-cell-val mono" id="timerLocation">—</div>
+      </div>
+      <div class="register-cell" style="grid-column: span 2;">
+        <div class="register-cell-label">Notes <span class="optional-tag">saved on clock-out</span></div>
+        <input type="text" id="activeNotes" placeholder="What are you working on?"
+               style="border:none;background:transparent;font-family:var(--font-body);font-size:13px;width:100%;outline:none;color:var(--black)">
+      </div>
+    </div>
+    <div class="punch-card-body" style="padding-top:16px;display:flex;justify-content:flex-end">
+      <button class="btn-clockout" id="clockOutBtn" onclick="clockOut()">Clock Out →</button>
     </div>
   </div>
 
@@ -571,19 +723,22 @@
 
   <!-- ── AUTO PANEL (Clock In) ──────────────────────────────────────────── -->
   <div class="entry-panel" id="autoPanel">
-    <div class="card-title">Clock In</div>
+    <div class="card-titlebar">
+      <div class="card-title">Clock In</div>
+      <div class="mini-card-no">Card No. <strong id="autoCardNo">— : —</strong></div>
+    </div>
     <div class="card-subtitle">Select project and gig — location captured automatically</div>
 
     <div class="cascade-grid">
       <div class="form-row">
         <label>Project</label>
-        <select id="autoProject" onchange="onProjectChange('autoProject','autoGig')">
+        <select id="autoProject" onchange="onProjectChange('autoProject','autoGig'); updateCardNo('autoGig','autoCardNo')">
           <option value="">— All Projects —</option>
         </select>
       </div>
       <div class="form-row">
         <label>Gig *</label>
-        <select id="autoGig">
+        <select id="autoGig" onchange="updateCardNo('autoGig','autoCardNo')">
           <option value="">— Select Gig —</option>
         </select>
       </div>
@@ -600,19 +755,22 @@
 
   <!-- ── MANUAL PANEL ───────────────────────────────────────────────────── -->
   <div class="entry-panel manual-panel" id="manualPanel">
-    <div class="card-title">Manual Entry</div>
+    <div class="card-titlebar">
+      <div class="card-title">Manual Entry</div>
+      <div class="mini-card-no">Card No. <strong id="manualCardNo">— : —</strong></div>
+    </div>
     <div class="card-subtitle">Log time worked — end time is optional, entry stays open until added</div>
 
     <div class="cascade-grid">
       <div class="form-row">
         <label>Project</label>
-        <select id="manualProject" onchange="onProjectChange('manualProject','manualGig')">
+        <select id="manualProject" onchange="onProjectChange('manualProject','manualGig'); updateCardNo('manualGig','manualCardNo')">
           <option value="">— All Projects —</option>
         </select>
       </div>
       <div class="form-row">
         <label>Gig *</label>
-        <select id="manualGig">
+        <select id="manualGig" onchange="updateCardNo('manualGig','manualCardNo')">
           <option value="">— Select Gig —</option>
         </select>
       </div>
@@ -677,7 +835,7 @@
           <th>Type</th>
           <th>Location</th>
           <th>Notes</th>
-          <th></th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody id="logTableBody">

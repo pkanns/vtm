@@ -4,11 +4,31 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Timesheet — Vidai to Mulai</title>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&family=Bebas+Neue&family=Special+Elite&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Special+Elite&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/vtm.css">
   <script src="assets/vtm.js"></script>
   <script src="assets/vtm_auth_guard.js"></script>
   <style>
+
+    /* ── MULAI.CH HOMEPAGE PALETTE ──────────────────────────────────────────
+       Overrides the tokens from assets/vtm.css for this page only — the
+       shared stylesheet is untouched, so dashboard/gigs/evaluate keep the
+       old look until (if) this palette is rolled out there too. */
+    :root {
+      --black:    #1a1410;   /* ink */
+      --white:    #f0ead8;   /* card cream */
+      --red:      #b5201a;
+      --red-dark: #7a1512;
+      --green:    #1e4d2b;
+      --charcoal: #3a2f22;
+      --stone:    #6b5f4e;   /* faded */
+      --light:    #e8e0c8;   /* card2 */
+      --hole:     #c8bfa8;
+      --font-display: 'Bebas Neue', sans-serif;
+      --font-body:    'Courier Prime', monospace;
+      --font-mono:    'DM Mono', monospace;
+    }
+    body { letter-spacing: 0.01em; }
 
     /* ── UNIFIED HEADER ─────────────────────────────────────────────────── */
     .vtm-header {
@@ -46,7 +66,7 @@
       text-decoration: none;
       padding: 6px 12px;
       transition: color 0.15s, background 0.15s;
-      font-family: var(--font-body);
+      font-family: var(--font-mono);
       font-weight: 500;
       white-space: nowrap;
     }
@@ -157,8 +177,9 @@
 
     /* ── PUNCH STRIP (mulai.ch register motif) ────────────────────────────── */
     .punch-strip {
-      background: var(--black);
-      border-bottom: 1px solid rgba(247,246,242,0.06);
+      background: var(--light);
+      border-top: 2px solid var(--black);
+      border-bottom: 2px solid var(--black);
       padding: 7px 0;
       display: flex;
       overflow: hidden;
@@ -167,13 +188,13 @@
     .punch-strip::before, .punch-strip::after {
       content: ''; position: absolute; top: 0; bottom: 0; width: 60px; z-index: 2;
     }
-    .punch-strip::before { left: 0;  background: linear-gradient(to right, var(--black), transparent); }
-    .punch-strip::after  { right: 0; background: linear-gradient(to left,  var(--black), transparent); }
+    .punch-strip::before { left: 0;  background: linear-gradient(to right, var(--light), transparent); }
+    .punch-strip::after  { right: 0; background: linear-gradient(to left,  var(--light), transparent); }
     .punch-holes { display: flex; gap: 12px; padding: 0 16px; white-space: nowrap; flex-shrink: 0; animation: scroll-holes 22s linear infinite; }
     .punch-holes-2 { animation-delay: -11s; }
     @keyframes scroll-holes { from { transform: translateX(0); } to { transform: translateX(-100%); } }
-    .hole { width: 10px; height: 15px; border-radius: 2px; border: 1px solid rgba(247,246,242,0.12); flex-shrink: 0; }
-    .hole.punched { background: rgba(247,246,242,0.5); border-color: rgba(247,246,242,0.5); }
+    .hole { width: 10px; height: 15px; border-radius: 2px; border: 1px solid rgba(26,20,16,0.25); flex-shrink: 0; }
+    .hole.punched { background: var(--black); border-color: var(--black); }
     .hole.punched.red { background: var(--red); border-color: var(--red); }
 
     /* ── PAGE ───────────────────────────────────────────────────────────── */
@@ -356,12 +377,21 @@
     /* ── ENTRY PANELS ───────────────────────────────────────────────────── */
     .entry-panel {
       background: var(--white);
-      border-top: 4px solid var(--green);
-      padding: 28px 32px;
+      border: 2px solid var(--black);
       margin-bottom: 24px;
       display: none;
     }
-    .entry-panel.manual-panel { border-top-color: var(--charcoal); }
+    .entry-card-header {
+      display: flex;
+      background: var(--black);
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 20px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .entry-card-header .pc-field { padding: 0; border-right: none; }
+    .entry-panel-body { padding: 24px 28px; }
 
     .card-title { font-family: var(--font-display); font-size: 1.3rem; color: var(--black); margin-bottom: 4px; }
     .card-subtitle { font-size: 11px; color: var(--stone); font-family: var(--font-mono); margin-bottom: 24px; letter-spacing: 0.04em; }
@@ -666,8 +696,8 @@
 
 <div class="page-wrap">
 
-  <!-- ── ACTIVE TIMER BLOCK (punch card register) ──────────────────────── -->
-  <div class="punch-card" id="activeTimerBlock" style="display:none; border-color:var(--green)">
+  <!-- ── REGISTER CARD (punch card — always visible, mirrors the mulai.ch hero) ── -->
+  <div class="punch-card" id="activeTimerBlock" style="border-color:var(--stone)">
     <div class="punch-card-header">
       <div class="pc-field">
         <div class="pc-label">Worker</div>
@@ -675,11 +705,11 @@
       </div>
       <div class="pc-field">
         <div class="pc-label">Gig</div>
-        <div class="pc-val" id="timerGigTitle">—</div>
+        <div class="pc-val" id="timerGigTitle">To be assigned</div>
       </div>
       <div class="pc-field">
         <div class="pc-label">Card No.</div>
-        <div class="pc-val" id="timerGigCode">—</div>
+        <div class="pc-val" id="timerGigCode">— : —</div>
       </div>
       <div class="pc-field">
         <div class="pc-label">Date</div>
@@ -687,25 +717,29 @@
       </div>
       <div class="pc-field">
         <div class="pc-label">Status</div>
-        <div class="pc-val green" id="timerStatus">● Active</div>
+        <div class="pc-val" id="timerStatus">○ Not yet in</div>
       </div>
     </div>
     <div class="register-grid">
-      <div class="register-cell punched">
+      <div class="register-cell" id="timerInCell">
         <div class="register-cell-label">Time In</div>
-        <div class="register-cell-val red" id="timerClockIn">——:——</div>
+        <div class="register-cell-val" id="timerClockIn">——:——</div>
+      </div>
+      <div class="register-cell">
+        <div class="register-cell-label">Time Out</div>
+        <div class="register-cell-val" id="timerClockOut">—</div>
       </div>
       <div class="register-cell">
         <div class="register-cell-label">Location</div>
         <div class="register-cell-val mono" id="timerLocation">—</div>
       </div>
-      <div class="register-cell" style="grid-column: span 2;">
+      <div class="register-cell" style="grid-column: span 2;" id="timerNotesCell">
         <div class="register-cell-label">Notes <span class="optional-tag">saved on clock-out</span></div>
-        <input type="text" id="activeNotes" placeholder="What are you working on?"
+        <input type="text" id="activeNotes" placeholder="Clock in to start a card…" disabled
                style="border:none;background:transparent;font-family:var(--font-body);font-size:13px;width:100%;outline:none;color:var(--black)">
       </div>
     </div>
-    <div class="punch-card-body" style="padding-top:16px;display:flex;justify-content:flex-end">
+    <div class="punch-card-body" id="timerCardBody" style="padding-top:16px;display:none;justify-content:flex-end">
       <button class="btn-clockout" id="clockOutBtn" onclick="clockOut()">Clock Out →</button>
     </div>
   </div>
@@ -723,22 +757,33 @@
 
   <!-- ── AUTO PANEL (Clock In) ──────────────────────────────────────────── -->
   <div class="entry-panel" id="autoPanel">
-    <div class="card-titlebar">
-      <div class="card-title">Clock In</div>
-      <div class="mini-card-no">Card No. <strong id="autoCardNo">— : —</strong></div>
+    <div class="entry-card-header">
+      <div class="pc-field">
+        <div class="pc-label">Action</div>
+        <div class="pc-val">Clock In</div>
+      </div>
+      <div class="pc-field">
+        <div class="pc-label">Card No.</div>
+        <div class="pc-val" id="autoCardNo">— : —</div>
+      </div>
+      <div class="pc-field">
+        <div class="pc-label">Status</div>
+        <div class="pc-val" id="autoCardStatus">○ Awaiting</div>
+      </div>
     </div>
+    <div class="entry-panel-body">
     <div class="card-subtitle">Select project and gig — location captured automatically</div>
 
     <div class="cascade-grid">
       <div class="form-row">
         <label>Project</label>
-        <select id="autoProject" onchange="onProjectChange('autoProject','autoGig'); updateCardNo('autoGig','autoCardNo')">
+        <select id="autoProject" onchange="onProjectChange('autoProject','autoGig'); updateCardNo('autoGig','autoCardNo','autoCardStatus')">
           <option value="">— All Projects —</option>
         </select>
       </div>
       <div class="form-row">
         <label>Gig *</label>
-        <select id="autoGig" onchange="updateCardNo('autoGig','autoCardNo')">
+        <select id="autoGig" onchange="updateCardNo('autoGig','autoCardNo','autoCardStatus')">
           <option value="">— Select Gig —</option>
         </select>
       </div>
@@ -751,26 +796,38 @@
       </div>
       <button class="btn-clockin" id="clockInBtn" onclick="clockIn()">Clock In →</button>
     </div>
+    </div>
   </div>
 
   <!-- ── MANUAL PANEL ───────────────────────────────────────────────────── -->
   <div class="entry-panel manual-panel" id="manualPanel">
-    <div class="card-titlebar">
-      <div class="card-title">Manual Entry</div>
-      <div class="mini-card-no">Card No. <strong id="manualCardNo">— : —</strong></div>
+    <div class="entry-card-header">
+      <div class="pc-field">
+        <div class="pc-label">Action</div>
+        <div class="pc-val">Manual Entry</div>
+      </div>
+      <div class="pc-field">
+        <div class="pc-label">Card No.</div>
+        <div class="pc-val" id="manualCardNo">— : —</div>
+      </div>
+      <div class="pc-field">
+        <div class="pc-label">Status</div>
+        <div class="pc-val" id="manualCardStatus">○ Awaiting</div>
+      </div>
     </div>
+    <div class="entry-panel-body">
     <div class="card-subtitle">Log time worked — end time is optional, entry stays open until added</div>
 
     <div class="cascade-grid">
       <div class="form-row">
         <label>Project</label>
-        <select id="manualProject" onchange="onProjectChange('manualProject','manualGig'); updateCardNo('manualGig','manualCardNo')">
+        <select id="manualProject" onchange="onProjectChange('manualProject','manualGig'); updateCardNo('manualGig','manualCardNo','manualCardStatus')">
           <option value="">— All Projects —</option>
         </select>
       </div>
       <div class="form-row">
         <label>Gig *</label>
-        <select id="manualGig" onchange="updateCardNo('manualGig','manualCardNo')">
+        <select id="manualGig" onchange="updateCardNo('manualGig','manualCardNo','manualCardStatus')">
           <option value="">— Select Gig —</option>
         </select>
       </div>
@@ -798,6 +855,7 @@
     <div style="display:flex;gap:8px;">
       <button class="btn-save" onclick="saveManual()">Save →</button>
       <button class="btn-clear" onclick="resetManual()">Clear</button>
+    </div>
     </div>
   </div>
 

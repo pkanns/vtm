@@ -224,29 +224,16 @@ function showActiveTimer(entry) {
   const code   = gig.gig_code || gig.code || '—'
   const title  = gig.title    || '—'
   const timeIn = entry.start_time ? entry.start_time.slice(0,5) : '—'
-  const dateIn = entry.entry_date ? fmtDate(entry.entry_date)   : '—'
-  const loc    = entry.location_label || '—'
 
   const card = document.getElementById('activeTimerBlock')
-  card.style.borderColor = 'var(--green)'
-  document.getElementById('timerGigCode').textContent    = code
-  document.getElementById('timerGigTitle').textContent   = title
-  document.getElementById('timerWorkerName').textContent = session.name || '—'
-  document.getElementById('timerDate').textContent       = dateIn
-  document.getElementById('timerStatus').textContent     = '● Active'
-  document.getElementById('timerStatus').classList.add('green')
-  document.getElementById('timerClockIn').textContent    = timeIn
-  document.getElementById('timerClockIn').classList.add('red')
-  document.getElementById('timerClockOut').textContent   = '—'
-  document.getElementById('timerLocation').textContent   = loc
-  document.getElementById('timerInCell').classList.add('punched')
+  document.getElementById('timerGigCode').textContent  = code
+  document.getElementById('timerGigTitle').textContent = title
+  document.getElementById('timerClockIn').textContent  = timeIn
 
   const notesEl = document.getElementById('activeNotes')
-  notesEl.disabled     = false
-  notesEl.placeholder  = 'What are you working on?'
-  notesEl.value        = entry.notes || ''
+  notesEl.value = entry.notes || ''
 
-  document.getElementById('timerCardBody').style.display = 'flex'
+  card.style.display = 'block'
 
   const pill  = document.getElementById('headerTimerPill')
   const label = document.getElementById('headerTimerLabel')
@@ -255,26 +242,8 @@ function showActiveTimer(entry) {
 }
 
 function hideActiveTimer() {
-  const card = document.getElementById('activeTimerBlock')
-  card.style.borderColor = 'var(--stone)'
-  document.getElementById('timerGigCode').textContent    = '— : —'
-  document.getElementById('timerGigTitle').textContent   = 'To be assigned'
-  document.getElementById('timerWorkerName').textContent = session.name || '—'
-  document.getElementById('timerDate').textContent       = fmtDate(TODAY)
-  document.getElementById('timerStatus').textContent     = '○ Not yet in'
-  document.getElementById('timerStatus').classList.remove('green')
-  document.getElementById('timerClockIn').textContent    = '——:——'
-  document.getElementById('timerClockIn').classList.remove('red')
-  document.getElementById('timerClockOut').textContent   = '—'
-  document.getElementById('timerLocation').textContent   = '—'
-  document.getElementById('timerInCell').classList.remove('punched')
-
-  const notesEl = document.getElementById('activeNotes')
-  notesEl.disabled    = true
-  notesEl.placeholder = 'Clock in to start a card…'
-  notesEl.value       = ''
-
-  document.getElementById('timerCardBody').style.display = 'none'
+  document.getElementById('activeTimerBlock').style.display = 'none'
+  document.getElementById('activeNotes').value = ''
 
   const pill = document.getElementById('headerTimerPill')
   if (pill) pill.classList.remove('visible')
@@ -567,7 +536,7 @@ function renderOpenEntries() {
 
 function renderEntries() {
   const now   = new Date(); now.setHours(0,0,0,0)
-  const tbody = document.getElementById('logTableBody')
+  const list  = document.getElementById('logList')
 
   // Week starts Monday
   const weekStart = new Date(now)
@@ -583,63 +552,65 @@ function renderEntries() {
     return true
   })
 
-  // Week total
-  const weekMins = allEntries
-    .filter(e => { const d = new Date(e.entry_date); d.setHours(0,0,0,0); return d >= weekStart })
-    .reduce((sum, e) => sum + (e.duration_mins || 0), 0)
-
-  document.getElementById('weekTotal').textContent = fmtDuration(weekMins)
+  // Total + label match whichever period is currently selected — not always "this week"
+  const totalMins = filtered.reduce((sum, e) => sum + (e.duration_mins || 0), 0)
+  const periodLabel = currentFilter === 'week' ? 'This week' : currentFilter === 'month' ? 'This month' : 'All time'
+  document.getElementById('logTotalLabel').textContent = periodLabel
+  document.getElementById('weekTotal').textContent = fmtDuration(totalMins)
 
   if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state">No completed entries${currentFilter !== 'all' ? ' for this period' : ''}.</div></td></tr>`
+    list.innerHTML = `<div class="empty-state">No completed entries${currentFilter !== 'all' ? ' for this period' : ''}.</div>`
     return
   }
 
-  tbody.innerHTML = filtered.map(e => {
+  list.innerHTML = filtered.map(e => {
     const gig  = e.gigs || {}
     const code = gig.gig_code || '—'
     const dur  = e.duration_mins ? fmtDuration(e.duration_mins) : '—'
     const type = e.entry_type === 'live' ? 'live' : 'manual'
-    const loc  = e.location_label || '—'
+    const loc  = e.location_label || null
+    const d    = new Date(e.entry_date)
+    const dow  = d.toLocaleDateString(undefined, { weekday: 'short' })
+    const dnum = fmtDate(e.entry_date)
 
     if (e.entry_id === editingEntryId) {
       return `
-      <tr class="edit-row">
-        <td colspan="9">
-          <div class="edit-row-grid">
-            <div class="form-row"><label>Date</label><input type="date" id="ee-date-${e.entry_id}" value="${e.entry_date || ''}"></div>
-            <div class="form-row"><label>Start</label><input type="time" id="ee-start-${e.entry_id}" value="${(e.start_time || '').slice(0,5)}"></div>
-            <div class="form-row"><label>End</label><input type="time" id="ee-end-${e.entry_id}" value="${(e.end_time || '').slice(0,5)}"></div>
-            <div class="form-row"><label>Notes</label><input type="text" id="ee-notes-${e.entry_id}" value="${esc(e.notes || '')}" placeholder="What did you work on?"></div>
-            <div class="row-actions">
-              <button class="btn-save" id="ee-btn-${e.entry_id}" onclick="saveEditEntry('${e.entry_id}')">Save →</button>
-              <button class="btn-clear" onclick="cancelEditEntry()">Cancel</button>
-            </div>
+      <div class="log-entry log-entry-edit">
+        <div class="edit-row-grid">
+          <div class="form-row"><label>Date</label><input type="date" id="ee-date-${e.entry_id}" value="${e.entry_date || ''}"></div>
+          <div class="form-row"><label>Start</label><input type="time" id="ee-start-${e.entry_id}" value="${(e.start_time || '').slice(0,5)}"></div>
+          <div class="form-row"><label>End</label><input type="time" id="ee-end-${e.entry_id}" value="${(e.end_time || '').slice(0,5)}"></div>
+          <div class="form-row"><label>Notes</label><input type="text" id="ee-notes-${e.entry_id}" value="${esc(e.notes || '')}" placeholder="What did you work on?"></div>
+          <div class="row-actions">
+            <button class="btn-save" id="ee-btn-${e.entry_id}" onclick="saveEditEntry('${e.entry_id}')">Save →</button>
+            <button class="btn-clear" onclick="cancelEditEntry()">Cancel</button>
           </div>
-        </td>
-      </tr>`
+        </div>
+      </div>`
     }
 
     return `
-      <tr>
-        <td style="font-family:var(--font-mono);font-size:12px;color:var(--stone)">${fmtDate(e.entry_date)}</td>
-        <td>
-          <span class="gig-code-pill">${esc(code)}</span>
-          <span style="font-size:12px;color:var(--stone);margin-left:8px">${esc(gig.title || '')}</span>
-        </td>
-        <td style="font-family:var(--font-mono);font-size:12px">${fmtTime(e.start_time)}</td>
-        <td style="font-family:var(--font-mono);font-size:12px">${fmtTime(e.end_time)}</td>
-        <td><span class="duration-pill">${dur}</span></td>
-        <td><span class="type-badge ${type}">${type}</span></td>
-        <td style="font-size:11px;color:var(--stone);font-family:var(--font-mono)">${esc(loc)}</td>
-        <td style="color:var(--stone);font-size:12px">${esc(e.notes || '—')}</td>
-        <td>
+      <div class="log-entry">
+        <div class="log-entry-date"><span class="dow">${esc(dow)}</span>${esc(dnum)}</div>
+        <div class="log-entry-main">
+          <div class="log-entry-gig">
+            <span class="log-entry-code">${esc(code)}</span> ${esc(gig.title || '')}
+            ${type === 'manual' ? '<span class="log-entry-flag">manual</span>' : ''}
+          </div>
+          <div class="log-entry-meta">
+            <span>${fmtTime(e.start_time)}–${fmtTime(e.end_time)}</span>
+            ${loc ? `<span>${esc(loc)}</span>` : ''}
+          </div>
+          ${e.notes ? `<div class="log-entry-notes">${esc(e.notes)}</div>` : ''}
+        </div>
+        <div class="log-entry-right">
+          <div class="log-entry-duration">${dur}</div>
           <div class="row-actions">
             <button class="btn-edit" onclick="editEntry('${e.entry_id}')">Edit</button>
             <button class="btn-delete" onclick="deleteEntry('${e.entry_id}')">×</button>
           </div>
-        </td>
-      </tr>`
+        </div>
+      </div>`
   }).join('')
 }
 

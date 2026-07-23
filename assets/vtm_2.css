@@ -111,8 +111,8 @@ body {
 }
 .punch-strip::before { left: 0;  background: linear-gradient(to right, var(--light), transparent); }
 .punch-strip::after  { right: 0; background: linear-gradient(to left,  var(--light), transparent); }
-.punch-holes { display: flex; gap: 12px; padding: 0 16px; white-space: nowrap; flex-shrink: 0; animation: scroll-holes 22s linear infinite; }
-.punch-holes-2 { animation-delay: -11s; }
+.punch-holes { display: flex; gap: 12px; padding: 0 16px; white-space: nowrap; flex-shrink: 0; animation: scroll-holes 60s linear infinite; }
+.punch-holes-2 { animation-delay: -30s; }
 @keyframes scroll-holes { from { transform: translateX(0); } to { transform: translateX(-100%); } }
 .hole { width: 10px; height: 15px; border-radius: 2px; border: 1px solid rgba(26,20,16,0.25); flex-shrink: 0; }
 .hole.punched { background: var(--black); border-color: var(--black); }

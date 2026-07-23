@@ -4,31 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Timesheet — Vidai to Mulai</title>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Special+Elite&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/vtm.css">
+  <link rel="stylesheet" href="assets/vtm_2.css">
   <script src="assets/vtm.js"></script>
   <script src="assets/vtm_auth_guard.js"></script>
   <style>
-
-    /* ── MULAI.CH HOMEPAGE PALETTE ──────────────────────────────────────────
-       Overrides the tokens from assets/vtm.css for this page only — the
-       shared stylesheet is untouched, so dashboard/gigs/evaluate keep the
-       old look until (if) this palette is rolled out there too. */
-    :root {
-      --black:    #1a1410;   /* ink */
-      --white:    #f0ead8;   /* card cream */
-      --red:      #b5201a;
-      --red-dark: #7a1512;
-      --green:    #1e4d2b;
-      --charcoal: #3a2f22;
-      --stone:    #6b5f4e;   /* faded */
-      --light:    #e8e0c8;   /* card2 */
-      --hole:     #c8bfa8;
-      --font-display: 'Bebas Neue', sans-serif;
-      --font-body:    'Courier Prime', monospace;
-      --font-mono:    'DM Mono', monospace;
-    }
-    body { letter-spacing: 0.01em; }
 
     /* ── UNIFIED HEADER ─────────────────────────────────────────────────── */
     .vtm-header {
@@ -175,100 +154,11 @@
       .vtm-header-inner { padding: 0 20px; }
     }
 
-    /* ── PUNCH STRIP (mulai.ch register motif) ────────────────────────────── */
-    .punch-strip {
-      background: var(--light);
-      border-top: 2px solid var(--black);
-      border-bottom: 2px solid var(--black);
-      padding: 7px 0;
-      display: flex;
-      overflow: hidden;
-      position: relative;
-    }
-    .punch-strip::before, .punch-strip::after {
-      content: ''; position: absolute; top: 0; bottom: 0; width: 60px; z-index: 2;
-    }
-    .punch-strip::before { left: 0;  background: linear-gradient(to right, var(--light), transparent); }
-    .punch-strip::after  { right: 0; background: linear-gradient(to left,  var(--light), transparent); }
-    .punch-holes { display: flex; gap: 12px; padding: 0 16px; white-space: nowrap; flex-shrink: 0; animation: scroll-holes 22s linear infinite; }
-    .punch-holes-2 { animation-delay: -11s; }
-    @keyframes scroll-holes { from { transform: translateX(0); } to { transform: translateX(-100%); } }
-    .hole { width: 10px; height: 15px; border-radius: 2px; border: 1px solid rgba(26,20,16,0.25); flex-shrink: 0; }
-    .hole.punched { background: var(--black); border-color: var(--black); }
-    .hole.punched.red { background: var(--red); border-color: var(--red); }
+    /* ── PUNCH STRIP, PUNCH CARD, REGISTER GRID ────────────────────────────
+       Provided by assets/vtm-punchcard.css — not duplicated here. */
 
     /* ── PAGE ───────────────────────────────────────────────────────────── */
     .page-wrap { max-width: 960px; margin: 0 auto; padding: 32px 24px 80px; }
-
-    /* ── PUNCH CARD (register card look, borrowed from mulai.ch) ──────────── */
-    .punch-card { border: 2px solid var(--black); background: var(--white); margin-bottom: 24px; }
-    .punch-card-header {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      background: var(--black);
-    }
-    .punch-card-header .pc-field {
-      padding: 10px 16px;
-      border-right: 1px solid rgba(247,246,242,0.1);
-    }
-    .punch-card-header .pc-field:last-child { border-right: none; }
-    .pc-label {
-      font-family: var(--font-mono);
-      font-size: 8px;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: rgba(247,246,242,0.35);
-      margin-bottom: 4px;
-    }
-    .pc-val {
-      font-family: 'Special Elite', cursive;
-      font-size: 13px;
-      color: var(--white);
-      line-height: 1.3;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .pc-val.red   { color: #e8a49c; }
-    .pc-val.green { color: #8fc4a3; }
-    .punch-card-body { padding: 24px 28px; }
-
-    .register-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px,1fr));
-      border-top: 2px solid var(--black);
-    }
-    .register-cell {
-      border-right: 1px solid var(--light);
-      border-bottom: 2px solid var(--black);
-      padding: 14px 18px;
-      position: relative;
-    }
-    .register-cell:last-child { border-right: none; }
-    .register-cell::before {
-      content: '';
-      position: absolute; top: 8px; right: 8px;
-      width: 6px; height: 10px; border-radius: 1px;
-      background: rgba(17,17,17,0.06);
-      border: 1px solid rgba(17,17,17,0.1);
-    }
-    .register-cell.punched::before { background: var(--red); border-color: var(--red); }
-    .register-cell-label {
-      font-family: var(--font-mono);
-      font-size: 9px;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--stone);
-      margin-bottom: 6px;
-    }
-    .register-cell-val {
-      font-family: 'Special Elite', cursive;
-      font-size: 15px;
-      color: var(--black);
-    }
-    .register-cell-val.red   { color: var(--red); }
-    .register-cell-val.green { color: var(--green); }
-    .register-cell-val.mono  { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.04em; }
 
     /* ── ACTIVE TIMER BLOCK ─────────────────────────────────────────────── */
     .active-timer-block {
@@ -583,6 +473,7 @@
     .row-actions { display: flex; gap: 0; white-space: nowrap; }
 
     .edit-row td { background: var(--light); padding: 16px 14px; }
+    .log-entry-edit { background: var(--light); border-bottom: 1px solid var(--light); }
     .edit-row-grid {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr 2fr auto;
@@ -626,16 +517,91 @@
     .week-tab:hover  { background: #e0ddd5; color: var(--charcoal); }
     .week-tab.active { background: var(--charcoal); color: var(--white); }
 
-    .log-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .log-table thead tr { background: var(--black); color: var(--white); }
-    .log-table th { padding: 10px 14px; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; text-align: left; }
-    .log-table td { padding: 11px 14px; border-bottom: 1px solid var(--light); vertical-align: middle; color: var(--charcoal); }
-    .log-table tr:last-child td { border-bottom: none; }
-    .log-table tr:hover td { background: var(--light); }
+    /* ── LOG LIST (register-style rows, replaces the old 9-col table) ────── */
+    .log-list { border-top: 2px solid var(--black); }
+    .log-entry {
+      display: grid;
+      grid-template-columns: 64px 1fr auto;
+      gap: 18px;
+      align-items: start;
+      padding: 14px 4px;
+      border-bottom: 1px solid var(--light);
+    }
+    .log-entry:hover { background: var(--light); }
+
+    .log-entry-date {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--stone);
+      line-height: 1.5;
+      padding-top: 2px;
+    }
+    .log-entry-date .dow {
+      display: block;
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      opacity: 0.7;
+    }
+
+    .log-entry-main { min-width: 0; }
+    .log-entry-gig {
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      letter-spacing: 0.02em;
+      color: var(--black);
+    }
+    .log-entry-code {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--red);
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .log-entry-flag {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--stone);
+      border: 1px solid var(--stone);
+      padding: 1px 6px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+    .log-entry-meta {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--stone);
+      margin-top: 3px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .log-entry-notes {
+      font-size: 12px;
+      color: var(--stone);
+      margin-top: 5px;
+      font-style: italic;
+    }
+
+    .log-entry-right {
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .log-entry-duration {
+      font-family: 'Special Elite', cursive;
+      font-size: 1.15rem;
+      color: var(--red);
+    }
+
+    .log-entry-edit .edit-row-grid { padding: 4px 8px; }
 
     .gig-code-pill { font-family: var(--font-mono); font-size: 11px; background: var(--light); color: var(--charcoal); padding: 2px 8px; font-weight: 600; }
-    .duration-pill { font-family: var(--font-mono); font-size: 12px; color: var(--green); font-weight: 600; }
-
     .type-badge { font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 7px; font-weight: 600; }
     .type-badge.live   { background: #e8f5ee; color: var(--green); }
     .type-badge.manual { background: var(--light); color: var(--stone); }
@@ -649,6 +615,25 @@
       .open-entry-fields   { grid-template-columns: 1fr 1fr; }
       .active-timer-top    { flex-direction: column; align-items: flex-start; }
       .btn-clockout        { width: 100%; text-align: center; }
+
+      .log-card            { padding: 20px 16px; }
+      .week-tabs           { overflow-x: auto; }
+      .log-entry {
+        grid-template-columns: 1fr;
+        gap: 6px;
+        padding: 16px 8px;
+      }
+      .log-entry-date { display: flex; gap: 8px; align-items: baseline; padding-top: 0; }
+      .log-entry-date .dow { display: inline; }
+      .log-entry-right {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        margin-top: 8px;
+      }
+      .edit-row-grid { grid-template-columns: 1fr 1fr; }
+      .edit-row-grid .row-actions { grid-column: span 2; }
     }
   </style>
 </head>
@@ -696,50 +681,25 @@
 
 <div class="page-wrap">
 
-  <!-- ── REGISTER CARD (punch card — always visible, mirrors the mulai.ch hero) ── -->
-  <div class="punch-card" id="activeTimerBlock" style="border-color:var(--stone)">
-    <div class="punch-card-header">
-      <div class="pc-field">
-        <div class="pc-label">Worker</div>
-        <div class="pc-val" id="timerWorkerName">—</div>
-      </div>
+  <!-- ── ACTIVE TIMER (only rendered while actually clocked in) ─────────── -->
+  <div class="punch-card" id="activeTimerBlock" style="display:none; border-color:var(--green)">
+    <div class="entry-card-header">
       <div class="pc-field">
         <div class="pc-label">Gig</div>
-        <div class="pc-val" id="timerGigTitle">To be assigned</div>
+        <div class="pc-val" id="timerGigTitle">—</div>
       </div>
       <div class="pc-field">
         <div class="pc-label">Card No.</div>
-        <div class="pc-val" id="timerGigCode">— : —</div>
+        <div class="pc-val" id="timerGigCode">—</div>
       </div>
       <div class="pc-field">
-        <div class="pc-label">Date</div>
-        <div class="pc-val" id="timerDate">—</div>
-      </div>
-      <div class="pc-field">
-        <div class="pc-label">Status</div>
-        <div class="pc-val" id="timerStatus">○ Not yet in</div>
+        <div class="pc-label">Clocked In</div>
+        <div class="pc-val red" id="timerClockIn">——:——</div>
       </div>
     </div>
-    <div class="register-grid">
-      <div class="register-cell" id="timerInCell">
-        <div class="register-cell-label">Time In</div>
-        <div class="register-cell-val" id="timerClockIn">——:——</div>
-      </div>
-      <div class="register-cell">
-        <div class="register-cell-label">Time Out</div>
-        <div class="register-cell-val" id="timerClockOut">—</div>
-      </div>
-      <div class="register-cell">
-        <div class="register-cell-label">Location</div>
-        <div class="register-cell-val mono" id="timerLocation">—</div>
-      </div>
-      <div class="register-cell" style="grid-column: span 2;" id="timerNotesCell">
-        <div class="register-cell-label">Notes <span class="optional-tag">saved on clock-out</span></div>
-        <input type="text" id="activeNotes" placeholder="Clock in to start a card…" disabled
-               style="border:none;background:transparent;font-family:var(--font-body);font-size:13px;width:100%;outline:none;color:var(--black)">
-      </div>
-    </div>
-    <div class="punch-card-body" id="timerCardBody" style="padding-top:16px;display:none;justify-content:flex-end">
+    <div class="punch-card-body" style="padding-top:18px;display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+      <input type="text" id="activeNotes" placeholder="What are you working on?"
+             style="flex:1;min-width:180px;border:none;border-bottom:1px solid var(--stone);background:transparent;font-family:var(--font-body);font-size:13px;padding:6px 2px;outline:none;color:var(--black)">
       <button class="btn-clockout" id="clockOutBtn" onclick="clockOut()">Clock Out →</button>
     </div>
   </div>
@@ -874,7 +834,7 @@
   <div class="log-card">
     <div class="log-header">
       <div class="card-title">Time Log</div>
-      <div class="log-total">This week: <strong id="weekTotal">0h 0m</strong></div>
+      <div class="log-total"><span id="logTotalLabel">This week</span>: <strong id="weekTotal">0h 0m</strong></div>
     </div>
     <div class="db-status" id="dbStatus">Loading…</div>
     <div class="week-tabs">
@@ -882,24 +842,9 @@
       <button class="week-tab"        data-filter="month" onclick="setFilter('month')">This Month</button>
       <button class="week-tab"        data-filter="all"   onclick="setFilter('all')">All Time</button>
     </div>
-    <table class="log-table">
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Gig</th>
-          <th>Start</th>
-          <th>End</th>
-          <th>Duration</th>
-          <th>Type</th>
-          <th>Location</th>
-          <th>Notes</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="logTableBody">
-        <tr><td colspan="9"><div class="empty-state">Loading…</div></td></tr>
-      </tbody>
-    </table>
+    <div class="log-list" id="logList">
+      <div class="empty-state">Loading…</div>
+    </div>
   </div>
 
 </div>

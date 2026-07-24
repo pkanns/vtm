@@ -385,6 +385,7 @@ window.saveManual = async function() {
       start_time: start,
       end_time:   end || null,
       notes:      notes || null,
+      entry_type: 'manual',
     }).eq('entry_id', editingEntryId)
 
     if (error) {
@@ -631,6 +632,15 @@ window.editEntry = function(entryId) {
   const entry = allEntries.find(e => e.entry_id === entryId)
   if (!entry) return
 
+  // Live (auto clock-in/out) entries can't be updated as-is — the database
+  // restricts edits to manual entries. Editing one converts it to manual,
+  // but only with the person's explicit go-ahead.
+  const wasLive = entry.entry_type === 'live'
+  if (wasLive) {
+    const ok = confirm('This is a live-clocked entry — editing it will convert it to manual. Continue?')
+    if (!ok) return
+  }
+
   editingEntryId = entryId
 
   // Switch to the Manual tab and open its panel
@@ -652,7 +662,9 @@ window.editEntry = function(entryId) {
 
   // Relabel the panel so it reads as an edit, not a new entry
   document.getElementById('manualPanelAction').textContent   = 'Edit Entry'
-  document.getElementById('manualPanelSubtitle').textContent = 'Editing a logged entry — update the details and save'
+  document.getElementById('manualPanelSubtitle').textContent = wasLive
+    ? 'Converting a live-clocked entry to manual — update the details and save'
+    : 'Editing a logged entry — update the details and save'
   document.getElementById('manualSaveBtn').textContent  = 'Save Changes →'
   document.getElementById('manualClearBtn').textContent = 'Cancel'
 

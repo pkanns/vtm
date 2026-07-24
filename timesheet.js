@@ -47,7 +47,7 @@ function buildPunchStrip() {
   for (let s = 0; s < 2; s++) {
     const div = document.createElement('div')
     div.className = 'punch-holes' + (s === 1 ? ' punch-holes-2' : '')
-    for (let r = 0; r < 8; r++) {
+    for (let r = 0; r < 6; r++) {
       pattern.forEach(p => {
         const h = document.createElement('div')
         h.className = 'hole' + (p === 1 ? ' punched' : p === 2 ? ' punched red' : '')
@@ -190,13 +190,15 @@ window.onProjectChange = function(sourceId, targetId) {
   populateGigDropdown(targetId, projectId)
 }
 
-// Gig select → mini "Card No." display in the panel header
-window.updateCardNo = function(gigSelectId, cardNoTargetId) {
+// Gig select → mini "Card No." + status display in the panel header
+window.updateCardNo = function(gigSelectId, cardNoTargetId, statusTargetId) {
   const gigId = document.getElementById(gigSelectId)?.value
   const target = document.getElementById(cardNoTargetId)
+  const status = statusTargetId ? document.getElementById(statusTargetId) : null
   if (!target) return
   const gig = gigId ? gigMap[gigId] : null
   target.textContent = gig ? gig.code : '— : —'
+  if (status) status.textContent = gig ? '● Ready' : '○ Awaiting'
 }
 
 // ── CHECK ACTIVE TIMER ────────────────────────────────────────────────────
@@ -218,35 +220,31 @@ async function checkActiveTimer() {
 }
 
 function showActiveTimer(entry) {
-  const block  = document.getElementById('activeTimerBlock')
-  const pill   = document.getElementById('headerTimerPill')
-  const label  = document.getElementById('headerTimerLabel')
-
   const gig    = entry.gigs || gigMap[entry.gig_id] || {}
   const code   = gig.gig_code || gig.code || '—'
   const title  = gig.title    || '—'
   const timeIn = entry.start_time ? entry.start_time.slice(0,5) : '—'
-  const dateIn = entry.entry_date ? fmtDate(entry.entry_date)   : '—'
-  const loc    = entry.location_label || '—'
 
+  const card = document.getElementById('activeTimerBlock')
   document.getElementById('timerGigCode').textContent  = code
   document.getElementById('timerGigTitle').textContent = title
-  document.getElementById('timerWorkerName').textContent = session.name || '—'
-  document.getElementById('timerDate').textContent     = dateIn
-  document.getElementById('timerStatus').textContent   = '● Active'
   document.getElementById('timerClockIn').textContent  = timeIn
-  document.getElementById('timerLocation').textContent = loc
-  // Pre-fill notes if any
-  const notesEl = document.getElementById('activeNotes')
-  if (notesEl) notesEl.value = entry.notes || ''
 
-  block.classList.add('visible')
+  const notesEl = document.getElementById('activeNotes')
+  notesEl.value = entry.notes || ''
+
+  card.style.display = 'block'
+
+  const pill  = document.getElementById('headerTimerPill')
+  const label = document.getElementById('headerTimerLabel')
   if (pill)  pill.classList.add('visible')
   if (label) label.textContent = `In · ${timeIn}`
 }
 
 function hideActiveTimer() {
-  document.getElementById('activeTimerBlock').classList.remove('visible')
+  document.getElementById('activeTimerBlock').style.display = 'none'
+  document.getElementById('activeNotes').value = ''
+
   const pill = document.getElementById('headerTimerPill')
   if (pill) pill.classList.remove('visible')
   activeEntry = null
@@ -306,6 +304,9 @@ window.clockIn = async function() {
   // Reset toggle and hide auto panel
   document.querySelectorAll('input[name="tog-entry"]').forEach(r => r.checked = false)
   showEntryPanel(null)
+  document.getElementById('autoGig').value = ''
+  document.getElementById('autoNotesIn').value = ''
+  updateCardNo('autoGig', 'autoCardNo', 'autoCardStatus')
 
   showToast('Clocked in ✓', 'ok')
   await loadEntries()
@@ -373,9 +374,31 @@ window.saveManual = async function() {
   if (!date)  { showToast('Please enter a date',       'err'); return }
   if (!start) { showToast('Please enter a start time', 'err'); return }
 
-  const btn = document.querySelector('.btn-save')
+  const btn = document.getElementById('manualSaveBtn')
   btn.disabled    = true
   btn.textContent = 'Saving…'
+
+  if (editingEntryId) {
+    const { error } = await db.from('time_entries').update({
+      gig_id:     gigId,
+      entry_date: date,
+      start_time: start,
+      end_time:   end || null,
+      notes:      notes || null,
+    }).eq('entry_id', editingEntryId)
+
+    if (error) {
+      showToast('Update failed — ' + error.message, 'err')
+      btn.disabled    = false
+      btn.textContent = 'Save Changes →'
+      return
+    }
+
+    showToast('Entry updated ✓', 'ok')
+    resetManual()
+    await loadEntries()
+    return
+  }
 
   const { error } = await db.from('time_entries').insert({
     gig_id:     gigId,
@@ -535,7 +558,7 @@ function renderOpenEntries() {
 
 function renderEntries() {
   const now   = new Date(); now.setHours(0,0,0,0)
-  const tbody = document.getElementById('logTableBody')
+  const list  = document.getElementById('logList')
 
   // Week starts Monday
   const weekStart = new Date(now)
@@ -551,113 +574,90 @@ function renderEntries() {
     return true
   })
 
-  // Week total
-  const weekMins = allEntries
-    .filter(e => { const d = new Date(e.entry_date); d.setHours(0,0,0,0); return d >= weekStart })
-    .reduce((sum, e) => sum + (e.duration_mins || 0), 0)
-
-  document.getElementById('weekTotal').textContent = fmtDuration(weekMins)
+  // Total + label match whichever period is currently selected — not always "this week"
+  const totalMins = filtered.reduce((sum, e) => sum + (e.duration_mins || 0), 0)
+  const periodLabel = currentFilter === 'week' ? 'This week' : currentFilter === 'month' ? 'This month' : 'All time'
+  document.getElementById('logTotalLabel').textContent = periodLabel
+  document.getElementById('weekTotal').textContent = fmtDuration(totalMins)
 
   if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state">No completed entries${currentFilter !== 'all' ? ' for this period' : ''}.</div></td></tr>`
+    list.innerHTML = `<div class="empty-state">No completed entries${currentFilter !== 'all' ? ' for this period' : ''}.</div>`
     return
   }
 
-  tbody.innerHTML = filtered.map(e => {
+  list.innerHTML = filtered.map(e => {
     const gig  = e.gigs || {}
     const code = gig.gig_code || '—'
     const dur  = e.duration_mins ? fmtDuration(e.duration_mins) : '—'
     const type = e.entry_type === 'live' ? 'live' : 'manual'
-    const loc  = e.location_label || '—'
-
-    if (e.entry_id === editingEntryId) {
-      return `
-      <tr class="edit-row">
-        <td colspan="9">
-          <div class="edit-row-grid">
-            <div class="form-row"><label>Date</label><input type="date" id="ee-date-${e.entry_id}" value="${e.entry_date || ''}"></div>
-            <div class="form-row"><label>Start</label><input type="time" id="ee-start-${e.entry_id}" value="${(e.start_time || '').slice(0,5)}"></div>
-            <div class="form-row"><label>End</label><input type="time" id="ee-end-${e.entry_id}" value="${(e.end_time || '').slice(0,5)}"></div>
-            <div class="form-row"><label>Notes</label><input type="text" id="ee-notes-${e.entry_id}" value="${esc(e.notes || '')}" placeholder="What did you work on?"></div>
-            <div class="row-actions">
-              <button class="btn-save" id="ee-btn-${e.entry_id}" onclick="saveEditEntry('${e.entry_id}')">Save →</button>
-              <button class="btn-clear" onclick="cancelEditEntry()">Cancel</button>
-            </div>
-          </div>
-        </td>
-      </tr>`
-    }
+    const loc  = e.location_label || null
+    const d    = new Date(e.entry_date)
+    const dow  = d.toLocaleDateString(undefined, { weekday: 'short' })
+    const dnum = fmtDate(e.entry_date)
+    const active = e.entry_id === editingEntryId
 
     return `
-      <tr>
-        <td style="font-family:var(--font-mono);font-size:12px;color:var(--stone)">${fmtDate(e.entry_date)}</td>
-        <td>
-          <span class="gig-code-pill">${esc(code)}</span>
-          <span style="font-size:12px;color:var(--stone);margin-left:8px">${esc(gig.title || '')}</span>
-        </td>
-        <td style="font-family:var(--font-mono);font-size:12px">${fmtTime(e.start_time)}</td>
-        <td style="font-family:var(--font-mono);font-size:12px">${fmtTime(e.end_time)}</td>
-        <td><span class="duration-pill">${dur}</span></td>
-        <td><span class="type-badge ${type}">${type}</span></td>
-        <td style="font-size:11px;color:var(--stone);font-family:var(--font-mono)">${esc(loc)}</td>
-        <td style="color:var(--stone);font-size:12px">${esc(e.notes || '—')}</td>
-        <td>
+      <div class="log-entry${active ? ' log-entry-editing' : ''}">
+        <div class="log-entry-date"><span class="dow">${esc(dow)}</span>${esc(dnum)}</div>
+        <div class="log-entry-main">
+          <div class="log-entry-gig">
+            <span class="log-entry-code">${esc(code)}</span> ${esc(gig.title || '')}
+            ${type === 'manual' ? '<span class="log-entry-flag">manual</span>' : ''}
+          </div>
+          <div class="log-entry-meta">
+            <span>${fmtTime(e.start_time)}–${fmtTime(e.end_time)}</span>
+            ${loc ? `<span>${esc(loc)}</span>` : ''}
+          </div>
+          ${e.notes ? `<div class="log-entry-notes">${esc(e.notes)}</div>` : ''}
+        </div>
+        <div class="log-entry-right">
+          <div class="log-entry-duration">${dur}</div>
           <div class="row-actions">
-            <button class="btn-edit" onclick="editEntry('${e.entry_id}')">Edit</button>
+            <button class="btn-edit" onclick="editEntry('${e.entry_id}')">${active ? 'Editing…' : 'Edit'}</button>
             <button class="btn-delete" onclick="deleteEntry('${e.entry_id}')">×</button>
           </div>
-        </td>
-      </tr>`
+        </div>
+      </div>`
   }).join('')
 }
 
 // ── EDIT COMPLETED ENTRY ──────────────────────────────────────────────────
-// Same field set as the Open Timesheets editor, applied to already-closed
-// entries. Query-level access (own entries, or all entries for admin) is
-// already enforced by loadEntries(), so anyone rendering a row here is
-// already allowed to edit it.
+// Opens the same Manual Entry panel used to create entries, pre-filled with
+// this entry's data — per design decision, editing should look and feel
+// exactly like logging a manual entry, not a separate compact form. Save
+// then updates instead of inserting (see saveManual()).
 
 window.editEntry = function(entryId) {
+  const entry = allEntries.find(e => e.entry_id === entryId)
+  if (!entry) return
+
   editingEntryId = entryId
-  renderEntries()
-}
 
-window.cancelEditEntry = function() {
-  editingEntryId = null
-  renderEntries()
-}
+  // Switch to the Manual tab and open its panel
+  const manualRadio = document.getElementById('tog-manual')
+  if (manualRadio) manualRadio.checked = true
+  showEntryPanel('manual')
 
-window.saveEditEntry = async function(entryId) {
-  const date  = document.getElementById(`ee-date-${entryId}`)?.value  || null
-  const start = document.getElementById(`ee-start-${entryId}`)?.value || null
-  const end   = document.getElementById(`ee-end-${entryId}`)?.value   || null
-  const notes = document.getElementById(`ee-notes-${entryId}`)?.value.trim() || null
+  // Reverse-populate the project → gig cascade from this entry's gig
+  const gig = gigMap[entry.gig_id] || {}
+  document.getElementById('manualProject').value = gig.project_id || ''
+  populateGigDropdown('manualGig', gig.project_id || null)
+  document.getElementById('manualGig').value = entry.gig_id || ''
+  updateCardNo('manualGig', 'manualCardNo', 'manualCardStatus')
 
-  if (!date)  { showToast('Date required',       'err'); return }
-  if (!start) { showToast('Start time required', 'err'); return }
+  document.getElementById('manualDate').value  = entry.entry_date || ''
+  document.getElementById('manualStart').value = (entry.start_time || '').slice(0,5)
+  document.getElementById('manualEnd').value   = (entry.end_time   || '').slice(0,5)
+  document.getElementById('manualNotes').value = entry.notes || ''
 
-  const btn = document.getElementById(`ee-btn-${entryId}`)
-  if (btn) { btn.disabled = true; btn.textContent = 'Saving…' }
+  // Relabel the panel so it reads as an edit, not a new entry
+  document.getElementById('manualPanelAction').textContent   = 'Edit Entry'
+  document.getElementById('manualPanelSubtitle').textContent = 'Editing a logged entry — update the details and save'
+  document.getElementById('manualSaveBtn').textContent  = 'Save Changes →'
+  document.getElementById('manualClearBtn').textContent = 'Cancel'
 
-  const { error } = await db
-    .from('time_entries')
-    .update({
-      entry_date: date,
-      start_time: start,
-      end_time:   end,
-      notes:      notes,
-    })
-    .eq('entry_id', entryId)
-
-  if (error) {
-    showToast('Update failed — ' + error.message, 'err')
-    if (btn) { btn.disabled = false; btn.textContent = 'Save →' }
-    return
-  }
-
-  showToast('Entry updated ✓', 'ok')
-  editingEntryId = null
-  await loadEntries()
+  renderEntries() // reflect the "Editing…" state on the row
+  document.getElementById('manualPanel').scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 // ── FILTER ────────────────────────────────────────────────────────────────
@@ -683,13 +683,29 @@ window.deleteEntry = async function(id) {
 // ── RESET MANUAL FORM ─────────────────────────────────────────────────────
 
 window.resetManual = function() {
+  const wasEditing = !!editingEntryId
+
   document.getElementById('manualProject').value = ''
   populateGigDropdown('manualGig', null)
   document.getElementById('manualDate').value  = TODAY
   document.getElementById('manualStart').value = ''
   document.getElementById('manualEnd').value   = ''
   document.getElementById('manualNotes').value = ''
-  updateCardNo('manualGig', 'manualCardNo')
+  updateCardNo('manualGig', 'manualCardNo', 'manualCardStatus')
+
+  editingEntryId = null
+  document.getElementById('manualPanelAction').textContent   = 'Manual Entry'
+  document.getElementById('manualPanelSubtitle').textContent = 'Log time worked — end time is optional, entry stays open until added'
+  document.getElementById('manualSaveBtn').textContent  = 'Save →'
+  document.getElementById('manualClearBtn').textContent = 'Clear'
+
+  // "Cancel" (leaving an edit) collapses the panel again; "Clear" while
+  // adding a fresh entry just wipes the fields and stays open.
+  if (wasEditing) {
+    document.querySelectorAll('input[name="tog-entry"]').forEach(r => r.checked = false)
+    showEntryPanel(null)
+    renderEntries()
+  }
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────

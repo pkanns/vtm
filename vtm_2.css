@@ -112,7 +112,7 @@ body {
 }
 .punch-strip::before { left: 0;  background: linear-gradient(to right, var(--light), transparent); }
 .punch-strip::after  { right: 0; background: linear-gradient(to left,  var(--light), transparent); }
-.punch-holes { display: flex; gap: 18px; padding: 0 24px; white-space: nowrap; flex-shrink: 0; animation: drift-left 70s linear infinite; }
+.punch-holes { display: flex; gap: 18px; padding: 0 24px; white-space: nowrap; flex-shrink: 0; animation: drift-left 140s linear infinite; }
 .punch-holes-2 { animation-delay: -35s; }
 .punch-strip.reverse .punch-holes   { animation-name: drift-right; }
 .punch-strip.reverse .punch-holes-2 { animation-name: drift-right; animation-delay: -35s; }

@@ -628,7 +628,7 @@ function renderEntries() {
 // exactly like logging a manual entry, not a separate compact form. Save
 // then updates instead of inserting (see saveManual()).
 
-window.editEntry = function(entryId) {
+window.editEntry = async function(entryId) {
   const entry = allEntries.find(e => e.entry_id === entryId)
   if (!entry) return
 
@@ -648,8 +648,24 @@ window.editEntry = function(entryId) {
   if (manualRadio) manualRadio.checked = true
   showEntryPanel('manual')
 
-  // Reverse-populate the project → gig cascade from this entry's gig
-  const gig = gigMap[entry.gig_id] || {}
+  // loadGigs() only loads gigs that aren't completed, to keep the "add new
+  // entry" dropdowns clean — but an existing entry can point at a gig that's
+  // since been marked complete. If that gig isn't in gigMap, fetch it and
+  // add it in just for this edit; otherwise the Gig field can't be
+  // pre-selected and Save silently blocks on "please select a gig".
+  let gig = gigMap[entry.gig_id]
+  if (!gig) {
+    const { data, error } = await db
+      .from('gigs')
+      .select('gig_id, gig_code, title, project_id')
+      .eq('gig_id', entry.gig_id)
+      .single()
+    gig = (!error && data)
+      ? { code: data.gig_code, title: data.title, project_id: data.project_id }
+      : {}
+    if (!error && data) gigMap[entry.gig_id] = gig
+  }
+
   document.getElementById('manualProject').value = gig.project_id || ''
   populateGigDropdown('manualGig', gig.project_id || null)
   document.getElementById('manualGig').value = entry.gig_id || ''

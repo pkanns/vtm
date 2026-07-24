@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Timesheet — Vidai to Mulai</title>
+  <title>Timesheet — Mulai</title>
   <link rel="stylesheet" href="assets/vtm_2.css">
   <script src="assets/vtm.js"></script>
   <script src="assets/vtm_auth_guard.js"></script>
@@ -28,13 +28,13 @@
     }
     .vtm-brand {
       font-family: var(--font-display);
-      font-size: 1rem;
+      font-size: 22px;
       color: var(--white);
       text-decoration: none;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
       flex-shrink: 0;
     }
-    .vtm-brand span { color: var(--red); }
 
     .vtm-nav { display: flex; align-items: center; gap: 4px; }
     .vtm-nav a {
@@ -286,10 +286,6 @@
     .card-title { font-family: var(--font-display); font-size: 1.3rem; color: var(--black); margin-bottom: 4px; }
     .card-subtitle { font-size: 11px; color: var(--stone); font-family: var(--font-mono); margin-bottom: 24px; letter-spacing: 0.04em; }
 
-    .card-titlebar { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 4px; flex-wrap: wrap; gap: 8px; }
-    .mini-card-no { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; color: var(--stone); }
-    .mini-card-no strong { font-family: 'Special Elite', cursive; font-size: 12px; color: var(--red); letter-spacing: 0.02em; }
-
     .form-row { margin-bottom: 0; }
     .form-row label {
       display: block;
@@ -472,21 +468,8 @@
     .btn-edit:hover { border-color: var(--charcoal); color: var(--charcoal); }
     .row-actions { display: flex; gap: 0; white-space: nowrap; }
 
-    .edit-row td { background: var(--light); padding: 16px 14px; }
-    .log-entry-edit { background: var(--light); border-bottom: 1px solid var(--light); }
-    .edit-row-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr 2fr auto;
-      gap: 10px;
-      align-items: end;
-    }
-    .edit-row-grid .form-row label { margin-bottom: 4px; }
-    .edit-row-grid input {
-      width: 100%; padding: 8px 10px; background: var(--white);
-      border: none; border-bottom: 2px solid #ccc; font-family: var(--font-body);
-      font-size: 13px; color: var(--black); outline: none;
-    }
-    .edit-row-grid input:focus { border-bottom-color: var(--red); }
+    .log-entry-editing { background: var(--light); box-shadow: inset 3px 0 0 var(--red); }
+    .log-entry-editing .btn-edit { color: var(--red); border-color: var(--red); }
 
     /* ── LOG ────────────────────────────────────────────────────────────── */
     .log-card {
@@ -594,12 +577,11 @@
       white-space: nowrap;
     }
     .log-entry-duration {
-      font-family: 'Special Elite', cursive;
-      font-size: 1.15rem;
+      font-family: var(--font-body);
+      font-weight: 700;
+      font-size: 1.05rem;
       color: var(--red);
     }
-
-    .log-entry-edit .edit-row-grid { padding: 4px 8px; }
 
     .gig-code-pill { font-family: var(--font-mono); font-size: 11px; background: var(--light); color: var(--charcoal); padding: 2px 8px; font-weight: 600; }
     .type-badge { font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 7px; font-weight: 600; }
@@ -632,8 +614,6 @@
         width: 100%;
         margin-top: 8px;
       }
-      .edit-row-grid { grid-template-columns: 1fr 1fr; }
-      .edit-row-grid .row-actions { grid-column: span 2; }
     }
   </style>
 </head>
@@ -642,7 +622,7 @@
 <!-- ── HEADER ──────────────────────────────────────────────────────────── -->
 <div class="vtm-header">
   <div class="vtm-header-inner">
-    <a href="dashboard.html" class="vtm-brand">Vidai <span>to</span> Mulai</a>
+    <a href="dashboard.html" class="vtm-brand">Mulai</a>
     <nav class="vtm-nav">
       <a href="dashboard.html"      data-page="home">Home</a>
       <a href="project_index.html"  data-page="projects">Projects</a>
@@ -686,7 +666,7 @@
     <div class="entry-card-header">
       <div class="pc-field">
         <div class="pc-label">Gig</div>
-        <div class="pc-val" id="timerGigTitle">—</div>
+        <div class="pc-val typed" id="timerGigTitle">—</div>
       </div>
       <div class="pc-field">
         <div class="pc-label">Card No.</div>
@@ -694,7 +674,7 @@
       </div>
       <div class="pc-field">
         <div class="pc-label">Clocked In</div>
-        <div class="pc-val red" id="timerClockIn">——:——</div>
+        <div class="pc-val red typed" id="timerClockIn">——:——</div>
       </div>
     </div>
     <div class="punch-card-body" style="padding-top:18px;display:flex;gap:16px;align-items:center;flex-wrap:wrap">
@@ -728,7 +708,7 @@
       </div>
       <div class="pc-field">
         <div class="pc-label">Status</div>
-        <div class="pc-val" id="autoCardStatus">○ Awaiting</div>
+        <div class="pc-val typed" id="autoCardStatus">○ Awaiting</div>
       </div>
     </div>
     <div class="entry-panel-body">
@@ -764,7 +744,7 @@
     <div class="entry-card-header">
       <div class="pc-field">
         <div class="pc-label">Action</div>
-        <div class="pc-val">Manual Entry</div>
+        <div class="pc-val" id="manualPanelAction">Manual Entry</div>
       </div>
       <div class="pc-field">
         <div class="pc-label">Card No.</div>
@@ -772,11 +752,11 @@
       </div>
       <div class="pc-field">
         <div class="pc-label">Status</div>
-        <div class="pc-val" id="manualCardStatus">○ Awaiting</div>
+        <div class="pc-val typed" id="manualCardStatus">○ Awaiting</div>
       </div>
     </div>
     <div class="entry-panel-body">
-    <div class="card-subtitle">Log time worked — end time is optional, entry stays open until added</div>
+    <div class="card-subtitle" id="manualPanelSubtitle">Log time worked — end time is optional, entry stays open until added</div>
 
     <div class="cascade-grid">
       <div class="form-row">
@@ -793,7 +773,7 @@
       </div>
     </div>
 
-    <div class="form-grid-4">
+    <div class="form-grid-3">
       <div class="form-row">
         <label>Date *</label>
         <input type="date" id="manualDate">
@@ -806,15 +786,15 @@
         <label>End Time <span class="optional-tag">optional</span></label>
         <input type="time" id="manualEnd">
       </div>
+    </div>
+
+    <div class="form-bottom">
       <div class="form-row">
         <label>Notes <span class="optional-tag">optional</span></label>
         <input type="text" id="manualNotes" placeholder="What did you work on?">
       </div>
-    </div>
-
-    <div style="display:flex;gap:8px;">
-      <button class="btn-save" onclick="saveManual()">Save →</button>
-      <button class="btn-clear" onclick="resetManual()">Clear</button>
+      <button class="btn-save" id="manualSaveBtn" onclick="saveManual()">Save →</button>
+      <button class="btn-clear" id="manualClearBtn" onclick="resetManual()">Clear</button>
     </div>
     </div>
   </div>

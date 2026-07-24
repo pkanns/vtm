@@ -472,14 +472,8 @@
     .log-entry-editing .btn-edit { color: var(--red); border-color: var(--red); }
 
     /* ── LOG ────────────────────────────────────────────────────────────── */
-    .log-card {
-      background: var(--white);
-      border-top: 4px solid var(--charcoal);
-      padding: 28px 32px;
-    }
-    .log-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 4px; }
-    .log-total { font-family: var(--font-mono); font-size: 11px; color: var(--stone); }
-    .log-total strong { color: var(--red); font-size: 13px; }
+    /* .log-card now uses the shared .punch-card + .entry-card-header system —
+       see vtm_2.css. Only Time-Log-specific layout stays here. */
 
     .db-status { font-size: 11px; font-family: var(--font-mono); color: var(--stone); padding: 4px 0 16px; }
     .db-status.ok  { color: var(--green); }
@@ -497,7 +491,7 @@
       cursor: pointer;
       transition: all 0.15s;
     }
-    .week-tab:hover  { background: #e0ddd5; color: var(--charcoal); }
+    .week-tab:hover  { background: var(--hole); color: var(--charcoal); }
     .week-tab.active { background: var(--charcoal); color: var(--white); }
 
     /* ── LOG LIST (register-style rows, replaces the old 9-col table) ────── */
@@ -514,7 +508,7 @@
 
     .log-entry-date {
       font-family: var(--font-mono);
-      font-size: 12px;
+      font-size: 11px;
       color: var(--stone);
       line-height: 1.5;
       padding-top: 2px;
@@ -529,14 +523,14 @@
 
     .log-entry-main { min-width: 0; }
     .log-entry-gig {
-      font-family: var(--font-display);
-      font-size: 1.05rem;
-      letter-spacing: 0.02em;
+      font-family: var(--font-body);
+      font-weight: 700;
+      font-size: 14px;
       color: var(--black);
     }
     .log-entry-code {
       font-family: var(--font-mono);
-      font-size: 11px;
+      font-size: 10px;
       color: var(--red);
       font-weight: 600;
       letter-spacing: 0.02em;
@@ -554,14 +548,16 @@
     }
     .log-entry-meta {
       font-family: var(--font-mono);
-      font-size: 11px;
+      font-size: 10px;
+      letter-spacing: 0.02em;
       color: var(--stone);
-      margin-top: 3px;
+      margin-top: 4px;
       display: flex;
       gap: 12px;
       flex-wrap: wrap;
     }
     .log-entry-notes {
+      font-family: var(--font-body);
       font-size: 12px;
       color: var(--stone);
       margin-top: 5px;
@@ -579,7 +575,7 @@
     .log-entry-duration {
       font-family: var(--font-body);
       font-weight: 700;
-      font-size: 1.05rem;
+      font-size: 15px;
       color: var(--red);
     }
 
@@ -598,7 +594,7 @@
       .active-timer-top    { flex-direction: column; align-items: flex-start; }
       .btn-clockout        { width: 100%; text-align: center; }
 
-      .log-card            { padding: 20px 16px; }
+      .log-card .punch-card-body { padding: 20px 16px; }
       .week-tabs           { overflow-x: auto; }
       .log-entry {
         grid-template-columns: 1fr;
@@ -811,19 +807,27 @@
   </div>
 
   <!-- ── TIME LOG ───────────────────────────────────────────────────────── -->
-  <div class="log-card">
-    <div class="log-header">
-      <div class="card-title">Time Log</div>
-      <div class="log-total"><span id="logTotalLabel">This week</span>: <strong id="weekTotal">0h 0m</strong></div>
+  <div class="punch-card log-card">
+    <div class="entry-card-header">
+      <div class="pc-field">
+        <div class="pc-label">Log</div>
+        <div class="pc-val typed">Time Log</div>
+      </div>
+      <div class="pc-field" style="text-align:right">
+        <div class="pc-label"><span id="logTotalLabel">This Week</span></div>
+        <div class="pc-val red" id="weekTotal">0h 0m</div>
+      </div>
     </div>
-    <div class="db-status" id="dbStatus">Loading…</div>
-    <div class="week-tabs">
-      <button class="week-tab active" data-filter="week"  onclick="setFilter('week')">This Week</button>
-      <button class="week-tab"        data-filter="month" onclick="setFilter('month')">This Month</button>
-      <button class="week-tab"        data-filter="all"   onclick="setFilter('all')">All Time</button>
-    </div>
-    <div class="log-list" id="logList">
-      <div class="empty-state">Loading…</div>
+    <div class="punch-card-body">
+      <div class="db-status" id="dbStatus">Loading…</div>
+      <div class="week-tabs">
+        <button class="week-tab active" data-filter="week"  onclick="setFilter('week')">This Week</button>
+        <button class="week-tab"        data-filter="month" onclick="setFilter('month')">This Month</button>
+        <button class="week-tab"        data-filter="all"   onclick="setFilter('all')">All Time</button>
+      </div>
+      <div class="log-list" id="logList">
+        <div class="empty-state">Loading…</div>
+      </div>
     </div>
   </div>
 

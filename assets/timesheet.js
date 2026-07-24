@@ -47,7 +47,7 @@ function buildPunchStrip() {
   for (let s = 0; s < 2; s++) {
     const div = document.createElement('div')
     div.className = 'punch-holes' + (s === 1 ? ' punch-holes-2' : '')
-    for (let r = 0; r < 8; r++) {
+    for (let r = 0; r < 6; r++) {
       pattern.forEach(p => {
         const h = document.createElement('div')
         h.className = 'hole' + (p === 1 ? ' punched' : p === 2 ? ' punched red' : '')
@@ -374,9 +374,31 @@ window.saveManual = async function() {
   if (!date)  { showToast('Please enter a date',       'err'); return }
   if (!start) { showToast('Please enter a start time', 'err'); return }
 
-  const btn = document.querySelector('.btn-save')
+  const btn = document.getElementById('manualSaveBtn')
   btn.disabled    = true
   btn.textContent = 'Saving…'
+
+  if (editingEntryId) {
+    const { error } = await db.from('time_entries').update({
+      gig_id:     gigId,
+      entry_date: date,
+      start_time: start,
+      end_time:   end || null,
+      notes:      notes || null,
+    }).eq('entry_id', editingEntryId)
+
+    if (error) {
+      showToast('Update failed — ' + error.message, 'err')
+      btn.disabled    = false
+      btn.textContent = 'Save Changes →'
+      return
+    }
+
+    showToast('Entry updated ✓', 'ok')
+    resetManual()
+    await loadEntries()
+    return
+  }
 
   const { error } = await db.from('time_entries').insert({
     gig_id:     gigId,
@@ -572,25 +594,10 @@ function renderEntries() {
     const d    = new Date(e.entry_date)
     const dow  = d.toLocaleDateString(undefined, { weekday: 'short' })
     const dnum = fmtDate(e.entry_date)
-
-    if (e.entry_id === editingEntryId) {
-      return `
-      <div class="log-entry log-entry-edit">
-        <div class="edit-row-grid">
-          <div class="form-row"><label>Date</label><input type="date" id="ee-date-${e.entry_id}" value="${e.entry_date || ''}"></div>
-          <div class="form-row"><label>Start</label><input type="time" id="ee-start-${e.entry_id}" value="${(e.start_time || '').slice(0,5)}"></div>
-          <div class="form-row"><label>End</label><input type="time" id="ee-end-${e.entry_id}" value="${(e.end_time || '').slice(0,5)}"></div>
-          <div class="form-row"><label>Notes</label><input type="text" id="ee-notes-${e.entry_id}" value="${esc(e.notes || '')}" placeholder="What did you work on?"></div>
-          <div class="row-actions">
-            <button class="btn-save" id="ee-btn-${e.entry_id}" onclick="saveEditEntry('${e.entry_id}')">Save →</button>
-            <button class="btn-clear" onclick="cancelEditEntry()">Cancel</button>
-          </div>
-        </div>
-      </div>`
-    }
+    const active = e.entry_id === editingEntryId
 
     return `
-      <div class="log-entry">
+      <div class="log-entry${active ? ' log-entry-editing' : ''}">
         <div class="log-entry-date"><span class="dow">${esc(dow)}</span>${esc(dnum)}</div>
         <div class="log-entry-main">
           <div class="log-entry-gig">
@@ -606,7 +613,7 @@ function renderEntries() {
         <div class="log-entry-right">
           <div class="log-entry-duration">${dur}</div>
           <div class="row-actions">
-            <button class="btn-edit" onclick="editEntry('${e.entry_id}')">Edit</button>
+            <button class="btn-edit" onclick="editEntry('${e.entry_id}')">${active ? 'Editing…' : 'Edit'}</button>
             <button class="btn-delete" onclick="deleteEntry('${e.entry_id}')">×</button>
           </div>
         </div>
@@ -615,52 +622,42 @@ function renderEntries() {
 }
 
 // ── EDIT COMPLETED ENTRY ──────────────────────────────────────────────────
-// Same field set as the Open Timesheets editor, applied to already-closed
-// entries. Query-level access (own entries, or all entries for admin) is
-// already enforced by loadEntries(), so anyone rendering a row here is
-// already allowed to edit it.
+// Opens the same Manual Entry panel used to create entries, pre-filled with
+// this entry's data — per design decision, editing should look and feel
+// exactly like logging a manual entry, not a separate compact form. Save
+// then updates instead of inserting (see saveManual()).
 
 window.editEntry = function(entryId) {
+  const entry = allEntries.find(e => e.entry_id === entryId)
+  if (!entry) return
+
   editingEntryId = entryId
-  renderEntries()
-}
 
-window.cancelEditEntry = function() {
-  editingEntryId = null
-  renderEntries()
-}
+  // Switch to the Manual tab and open its panel
+  const manualRadio = document.getElementById('tog-manual')
+  if (manualRadio) manualRadio.checked = true
+  showEntryPanel('manual')
 
-window.saveEditEntry = async function(entryId) {
-  const date  = document.getElementById(`ee-date-${entryId}`)?.value  || null
-  const start = document.getElementById(`ee-start-${entryId}`)?.value || null
-  const end   = document.getElementById(`ee-end-${entryId}`)?.value   || null
-  const notes = document.getElementById(`ee-notes-${entryId}`)?.value.trim() || null
+  // Reverse-populate the project → gig cascade from this entry's gig
+  const gig = gigMap[entry.gig_id] || {}
+  document.getElementById('manualProject').value = gig.project_id || ''
+  populateGigDropdown('manualGig', gig.project_id || null)
+  document.getElementById('manualGig').value = entry.gig_id || ''
+  updateCardNo('manualGig', 'manualCardNo', 'manualCardStatus')
 
-  if (!date)  { showToast('Date required',       'err'); return }
-  if (!start) { showToast('Start time required', 'err'); return }
+  document.getElementById('manualDate').value  = entry.entry_date || ''
+  document.getElementById('manualStart').value = (entry.start_time || '').slice(0,5)
+  document.getElementById('manualEnd').value   = (entry.end_time   || '').slice(0,5)
+  document.getElementById('manualNotes').value = entry.notes || ''
 
-  const btn = document.getElementById(`ee-btn-${entryId}`)
-  if (btn) { btn.disabled = true; btn.textContent = 'Saving…' }
+  // Relabel the panel so it reads as an edit, not a new entry
+  document.getElementById('manualPanelAction').textContent   = 'Edit Entry'
+  document.getElementById('manualPanelSubtitle').textContent = 'Editing a logged entry — update the details and save'
+  document.getElementById('manualSaveBtn').textContent  = 'Save Changes →'
+  document.getElementById('manualClearBtn').textContent = 'Cancel'
 
-  const { error } = await db
-    .from('time_entries')
-    .update({
-      entry_date: date,
-      start_time: start,
-      end_time:   end,
-      notes:      notes,
-    })
-    .eq('entry_id', entryId)
-
-  if (error) {
-    showToast('Update failed — ' + error.message, 'err')
-    if (btn) { btn.disabled = false; btn.textContent = 'Save →' }
-    return
-  }
-
-  showToast('Entry updated ✓', 'ok')
-  editingEntryId = null
-  await loadEntries()
+  renderEntries() // reflect the "Editing…" state on the row
+  document.getElementById('manualPanel').scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 // ── FILTER ────────────────────────────────────────────────────────────────
@@ -686,6 +683,8 @@ window.deleteEntry = async function(id) {
 // ── RESET MANUAL FORM ─────────────────────────────────────────────────────
 
 window.resetManual = function() {
+  const wasEditing = !!editingEntryId
+
   document.getElementById('manualProject').value = ''
   populateGigDropdown('manualGig', null)
   document.getElementById('manualDate').value  = TODAY
@@ -693,6 +692,20 @@ window.resetManual = function() {
   document.getElementById('manualEnd').value   = ''
   document.getElementById('manualNotes').value = ''
   updateCardNo('manualGig', 'manualCardNo', 'manualCardStatus')
+
+  editingEntryId = null
+  document.getElementById('manualPanelAction').textContent   = 'Manual Entry'
+  document.getElementById('manualPanelSubtitle').textContent = 'Log time worked — end time is optional, entry stays open until added'
+  document.getElementById('manualSaveBtn').textContent  = 'Save →'
+  document.getElementById('manualClearBtn').textContent = 'Clear'
+
+  // "Cancel" (leaving an edit) collapses the panel again; "Clear" while
+  // adding a fresh entry just wipes the fields and stays open.
+  if (wasEditing) {
+    document.querySelectorAll('input[name="tog-entry"]').forEach(r => r.checked = false)
+    showEntryPanel(null)
+    renderEntries()
+  }
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────

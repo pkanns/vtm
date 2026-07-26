@@ -121,6 +121,41 @@
     /* ── OAuth note ── */
     .oauth-note { font-size: 11px; color: var(--stone); background: var(--light); padding: 12px 14px; margin-top: 16px; line-height: 1.6; border-left: 2px solid #ccc; display: none; }
     .oauth-note.visible { display: block; }
+    /* ── Edit-mode extra fields (hidden in create mode) ── */
+    .edit-only { display: none; }
+    .edit-only.visible { display: block; }
+
+    .active-toggle { display: flex; border: 1px solid #ccc; overflow: hidden; margin-top: 6px; }
+    .active-toggle button {
+      flex: 1; padding: 8px 6px; background: var(--light); border: none;
+      cursor: pointer; font-family: var(--font-body); font-size: 12px;
+      font-weight: 500; color: var(--stone); transition: all 0.15s;
+    }
+    .active-toggle button.on  { background: var(--green); color: var(--white); }
+    .active-toggle button.off { background: var(--red);   color: var(--white); }
+
+    .btn-secondary {
+      width: 100%; background: none; color: var(--charcoal);
+      border: 1px solid var(--charcoal); padding: 12px 24px;
+      font-family: var(--font-body); font-size: 12px; font-weight: 500;
+      letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer;
+      transition: all 0.2s; margin-top: 10px;
+    }
+    .btn-secondary:hover { background: var(--charcoal); color: var(--white); }
+    .btn-cancel {
+      width: 100%; background: none; color: var(--stone);
+      border: 1px solid #ccc; padding: 10px 24px;
+      font-family: var(--font-body); font-size: 11px; font-weight: 500;
+      letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
+      margin-top: 8px;
+    }
+    .btn-edit-row {
+      background: none; border: 1px solid var(--stone); color: var(--stone);
+      padding: 4px 10px; font-size: 10px; letter-spacing: 0.06em;
+      text-transform: uppercase; cursor: pointer; font-family: var(--font-body);
+    }
+    .btn-edit-row:hover { border-color: var(--charcoal); color: var(--charcoal); }
+
   </style>
 </head>
 <body>
@@ -138,17 +173,22 @@
 
   <!-- LEFT: Create form -->
   <div class="form-card">
-    <div class="form-title">New User</div>
-    <div class="form-subtitle">Invite a Lead, Doer or Admin to the platform</div>
+    <div class="form-title" id="formTitle">New User</div>
+    <div class="form-subtitle" id="formSubtitle">Invite a Lead, Doer or Admin to the platform</div>
 
     <div class="form-row">
       <label>Full Name *</label>
       <input type="text" id="userName" placeholder="e.g. Priya Nair">
     </div>
 
-    <div class="form-row">
+    <div class="form-row" id="createEmailRow">
       <label>Email *</label>
       <input type="email" id="userEmail" placeholder="priya@example.com">
+    </div>
+
+    <div class="form-row edit-only" id="editEmailRow">
+      <label>New Email <span style="text-transform:none;letter-spacing:0">(optional — leave blank to keep current)</span></label>
+      <input type="email" id="userNewEmail" placeholder="new-address@example.com">
     </div>
 
     <div class="form-row">
@@ -161,7 +201,23 @@
       </select>
     </div>
 
-    <div class="form-row">
+    <div class="form-row edit-only" id="skillRow">
+      <label>Skill Level</label>
+      <select id="userSkillLevel">
+        <option value="unskilled">Unskilled</option>
+        <option value="skilled">Skilled</option>
+      </select>
+    </div>
+
+    <div class="form-row edit-only" id="activeRow">
+      <label>Account Status</label>
+      <div class="active-toggle">
+        <button type="button" id="activeBtnOn"  onclick="setActiveState(true)">Active</button>
+        <button type="button" id="activeBtnOff" onclick="setActiveState(false)">Inactive</button>
+      </div>
+    </div>
+
+    <div class="form-row" id="authMethodRow">
       <label>Authentication Method *</label>
       <div class="auth-method-group">
         <button type="button" class="auth-method-btn active" data-method="email" onclick="setAuthMethod('email')">
@@ -194,9 +250,18 @@
       For Google or Microsoft — no invite email is sent. The user record is created and the account will be linked automatically on their first OAuth login. Make sure they use the exact email address above.
     </div>
 
-    <button class="btn-submit" id="submitBtn" onclick="createUser()">
+    <div class="form-row edit-only" id="resetRow">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="userSendReset" style="width:auto">
+        Generate a password reset link
+      </label>
+    </div>
+
+    <button class="btn-submit" id="submitBtn" onclick="handleSubmit()">
       Create User &amp; Send Invite →
     </button>
+
+    <button class="btn-cancel edit-only" id="cancelEditBtn" onclick="cancelEdit()">Cancel Edit</button>
 
     <!-- Result -->
     <div class="result-bar" id="resultBar">
@@ -219,11 +284,14 @@
         <tr>
           <th>Name</th>
           <th>Role</th>
+          <th>Skill</th>
+          <th>Status</th>
           <th>Auth</th>
+          <th></th>
         </tr>
       </thead>
       <tbody id="usersTableBody">
-        <tr><td colspan="3"><div class="empty-state">Loading…</div></td></tr>
+        <tr><td colspan="6"><div class="empty-state">Loading…</div></td></tr>
       </tbody>
     </table>
   </div>

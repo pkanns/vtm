@@ -53,10 +53,11 @@
   --font-mono:    'DM Mono', monospace;
 }
 
-/* Google Fonts used by the tokens above. If a page already imports its own
-   font set via <link>, this @import is a no-op duplicate the browser
-   dedupes — safe either way. */
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Special+Elite&family=DM+Mono:wght@400;500&display=swap');
+/* Fonts: link these directly in each page's <head>, same as index.html does —
+   do NOT @import them here. An @import must be the very first rule in a
+   stylesheet or browsers silently discard it, and this file's reset/tokens
+   already precede it, so an @import here would never actually load anything.
+   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Special+Elite&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"> */
 
 /* ── BASE BODY ──────────────────────────────────────────────────────────── */
 body {
@@ -112,9 +113,12 @@ body {
 }
 .punch-strip::before { left: 0;  background: linear-gradient(to right, var(--light), transparent); }
 .punch-strip::after  { right: 0; background: linear-gradient(to left,  var(--light), transparent); }
-.punch-holes { display: flex; gap: 18px; padding: 0 24px; white-space: nowrap; flex-shrink: 0; animation: scroll-holes 70s linear infinite; }
+.punch-holes { display: flex; gap: 18px; padding: 0 24px; white-space: nowrap; flex-shrink: 0; animation: drift-left 70s linear infinite; }
 .punch-holes-2 { animation-delay: -35s; }
-@keyframes scroll-holes { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+.punch-strip.reverse .punch-holes   { animation-name: drift-right; }
+.punch-strip.reverse .punch-holes-2 { animation-name: drift-right; animation-delay: -35s; }
+@keyframes drift-left  { from { transform: translateX(0); }     to { transform: translateX(-100%); } }
+@keyframes drift-right { from { transform: translateX(-100%); } to { transform: translateX(0); } }
 .hole { width: 18px; height: 28px; border-radius: 3px; border: 1.5px solid rgba(26,20,16,0.25); flex-shrink: 0; position: relative; }
 .hole.punched { background: var(--black); border-color: var(--black); }
 .hole.punched::after { content: ''; position: absolute; inset: 2px; background: rgba(255,255,255,0.06); border-radius: 1px; }
@@ -211,3 +215,124 @@ body {
 .register-cell-val.live  { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; color: var(--green); }
 .register-cell-val.green { color: var(--green); }
 .register-cell-val.mono  { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.04em; }
+
+/* ── HEADER (shared chrome — brand, nav, mobile menu, role/sign-out corner)
+   Injected by assets/vtm_header.js into a page's <div id="vtmHeader"></div>.
+   A page adds its own header-right content (e.g. timesheet's active-timer
+   pill) via the #vtmHeaderExtra slot — see vtm_header.js's doc comment. ── */
+.vtm-header {
+  background: var(--black);
+  border-bottom: 3px solid var(--red);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.vtm-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  height: 56px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+/* Brand text is written as literal "MULAI" by vtm_header.js — matching
+   index.html's own <a class="nav-brand">MULAI</a> exactly, rather than
+   relying on text-transform:uppercase, which index.html doesn't use either. */
+.vtm-brand {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--white);
+  text-decoration: none;
+  letter-spacing: 0.12em;
+  flex-shrink: 0;
+}
+
+.vtm-nav { display: flex; align-items: center; gap: 4px; }
+.vtm-nav a {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(247,246,242,0.45);
+  text-decoration: none;
+  padding: 6px 12px;
+  transition: color 0.15s, background 0.15s;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.vtm-nav a:hover { color: var(--white); }
+.vtm-nav a.active { color: var(--white); background: rgba(247,246,242,0.08); }
+
+.vtm-header-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+
+.vtm-role-pill {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+.vtm-role-pill.role-admin { background: rgba(247,246,242,0.15); color: var(--white); }
+.vtm-role-pill.role-pacer { background: var(--red);   color: var(--white); }
+.vtm-role-pill.role-rover { background: var(--green); color: var(--white); }
+.vtm-user-name { font-size: 12px; color: rgba(247,246,242,0.6); font-family: var(--font-body); }
+.vtm-signout {
+  background: none;
+  border: 1px solid rgba(247,246,242,0.2);
+  color: rgba(247,246,242,0.4);
+  padding: 4px 10px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: all 0.2s;
+}
+.vtm-signout:hover { border-color: rgba(247,246,242,0.5); color: var(--white); }
+
+.vtm-hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+  padding: 4px;
+  background: none;
+  border: none;
+}
+.vtm-hamburger span { display: block; width: 22px; height: 2px; background: rgba(247,246,242,0.6); transition: all 0.2s; }
+.vtm-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.vtm-hamburger.open span:nth-child(2) { opacity: 0; }
+.vtm-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+.vtm-nav-dropdown {
+  display: none;
+  flex-direction: column;
+  background: var(--black);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding: 8px 0 16px;
+}
+.vtm-nav-dropdown.open { display: flex; }
+.vtm-nav-dropdown a {
+  font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: rgba(247,246,242,0.5); text-decoration: none;
+  padding: 12px 32px; font-family: var(--font-body); font-weight: 500;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: color 0.15s, background 0.15s;
+}
+.vtm-nav-dropdown a:hover  { color: var(--white); background: rgba(255,255,255,0.04); }
+.vtm-nav-dropdown a.active { color: var(--white); }
+.vtm-nav-dropdown .vtm-dropdown-user {
+  padding: 12px 32px 4px;
+  display: flex; align-items: center; gap: 10px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  margin-top: 4px;
+}
+
+@media (max-width: 768px) {
+  .vtm-nav          { display: none; }
+  .vtm-header-right { display: none; }
+  .vtm-hamburger    { display: flex; }
+  .vtm-header-inner { padding: 0 20px; }
+}

@@ -4,55 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Timesheet — Mulai</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Special+Elite&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/vtm_2.css">
   <script src="assets/vtm.js"></script>
   <script src="assets/vtm_auth_guard.js"></script>
   <style>
 
-    /* ── UNIFIED HEADER ─────────────────────────────────────────────────── */
-    .vtm-header {
-      background: var(--black);
-      border-bottom: 3px solid var(--red);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    .vtm-header-inner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 32px;
-      height: 56px;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    .vtm-brand {
-      font-family: var(--font-display);
-      font-size: 22px;
-      color: var(--white);
-      text-decoration: none;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      flex-shrink: 0;
-    }
-
-    .vtm-nav { display: flex; align-items: center; gap: 4px; }
-    .vtm-nav a {
-      font-size: 11px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: rgba(247,246,242,0.45);
-      text-decoration: none;
-      padding: 6px 12px;
-      transition: color 0.15s, background 0.15s;
-      font-family: var(--font-mono);
-      font-weight: 500;
-      white-space: nowrap;
-    }
-    .vtm-nav a:hover { color: var(--white); }
-    .vtm-nav a.active { color: var(--white); background: rgba(247,246,242,0.08); }
-
-    .vtm-header-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+    /* ── UNIFIED HEADER now lives in assets/vtm_2.css — shared chrome,
+       not page-specific. Only the active-timer pill (timesheet-only
+       content that plugs into the header's #vtmHeaderExtra slot) stays
+       here. ── */
 
     .vtm-timer-pill {
       display: none;
@@ -83,79 +44,9 @@
       color: var(--green);
       letter-spacing: 0.06em;
     }
-    .vtm-role-pill {
-      font-size: 9px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      padding: 3px 8px;
-      font-weight: 600;
-      font-family: var(--font-mono);
-    }
-    .vtm-role-pill.role-admin { background: rgba(247,246,242,0.15); color: var(--white); }
-    .vtm-role-pill.role-pacer { background: var(--red);   color: var(--white); }
-    .vtm-role-pill.role-rover { background: var(--green); color: var(--white); }
-    .vtm-user-name { font-size: 12px; color: rgba(247,246,242,0.6); font-family: var(--font-body); }
-    .vtm-signout {
-      background: none;
-      border: 1px solid rgba(247,246,242,0.2);
-      color: rgba(247,246,242,0.4);
-      padding: 4px 10px;
-      font-size: 10px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      cursor: pointer;
-      font-family: var(--font-body);
-      transition: all 0.2s;
-    }
-    .vtm-signout:hover { border-color: rgba(247,246,242,0.5); color: var(--white); }
-
-    .vtm-hamburger {
-      display: none;
-      flex-direction: column;
-      gap: 5px;
-      cursor: pointer;
-      padding: 4px;
-      background: none;
-      border: none;
-    }
-    .vtm-hamburger span { display: block; width: 22px; height: 2px; background: rgba(247,246,242,0.6); transition: all 0.2s; }
-    .vtm-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
-    .vtm-hamburger.open span:nth-child(2) { opacity: 0; }
-    .vtm-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
-
-    .vtm-nav-dropdown {
-      display: none;
-      flex-direction: column;
-      background: var(--black);
-      border-top: 1px solid rgba(255,255,255,0.08);
-      padding: 8px 0 16px;
-    }
-    .vtm-nav-dropdown.open { display: flex; }
-    .vtm-nav-dropdown a {
-      font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
-      color: rgba(247,246,242,0.5); text-decoration: none;
-      padding: 12px 32px; font-family: var(--font-body); font-weight: 500;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
-      transition: color 0.15s, background 0.15s;
-    }
-    .vtm-nav-dropdown a:hover  { color: var(--white); background: rgba(255,255,255,0.04); }
-    .vtm-nav-dropdown a.active { color: var(--white); }
-    .vtm-nav-dropdown .vtm-dropdown-user {
-      padding: 12px 32px 4px;
-      display: flex; align-items: center; gap: 10px;
-      border-top: 1px solid rgba(255,255,255,0.08);
-      margin-top: 4px;
-    }
-
-    @media (max-width: 768px) {
-      .vtm-nav          { display: none; }
-      .vtm-header-right { display: none; }
-      .vtm-hamburger    { display: flex; }
-      .vtm-header-inner { padding: 0 20px; }
-    }
 
     /* ── PUNCH STRIP, PUNCH CARD, REGISTER GRID ────────────────────────────
-       Provided by assets/vtm-punchcard.css — not duplicated here. */
+       Provided by assets/vtm_2.css — not duplicated here. */
 
     /* ── PAGE ───────────────────────────────────────────────────────────── */
     .page-wrap { max-width: 960px; margin: 0 auto; padding: 32px 24px 80px; }
@@ -615,43 +506,18 @@
 </head>
 <body data-page="timesheet">
 
-<!-- ── HEADER ──────────────────────────────────────────────────────────── -->
-<div class="vtm-header">
-  <div class="vtm-header-inner">
-    <a href="dashboard.html" class="vtm-brand">Mulai</a>
-    <nav class="vtm-nav">
-      <a href="dashboard.html"      data-page="home">Home</a>
-      <a href="project_index.html"  data-page="projects">Projects</a>
-      <a href="gig_index.html"      data-page="gigs">Gigs</a>
-      <a href="gig_eval.html"       data-page="evaluate">Evaluate</a>
-      <a href="timesheet.html"      data-page="timesheet">Timesheet</a>
-    </nav>
-    <div class="vtm-header-right">
-      <a href="timesheet.html" class="vtm-timer-pill" id="headerTimerPill">
-        <span class="vtm-timer-dot"></span>
-        <span class="vtm-timer-label" id="headerTimerLabel">Clocked in</span>
-      </a>
-      <span class="vtm-role-pill" id="headerRolePill"></span>
-      <span class="vtm-user-name" id="headerUserName"></span>
-      <button class="vtm-signout" onclick="vtmSignOut()">Sign out</button>
-    </div>
-    <button class="vtm-hamburger" id="hamburgerBtn" onclick="toggleMobileNav()" aria-label="Menu">
-      <span></span><span></span><span></span>
-    </button>
-  </div>
-  <div class="vtm-nav-dropdown" id="mobileNav">
-    <a href="dashboard.html"      data-page="home">Home</a>
-    <a href="project_index.html"  data-page="projects">Projects</a>
-    <a href="gig_index.html"      data-page="gigs">Gigs</a>
-    <a href="gig_eval.html"       data-page="evaluate">Evaluate</a>
-    <a href="timesheet.html"      data-page="timesheet">Timesheet</a>
-    <div class="vtm-dropdown-user">
-      <span class="vtm-role-pill" id="mobileRolePill"></span>
-      <span class="vtm-user-name" id="mobileUserName"></span>
-      <button class="vtm-signout" style="margin-left:auto" onclick="vtmSignOut()">Sign out</button>
-    </div>
-  </div>
-</div>
+<!-- ── HEADER — injected by assets/vtm_header.js ─────────────────────────── -->
+<div id="vtmHeader"></div>
+<script src="assets/vtm_header.js"></script>
+<script>
+  // Timesheet-specific header content: the active-timer pill. Populates the
+  // generic #vtmHeaderExtra slot vtm_header.js leaves for pages that need it.
+  document.getElementById('vtmHeaderExtra').innerHTML = `
+    <a href="timesheet.html" class="vtm-timer-pill" id="headerTimerPill">
+      <span class="vtm-timer-dot"></span>
+      <span class="vtm-timer-label" id="headerTimerLabel">Clocked in</span>
+    </a>`;
+</script>
 
 <div class="punch-strip" id="topPunchStrip"></div>
 
@@ -832,39 +698,6 @@
   </div>
 
 </div>
-
-<script>
-  // ── Active page highlight ─────────────────────────────────────────────
-  const currentPage = document.body.dataset.page
-  document.querySelectorAll('.vtm-nav a, .vtm-nav-dropdown a').forEach(a => {
-    if (a.dataset.page === currentPage) a.classList.add('active')
-  })
-
-  // ── Header user info ──────────────────────────────────────────────────
-  const _s = vtmGetSession()
-  if (_s) {
-    const roleLabels = { admin: 'Admin', pacer: 'Lead', rover: 'Doer' }
-    const roleClass  = { admin: 'role-admin', pacer: 'role-pacer', rover: 'role-rover' }
-    ;['headerRolePill','mobileRolePill'].forEach(id => {
-      const el = document.getElementById(id)
-      if (el) { el.textContent = roleLabels[_s.role] || _s.role; el.classList.add(roleClass[_s.role] || '') }
-    })
-    ;['headerUserName','mobileUserName'].forEach(id => {
-      const el = document.getElementById(id)
-      if (el) el.textContent = _s.name
-    })
-  }
-
-  // ── Mobile nav toggle ─────────────────────────────────────────────────
-  function toggleMobileNav() {
-    document.getElementById('mobileNav').classList.toggle('open')
-    document.getElementById('hamburgerBtn').classList.toggle('open')
-  }
-
-  function esc(str) {
-    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
-  }
-</script>
 
 <script type="module" src="assets/timesheet.js"></script>
 </body>

@@ -3,47 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gig Index — Vidai to Mulai</title>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/vtm.css">
+  <title>Gig Index — Mulai</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Special+Elite&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/vtm_2.css">
   <script src="assets/vtm.js"></script>
   <script src="assets/vtm_auth_guard.js"></script>
   <style>
-    /* ── UNIFIED HEADER ─────────────────────────────────────────────────── */
-    .vtm-header { background:var(--black); border-bottom:3px solid var(--red); position:sticky; top:0; z-index:100; }
-    .vtm-header-inner { display:flex; align-items:center; justify-content:space-between; padding:0 32px; height:56px; max-width:1200px; margin:0 auto; }
-    .vtm-brand { font-family:var(--font-display); font-size:1rem; color:var(--white); text-decoration:none; letter-spacing:0.04em; flex-shrink:0; }
-    .vtm-brand span { color:var(--red); }
-    .vtm-nav { display:flex; align-items:center; gap:4px; }
-    .vtm-nav a { font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:rgba(247,246,242,0.45); text-decoration:none; padding:6px 12px; transition:color 0.15s,background 0.15s; font-family:var(--font-body); font-weight:500; white-space:nowrap; }
-    .vtm-nav a:hover { color:var(--white); }
-    .vtm-nav a.active { color:var(--white); background:rgba(247,246,242,0.08); }
-    .vtm-header-right { display:flex; align-items:center; gap:12px; flex-shrink:0; }
-    .vtm-timer-pill { display:none; align-items:center; gap:6px; background:rgba(45,90,61,0.3); border:1px solid rgba(45,90,61,0.6); padding:4px 10px; cursor:pointer; text-decoration:none; transition:background 0.2s; }
-    .vtm-timer-pill:hover { background:rgba(45,90,61,0.5); }
-    .vtm-timer-pill.visible { display:flex; }
-    .vtm-timer-dot { width:7px; height:7px; border-radius:50%; background:var(--green); animation:vtm-pulse 1.8s ease-in-out infinite; }
-    @keyframes vtm-pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
-    .vtm-timer-label { font-size:10px; font-family:var(--font-mono); color:var(--green); letter-spacing:0.06em; }
-    .vtm-role-pill { font-size:9px; letter-spacing:0.12em; text-transform:uppercase; padding:3px 8px; font-weight:600; font-family:var(--font-mono); }
-    .vtm-role-pill.role-admin { background:rgba(247,246,242,0.15); color:var(--white); }
-    .vtm-role-pill.role-pacer { background:var(--red); color:var(--white); }
-    .vtm-role-pill.role-rover { background:var(--green); color:var(--white); }
-    .vtm-user-name { font-size:12px; color:rgba(247,246,242,0.6); font-family:var(--font-body); }
-    .vtm-signout { background:none; border:1px solid rgba(247,246,242,0.2); color:rgba(247,246,242,0.4); padding:4px 10px; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; font-family:var(--font-body); transition:all 0.2s; }
-    .vtm-signout:hover { border-color:rgba(247,246,242,0.5); color:var(--white); }
-    .vtm-hamburger { display:none; flex-direction:column; gap:5px; cursor:pointer; padding:4px; background:none; border:none; }
-    .vtm-hamburger span { display:block; width:22px; height:2px; background:rgba(247,246,242,0.6); transition:all 0.2s; }
-    .vtm-hamburger.open span:nth-child(1) { transform:translateY(7px) rotate(45deg); }
-    .vtm-hamburger.open span:nth-child(2) { opacity:0; }
-    .vtm-hamburger.open span:nth-child(3) { transform:translateY(-7px) rotate(-45deg); }
-    .vtm-nav-dropdown { display:none; flex-direction:column; background:var(--black); border-top:1px solid rgba(255,255,255,0.08); padding:8px 0 16px; }
-    .vtm-nav-dropdown.open { display:flex; }
-    .vtm-nav-dropdown a { font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:rgba(247,246,242,0.5); text-decoration:none; padding:12px 32px; font-family:var(--font-body); font-weight:500; border-bottom:1px solid rgba(255,255,255,0.04); transition:color 0.15s,background 0.15s; }
-    .vtm-nav-dropdown a:hover { color:var(--white); background:rgba(255,255,255,0.04); }
-    .vtm-nav-dropdown a.active { color:var(--white); }
-    .vtm-dropdown-user { padding:12px 32px 4px; display:flex; align-items:center; gap:10px; border-top:1px solid rgba(255,255,255,0.08); margin-top:4px; }
-    @media (max-width:768px) { .vtm-nav,.vtm-header-right{display:none} .vtm-hamburger{display:flex} .vtm-header-inner{padding:0 20px} }
 
     /* Flow strip */
     .flow-strip { background: var(--white); border-bottom: 2px solid var(--light); overflow-x: auto; }

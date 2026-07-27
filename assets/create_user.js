@@ -205,6 +205,7 @@ async function createUser() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'apikey':        SUPABASE_ANON_KEY,
         'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
       },
       body: JSON.stringify({
@@ -218,7 +219,7 @@ async function createUser() {
     const data = await res.json()
 
     if (!res.ok || data.error) {
-      showResult('err', data.error || 'Failed to create user')
+      showResult('err', data.error || data.message || `Failed to create user (HTTP ${res.status})`)
       btn.disabled  = false
       btn.textContent = selectedMethod === 'email' ? 'Create User & Send Invite →' : 'Create User →'
       return
@@ -266,14 +267,27 @@ async function updateUser() {
   btn.disabled  = true
   btn.innerHTML = '<span class="spinner"></span>Saving…'
 
+  // Fetch a fresh session rather than reusing the one captured at page
+  // load — supabase-js auto-refreshes tokens internally, but that never
+  // updates our already-destructured `session` variable, so reusing it
+  // risks sending a stale (possibly expired) access token.
+  const { data: { session: freshSession } } = await db.auth.getSession()
+  if (!freshSession) {
+    showResult('err', 'Your session has expired — please sign in again.')
+    btn.disabled    = false
+    btn.textContent = 'Save Changes →'
+    return
+  }
+
   try {
     const res = await fetch(UPDATE_FUNCTION_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'apikey':        SUPABASE_ANON_KEY,
         // Real session token — update-user verifies this server-side and
         // checks the caller is actually an admin. Not the anon key.
-        'Authorization': `Bearer ${session.access_token}`
+        'Authorization': `Bearer ${freshSession.access_token}`
       },
       body: JSON.stringify({
         user_id:              editingUserId,
@@ -289,7 +303,7 @@ async function updateUser() {
     const data = await res.json()
 
     if (!res.ok || data.error) {
-      showResult('err', data.error || 'Failed to update user')
+      showResult('err', data.error || data.message || `Failed to update user (HTTP ${res.status})`)
       btn.disabled    = false
       btn.textContent = 'Save Changes →'
       return

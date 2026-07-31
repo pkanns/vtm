@@ -52,7 +52,9 @@ function fmtWeekLabel(monday) {
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 
-let weekOffset  = 0          // 0 = current week; negative = past weeks
+let weekOffset  = 0          // 0 = most recently COMPLETED week (the editable/submittable one)
+                              // 1 = current week, still running — preview only, no submit
+                              // negative = earlier historical weeks
 let allMyGigs   = []         // loaded once, filtered/enriched
 let draftFields = { accomplishment: '', next_steps: '', support_needed: '' }
 
@@ -60,6 +62,11 @@ const weekLabelEl  = document.getElementById('weekLabel')
 const statusChipEl = document.getElementById('statusChip')
 const bodyEl       = document.getElementById('reportBody')
 const nextBtn      = document.getElementById('nextWeekBtn')
+
+// The anchor is LAST week's Monday, not this week's — a week's total time
+// isn't final until the week is actually over, so that's the one that
+// should default to editable/submittable, not the one still in progress.
+function anchorMonday() { return addDays(mondayOf(new Date()), -7) }
 
 // ── LOAD MY GIGS (once — role-agnostic, "gigs I'm on") ─────────────────────
 

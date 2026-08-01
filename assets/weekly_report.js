@@ -81,12 +81,13 @@ async function loadMyGigs() {
 // ── LOAD ONE WEEK ────────────────────────────────────────────────────────
 
 async function loadWeek() {
-  const monday = addDays(mondayOf(new Date()), weekOffset * 7)
+  const monday = addDays(anchorMonday(), weekOffset * 7)
   const sunday = addDays(monday, 6)
-  const isCurrent = weekOffset === 0
+  const isCompletable = weekOffset === 0   // last fully-completed week — editable/submittable
+  const isInProgress  = weekOffset === 1   // this week, still running — preview only
 
   weekLabelEl.textContent = fmtWeekLabel(monday)
-  nextBtn.disabled = weekOffset >= 0
+  nextBtn.disabled = weekOffset >= 1
 
   bodyEl.innerHTML = '<div class="empty-week">Loading\u2026</div>'
 
@@ -106,14 +107,21 @@ async function loadWeek() {
     return
   }
 
-  if (!isCurrent) {
+  if (isInProgress) {
+    statusChipEl.textContent = 'In progress'
+    statusChipEl.className = 'status-chip missed'
+    await renderPreview(monday, sunday)
+    return
+  }
+
+  if (!isCompletable) {
     statusChipEl.textContent = 'No report'
     statusChipEl.className = 'status-chip missed'
     bodyEl.innerHTML = '<div class="empty-week">No report was submitted for this week.</div>'
     return
   }
 
-  // Current week — live, editable draft
+  // Last completed week, not yet submitted — live, editable draft
   statusChipEl.textContent = 'Draft'
   statusChipEl.className = 'status-chip draft'
   draftFields = {
@@ -123,6 +131,18 @@ async function loadWeek() {
   }
 
   await renderDraft(monday, sunday)
+}
+
+// ── RENDER: IN PROGRESS (current week, live preview — no submit) ──────────
+
+async function renderPreview(monday, sunday) {
+  const { gigsForDisplay, closedLine, pieSlices } = await computeWeekData(monday, sunday)
+  bodyEl.innerHTML = `
+    <div class="empty-week" style="padding-bottom:4px">This week is still running \u2014 come back once it's over to submit.</div>
+    ${buildPieHTML(pieSlices)}
+    ${buildGigsListHTML(gigsForDisplay.filter(g => g.minutes > 0))}
+    ${closedLine ? `<div class="closed-line">${closedLine}</div>` : ''}
+  `
 }
 
 // ── RENDER: SUBMITTED (read-only, from frozen snapshot) ────────────────────
@@ -142,9 +162,9 @@ function renderSubmitted(row) {
   `
 }
 
-// ── RENDER: DRAFT (live data, editable) ─────────────────────────────────────
+// ── SHARED: compute gigs/hours/closed-line/pie for a given week ───────────
 
-async function renderDraft(monday, sunday) {
+async function computeWeekData(monday, sunday) {
   const { data: entries } = await db
     .from('time_entries')
     .select('gig_id, duration_mins, entry_date')
@@ -170,11 +190,19 @@ async function renderDraft(monday, sunday) {
   }))
 
   const closedLine = await buildClosedLine(monday, sunday)
-  const pieSlices  = buildPieSlices(gigsForDisplay)
+  const pieSlices  = buildPieSlices(gigsForDisplay)  // pie uses ALL gigs — 0h ones just contribute nothing
+
+  return { gigsForDisplay, closedLine, pieSlices }
+}
+
+// ── RENDER: DRAFT (live data, editable) ─────────────────────────────────────
+
+async function renderDraft(monday, sunday) {
+  const { gigsForDisplay, closedLine, pieSlices } = await computeWeekData(monday, sunday)
 
   bodyEl.innerHTML = `
     ${buildPieHTML(pieSlices)}
-    ${buildGigsListHTML(gigsForDisplay)}
+    ${buildGigsListHTML(gigsForDisplay.filter(g => g.minutes > 0))}
     ${closedLine ? `<div class="closed-line">${closedLine}</div>` : ''}
     <div class="text-block">
       <div class="section-label">This week</div>
@@ -241,19 +269,21 @@ function buildPieHTML(slices) {
   const total = slices.reduce((s, x) => s + x.minutes, 0)
   if (!total) return '<div class="pie-empty">No time logged yet this week.</div>'
 
-  const cx = 110, cy = 120, r = 90
+  const cx = 140, cy = 150, r = 82
   let angle = 0
-  const paths = []
+  const paths  = []
   const labels = []
+  let thinCount = 0
 
   slices.forEach(s => {
     if (s.minutes <= 0) return
     const frac  = s.minutes / total
     const start = angle
     const end   = angle + frac * 360
+    const sweep = end - start
     angle = end
 
-    const large = (end - start) > 180 ? 1 : 0
+    const large = sweep > 180 ? 1 : 0
     const p1 = polar(cx, cy, r, start)
     const p2 = polar(cx, cy, r, end)
     paths.push(`<path d="M${cx},${cy} L${p1.x},${p1.y} A${r},${r} 0 ${large},1 ${p2.x},${p2.y} Z" fill="${s.color}"></path>`)
@@ -262,21 +292,26 @@ function buildPieHTML(slices) {
     const hrs = fmtHours(s.minutes)
     const dark = s.color === NON_PROJECT_COLOR
 
-    if ((end - start) < 22) {
-      // Thin slice — leader line + label just outside
-      const edge = polar(cx, cy, r, mid)
-      const out  = polar(cx, cy, r * 1.28, mid)
-      labels.push(`<line x1="${edge.x}" y1="${edge.y}" x2="${out.x}" y2="${out.y}" stroke="var(--stone)" stroke-width="1"></line>`)
-      labels.push(`<text x="${out.x}" y="${out.y - 6}" text-anchor="middle" font-family="'DM Mono',monospace" font-size="9" font-weight="700" fill="var(--charcoal)">${esc(s.label)}</text>`)
-      labels.push(`<text x="${out.x}" y="${out.y + 6}" text-anchor="middle" font-family="'Courier Prime',monospace" font-size="10" fill="var(--charcoal)">${hrs}</text>`)
+    if (sweep >= 40) {
+      // Wide enough to hold a two-line label without touching its neighbors
+      const inPt = polar(cx, cy, r * 0.66, mid)
+      labels.push(`<text x="${inPt.x}" y="${inPt.y - 4}" text-anchor="middle" font-family="'DM Mono',monospace" font-size="9" font-weight="700" fill="${dark ? 'var(--charcoal)' : 'var(--white)'}">${esc(s.label)}</text>`)
+      labels.push(`<text x="${inPt.x}" y="${inPt.y + 11}" text-anchor="middle" font-family="'Courier Prime',monospace" font-size="11" fill="${dark ? 'var(--charcoal)' : 'var(--white)'}">${hrs}</text>`)
     } else {
-      const inPt = polar(cx, cy, r * 0.6, mid)
-      labels.push(`<text x="${inPt.x}" y="${inPt.y - 4}" text-anchor="middle" font-family="'DM Mono',monospace" font-size="10" font-weight="700" fill="${dark ? 'var(--charcoal)' : 'var(--white)'}">${esc(s.label)}</text>`)
-      labels.push(`<text x="${inPt.x}" y="${inPt.y + 11}" text-anchor="middle" font-family="'Courier Prime',monospace" font-size="12" fill="${dark ? 'var(--charcoal)' : 'var(--white)'}">${hrs}</text>`)
+      // Too thin for an inline label — push it outside on a leader line.
+      // Alternate between two ring distances so consecutive thin slices
+      // don't stack their labels on top of each other.
+      const ringR = thinCount % 2 === 0 ? r * 1.22 : r * 1.48
+      thinCount++
+      const edgePt = polar(cx, cy, r * 1.03, mid)   // line starts just outside the slice, not touching it
+      const outPt  = polar(cx, cy, ringR, mid)
+      labels.push(`<line x1="${edgePt.x}" y1="${edgePt.y}" x2="${outPt.x}" y2="${outPt.y}" stroke="#b0a891" stroke-width="1"></line>`)
+      labels.push(`<text x="${outPt.x}" y="${outPt.y - 5}" text-anchor="middle" font-family="'DM Mono',monospace" font-size="9" font-weight="700" fill="var(--charcoal)">${esc(s.label)}</text>`)
+      labels.push(`<text x="${outPt.x}" y="${outPt.y + 9}" text-anchor="middle" font-family="'Courier Prime',monospace" font-size="10" fill="var(--charcoal)">${hrs}</text>`)
     }
   })
 
-  return `<div class="pie-section"><svg viewBox="0 0 220 250" width="240">${paths.join('')}${labels.join('')}</svg></div>`
+  return `<div class="pie-section"><svg viewBox="0 0 300 320" width="300">${paths.join('')}${labels.join('')}</svg></div>`
 }
 
 function polar(cx, cy, r, angleDeg) {
@@ -332,7 +367,7 @@ function textBlockHTML(label, value, readonly, fieldId, placeholder) {
 // will fail with a clear toast rather than silently doing nothing.
 
 window.saveDraft = async function() {
-  const monday = mondayOf(new Date())
+  const monday = anchorMonday()
   syncFieldsFromDOM()
 
   const { error } = await db.from('weekly_reports').upsert({
@@ -349,32 +384,14 @@ window.saveDraft = async function() {
 }
 
 window.submitWeek = async function() {
-  const monday = mondayOf(new Date())
+  const monday = anchorMonday()
   const sunday = addDays(monday, 6)
   syncFieldsFromDOM()
 
   if (!confirm('Submit this week\u2019s report? It will be locked as-is.')) return
 
-  const { data: entries } = await db
-    .from('time_entries')
-    .select('gig_id, duration_mins, entry_date')
-    .eq('user_id', myUserId)
-    .gte('entry_date', toISODate(monday))
-    .lte('entry_date', toISODate(sunday))
-
-  const minsByGig = {}
-  ;(entries || []).forEach(e => { minsByGig[e.gig_id] = (minsByGig[e.gig_id] || 0) + (e.duration_mins || 0) })
-
-  const activeGigs = allMyGigs.filter(g => g.status !== 'completed')
-  const gigsSnapshot = activeGigs.map(g => ({
-    gig_id: g.gig_id, gig_code: g.gig_code, title: g.title,
-    project_code: g.projects?.project_code || null,
-    status: g.status, date_due: g.date_due, isOverdue: g.isOverdue,
-    minutes: minsByGig[g.gig_id] || 0,
-  }))
-
-  const closedLine = await buildClosedLine(monday, sunday)
-  const pieSlices   = buildPieSlices(gigsSnapshot)
+  const { gigsForDisplay, closedLine, pieSlices } = await computeWeekData(monday, sunday)
+  const gigsSnapshot = gigsForDisplay.filter(g => g.minutes > 0)
 
   const { error } = await db.from('weekly_reports').upsert({
     user_id:         myUserId,

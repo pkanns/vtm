@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data View — Mulai</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Special+Elite&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/vtm_2.css">
+  <script src="assets/vtm.js"></script>
+  <script src="assets/vtm_auth_guard.js"></script>
+  <style>
+
+    .page-wrap { max-width: 900px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    .back-link { display: inline-block; margin-bottom: 16px; font-family: var(--font-mono); font-size: 11px; color: var(--stone); text-decoration: none; }
+    .back-link:hover { color: var(--black); }
+
+    .filter-bar { background: var(--light); border-radius: 12px; padding: 16px 20px 18px; margin-bottom: 20px; }
+    .filter-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--stone); margin-bottom: 8px; }
+    .filter-group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .filter-sep { width: 1px; height: 16px; background: #d8d0ba; margin: 0 2px; }
+
+    .filter-select {
+      appearance: none; -webkit-appearance: none;
+      background: var(--white); border: 1px solid #d8d0ba; border-radius: 20px;
+      padding: 6px 28px 6px 14px; font-size: 12px; color: var(--charcoal);
+      font-family: var(--font-body); cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b5f4e'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center;
+    }
+    .filter-select.scope-select { background-color: var(--black); color: var(--white); border-color: var(--black);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23f0ead8'/%3E%3C/svg%3E"); }
+
+    .week-nav { display: flex; align-items: center; gap: 8px; }
+    .week-nav-btn { background: none; border: none; color: var(--charcoal); font-size: 14px; cursor: pointer; padding: 2px 4px; }
+    .week-nav-btn:disabled { opacity: 0.3; cursor: default; }
+    .week-nav-label { font-family: var(--font-display); font-size: 15px; color: var(--black); }
+
+    .filter-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      border-radius: 20px; padding: 6px 14px; font-size: 12px;
+      font-family: var(--font-body); cursor: pointer; border: 1px solid transparent;
+      background: var(--white); color: var(--charcoal); transition: all 0.15s;
+    }
+    .filter-chip.active { background: var(--charcoal); color: var(--white); }
+
+    /* ── RESULTS ────────────────────────────────────────────────────────── */
+    .results-card { border: 2px solid var(--black); background: var(--white); }
+    .results-header { background: var(--black); color: var(--white); padding: 12px 20px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .results-body { padding: 20px 24px 24px; }
+
+    .summary-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .summary-table th { text-align: left; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--stone); padding: 8px 10px; border-bottom: 2px solid var(--black); }
+    .summary-table td { padding: 10px; border-bottom: 1px solid var(--light); vertical-align: middle; }
+    .summary-table tr:hover td { background: var(--light); cursor: pointer; }
+    .bucket-tag { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 8px; border-radius: 20px; }
+    .bucket-tag.under20 { background: #fdf5e0; color: #8a6200; }
+    .bucket-tag.\32 0to40 { background: #e8f5ee; color: var(--green); }
+    .bucket-tag.over40   { background: #fceee8; color: var(--red); }
+
+    .gigs-list { border-top: 2px solid var(--black); margin-bottom: 8px; }
+    .gig-row { display: grid; grid-template-columns: 1fr auto auto auto; gap: 14px; align-items: center; padding: 10px 4px; border-bottom: 1px solid var(--light); }
+    .gig-row-code { font-family: var(--font-mono); font-size: 10px; color: var(--red); font-weight: 600; }
+    .gig-row-due { font-size: 11px; color: var(--stone); }
+    .gig-row-due.overdue { color: var(--red); font-weight: 700; }
+    .gig-row-hours { font-family: var(--font-body); font-weight: 700; font-size: 12px; color: var(--black); }
+
+    .text-readonly { background: var(--light); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
+    .text-readonly label { display: block; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--stone); margin-bottom: 6px; }
+
+    .empty-state { text-align: center; padding: 32px 0; color: var(--stone); font-size: 13px; }
+
+    @media (max-width: 640px) {
+      .gig-row { grid-template-columns: 1fr; gap: 4px; }
+    }
+  </style>
+</head>
+<body data-page="report">
+
+<div id="vtmHeader"></div>
+<script src="assets/vtm_header.js"></script>
+
+<div class="page-wrap">
+
+  <a href="weekly_report.html" class="back-link">&larr; Back to my report</a>
+
+  <div class="filter-bar">
+    <div class="filter-label">Week</div>
+    <div class="week-nav" style="margin-bottom:14px;">
+      <button class="week-nav-btn" id="prevWeekBtn" onclick="goWeek(-1)">&#8249;</button>
+      <div class="week-nav-label" id="weekLabel">Week of &mdash;</div>
+      <button class="week-nav-btn" id="nextWeekBtn" onclick="goWeek(1)">&#8250;</button>
+    </div>
+
+    <div class="filter-label">Filter</div>
+    <div class="filter-group">
+      <select class="filter-select" id="userSelect"></select>
+      <select class="filter-select scope-select" id="scopeSelect">
+        <option value="open">Status: Open</option>
+        <option value="complete">Status: Complete</option>
+        <option value="all">Status: All</option>
+      </select>
+      <div class="filter-sep"></div>
+      <div class="filter-chip" id="chipOverdue" onclick="toggleChip('overdue')">Overdue</div>
+      <div class="filter-sep"></div>
+      <div class="filter-chip" id="chipUnder20" onclick="toggleBucket('under20')">Under 20h</div>
+      <div class="filter-chip" id="chip20to40" onclick="toggleBucket('20to40')">20&ndash;40h</div>
+      <div class="filter-chip" id="chipOver40" onclick="toggleBucket('over40')">Over 40h</div>
+    </div>
+  </div>
+
+  <div class="results-card">
+    <div class="results-header" id="resultsHeader">Loading&hellip;</div>
+    <div class="results-body" id="resultsBody">
+      <div class="empty-state">Loading&hellip;</div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module" src="assets/report_dashboard.js"></script>
+</body>
+</html>

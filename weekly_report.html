@@ -12,17 +12,22 @@
 
     .page-wrap { max-width: 780px; margin: 0 auto; padding: 32px 24px 80px; }
 
-    /* ── REPORT CARD ───────────────────────────────────────────────────── */
+    .data-view-banner {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--red); color: var(--white);
+      padding: 12px 20px; margin-bottom: 20px; border-radius: 4px;
+      text-decoration: none; transition: background 0.15s;
+    }
+    .data-view-banner:hover { background: var(--red-dark); }
+    .data-view-banner-text { font-family: var(--font-body); font-size: 12px; letter-spacing: 0.04em; }
+    .data-view-banner-arrow { font-family: var(--font-mono); font-size: 13px; }
+
     .report-card { border: 2px solid var(--black); background: var(--white); margin-bottom: 24px; }
 
     .report-header {
-      background: var(--black);
-      padding: 14px 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 10px;
+      background: var(--black); padding: 14px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 10px;
     }
     .week-nav { display: flex; align-items: center; gap: 10px; }
     .week-nav-btn {
@@ -32,18 +37,7 @@
     }
     .week-nav-btn:hover:not(:disabled) { color: var(--white); }
     .week-nav-btn:disabled { opacity: 0.2; cursor: default; }
-    .week-label {
-      font-family: var(--font-display); color: var(--white);
-      font-size: 18px; letter-spacing: 0.03em;
-    }
-    .report-header-right { display: flex; align-items: center; gap: 10px; }
-    .status-chip {
-      font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em;
-      text-transform: uppercase; padding: 4px 10px; border-radius: 20px;
-    }
-    .status-chip.draft     { background: #fdf5e0; color: #8a6200; }
-    .status-chip.submitted { background: #e8f5ee; color: var(--green); }
-    .status-chip.missed    { background: rgba(247,246,242,0.1); color: rgba(247,246,242,0.4); }
+    .week-label { font-family: var(--font-display); color: var(--white); font-size: 18px; letter-spacing: 0.03em; }
 
     .report-body { padding: 20px 24px 24px; }
     .section-label {
@@ -51,19 +45,17 @@
       text-transform: uppercase; color: var(--stone); margin-bottom: 10px;
     }
 
-    /* ── PIE ────────────────────────────────────────────────────────────── */
-    .pie-section { display: flex; justify-content: center; padding: 4px 0 20px; }
-    .pie-empty { text-align: center; color: var(--stone); font-size: 12px; padding: 20px 0; }
+    .bars-section { padding: 4px 0 20px; }
+    .bar-row { display: grid; grid-template-columns: 110px 1fr 60px; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .bar-track { background: var(--light); border-radius: 3px; height: 14px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 3px; }
+    .bar-row-value { font-family: var(--font-mono); font-size: 11px; color: var(--charcoal); text-align: right; }
+    .bars-empty { text-align: center; color: var(--stone); font-size: 12px; padding: 12px 0; }
 
-    /* ── GIGS TABLE ─────────────────────────────────────────────────────── */
     .gigs-list { border-top: 2px solid var(--black); margin-bottom: 8px; }
     .gig-row {
-      display: grid;
-      grid-template-columns: 1fr auto auto auto;
-      gap: 14px;
-      align-items: center;
-      padding: 10px 4px;
-      border-bottom: 1px solid var(--light);
+      display: grid; grid-template-columns: 1fr auto auto auto; gap: 14px;
+      align-items: center; padding: 10px 4px; border-bottom: 1px solid var(--light);
     }
     .gig-row-title { font-size: 13px; color: var(--black); }
     .gig-row-code { font-family: var(--font-mono); font-size: 10px; color: var(--red); font-weight: 600; }
@@ -71,13 +63,9 @@
     .gig-row-due.overdue { color: var(--red); font-weight: 700; }
     .gig-row-hours { font-family: var(--font-body); font-weight: 700; font-size: 12px; color: var(--black); }
 
-    .closed-line {
-      font-family: var(--font-mono); font-size: 10px; color: var(--stone);
-      margin-top: 8px;
-    }
+    .closed-line { font-family: var(--font-mono); font-size: 10px; color: var(--stone); margin-top: 8px; }
     .closed-line strong { color: var(--black); font-weight: 600; }
 
-    /* ── TEXT BLOCKS ────────────────────────────────────────────────────── */
     .text-block { margin-top: 20px; }
     .text-block-card {
       background: var(--white); border: 1px solid #d8d0ba; border-radius: 10px;
@@ -85,8 +73,7 @@
     }
     .text-block-card label {
       display: block; font-family: var(--font-mono); font-size: 9px;
-      letter-spacing: 0.1em; text-transform: uppercase; color: var(--stone);
-      margin-bottom: 6px;
+      letter-spacing: 0.1em; text-transform: uppercase; color: var(--stone); margin-bottom: 6px;
     }
     .text-block-card textarea {
       width: 100%; border: none; background: transparent; resize: vertical;
@@ -94,57 +81,46 @@
       color: var(--black); outline: none; line-height: 1.5;
     }
     .text-block-card textarea::placeholder { color: #bbb; font-style: italic; }
-    .text-block-card.readonly { background: var(--light); }
 
-    /* ── ACTIONS ────────────────────────────────────────────────────────── */
-    .report-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
-    .btn-save-draft {
-      background: none; border: 1px solid var(--charcoal); color: var(--charcoal);
-      padding: 9px 18px; font-family: var(--font-body); font-size: 11px;
-      letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
-      transition: all 0.2s;
-    }
-    .btn-save-draft:hover { background: var(--charcoal); color: var(--white); }
-    .btn-submit-week {
+    .report-actions { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 16px; }
+    .save-note { font-family: var(--font-mono); font-size: 10px; color: var(--stone); }
+    .btn-save {
       background: var(--red); color: var(--white); border: none;
       padding: 9px 20px; font-family: var(--font-body); font-size: 11px;
-      letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
-      transition: background 0.2s;
+      letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; transition: background 0.2s;
     }
-    .btn-submit-week:hover { background: var(--red-dark); }
-    .btn-save-draft:disabled, .btn-submit-week:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-save:hover { background: var(--red-dark); }
 
     .empty-week { text-align: center; padding: 32px 0; color: var(--stone); font-size: 13px; }
 
     @media (max-width: 640px) {
       .gig-row { grid-template-columns: 1fr; gap: 4px; padding-bottom: 14px; }
-      .report-actions { flex-direction: column-reverse; }
-      .btn-save-draft, .btn-submit-week { width: 100%; text-align: center; }
+      .bar-row { grid-template-columns: 90px 1fr 50px; }
     }
   </style>
 </head>
 <body data-page="report">
 
-<!-- ── HEADER — injected by assets/vtm_header.js ─────────────────────────── -->
 <div id="vtmHeader"></div>
 <script src="assets/vtm_header.js"></script>
 
 <div class="page-wrap">
 
+  <a href="report_dashboard.html" class="data-view-banner">
+    <span class="data-view-banner-text">Data View &mdash; browse and filter across weeks, gigs, effort, and people</span>
+    <span class="data-view-banner-arrow">&rarr;</span>
+  </a>
+
   <div class="report-card">
     <div class="report-header">
       <div class="week-nav">
         <button class="week-nav-btn" id="prevWeekBtn" onclick="goWeek(-1)">&#8249;</button>
-        <div class="week-label" id="weekLabel">Week of —</div>
+        <div class="week-label" id="weekLabel">Week of &mdash;</div>
         <button class="week-nav-btn" id="nextWeekBtn" onclick="goWeek(1)">&#8250;</button>
       </div>
-      <div class="report-header-right">
-        <span class="status-chip" id="statusChip">—</span>
-      </div>
     </div>
-
     <div class="report-body" id="reportBody">
-      <div class="empty-week">Loading…</div>
+      <div class="empty-week">Loading&hellip;</div>
     </div>
   </div>
 

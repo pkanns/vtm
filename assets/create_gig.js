@@ -29,18 +29,20 @@ if (!session) { window.location.href = 'login.html'; throw new Error('No session
 const role     = session.role
 const myUserId = session.user_id
 
-if (role === 'rover') {
-  showToast('Doers cannot create gigs', 'err')
-  setTimeout(() => { window.location.href = 'dashboard.html' }, 1200)
-  throw new Error('Rover blocked')
-}
-
 // ── URL PARAMS ────────────────────────────────────────────────────────────
 
 const params      = new URLSearchParams(window.location.search)
 const urlGigId    = params.get('gig_id')
 const urlProjectId = params.get('project_id')
 const isEditMode  = !!urlGigId
+
+// Rovers (Doers) can edit gigs assigned to them, but cannot create new ones.
+// Ownership is confirmed once the gig loads in loadGigForEdit().
+if (role === 'rover' && !isEditMode) {
+  showToast('Doers cannot create gigs', 'err')
+  setTimeout(() => { window.location.href = 'dashboard.html' }, 1200)
+  throw new Error('Rover blocked — create mode')
+}
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 
@@ -78,6 +80,11 @@ async function loadDropdowns() {
       (leadsRes.data || []).map(u =>
         `<option value="${u.user_id}">${esc(u.name)}</option>`
       ).join('')
+    if (role === 'rover') {
+      pacerSel.disabled      = true
+      pacerSel.style.opacity = '0.6'
+      pacerSel.title         = 'Only a Lead or Admin can reassign'
+    }
   }
 
   // Doers
@@ -86,6 +93,11 @@ async function loadDropdowns() {
     (doersRes.data || []).map(u =>
       `<option value="${u.user_id}">${esc(u.name)}${u.skill_level === 'skilled' ? ' ★' : ''}</option>`
     ).join('')
+  if (role === 'rover') {
+    roverSel.disabled      = true
+    roverSel.style.opacity = '0.6'
+    roverSel.title         = 'Only a Lead or Admin can reassign'
+  }
 }
 
 // ── PROJECT CHANGE → LOAD CATEGORIES ─────────────────────────────────────
@@ -184,6 +196,12 @@ function updateCodeDisplay(code, cadence) {
 async function loadGigForEdit(gigId) {
   const { data, error } = await fetchGigById(db, gigId)
   if (error || !data) { showToast('Could not load gig', 'err'); return }
+
+  if (role === 'rover' && data.rover_id !== myUserId) {
+    showToast('You can only edit gigs assigned to you', 'err')
+    setTimeout(() => { window.location.href = 'dashboard.html' }, 1200)
+    throw new Error('Rover blocked — not their gig')
+  }
 
   // Set project dropdown then load its categories
   const projSel = document.getElementById('gigProject')

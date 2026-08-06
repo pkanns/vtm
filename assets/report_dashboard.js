@@ -125,7 +125,7 @@ async function renderAllUsers(monday, sunday) {
 }
 
 function applyGigFilters(gigs) {
-  let out = gigs
+  let out = gigs.filter(g => g.minutes > 0)  // same declutter rule as weekly_report.js
   const scope = SCOPE_OPTIONS.find(s => s.id === scopeId)
   if (scope) out = out.filter(scope.predicate)
   if (overdueOnly) out = out.filter(g => g.isOverdue)

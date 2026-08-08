@@ -4,6 +4,11 @@
  * Recurring gigs create a recurrence_schedule row on save
  * Edit mode: load via ?gig_id=xxx
  * Pre-select project via ?project_id=xxx (from project_index)
+ *
+ * New-gig date defaults (added):
+ *   Date Placed / Date Start → today, Date Due → today + 14 days.
+ *   One-time fill only, on create mode load — fully editable afterward,
+ *   no live recompute if the Lead changes Start Date later.
  */
 
 import { db }                          from './vtm_db.js'
@@ -48,6 +53,23 @@ if (role === 'rover' && !isEditMode) {
 
 let generatedGigCode = null   // the auto-generated code shown in preview
 let currentScheduleId = null  // existing schedule id in edit mode
+
+// ── DATE DEFAULTS (new-gig creation only) ───────────────────────────────
+// Date Placed and Date Start default to today; Date Due defaults to
+// Start + 14 days. Deliberately simple: a one-time fill on load, not a
+// live binding — changing Start Date afterward does not move Due Date.
+
+function applyNewGigDateDefaults() {
+  const today = new Date()
+  const due   = new Date(today)
+  due.setDate(due.getDate() + 14)
+
+  const toISO = d => d.toISOString().split('T')[0]
+
+  document.getElementById('gigDatePlaced').value = toISO(today)
+  document.getElementById('gigDateStart').value  = toISO(today)
+  document.getElementById('gigDateDue').value    = toISO(due)
+}
 
 // ── LOAD DROPDOWNS ────────────────────────────────────────────────────────
 
@@ -434,6 +456,9 @@ window.resetGigForm = function() {
   }
 
   toggleBudgetBlock()
+
+  // New-gig date defaults reapply on reset too, same as first load.
+  applyNewGigDateDefaults()
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────
@@ -450,6 +475,7 @@ if (urlProjectId && !isEditMode) {
 if (isEditMode) {
   await loadGigForEdit(urlGigId)
 } else {
+  applyNewGigDateDefaults()
   toggleBudgetBlock()
   addBudgetRow()
 }

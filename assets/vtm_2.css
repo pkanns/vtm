@@ -18,6 +18,10 @@
  * rename this file vtm.css.
  *
  * First page on this system: timesheet.html.
+ * Second page: create_gig.html — brought over the toggle-group (gig
+ * classification radios) and budget-table components below, since both
+ * are genuinely shared (gig_eval.html will need the identical classes
+ * when it migrates next) rather than forked per-page.
  *
  * Components shipped so far:
  *   .punch-strip      — the scrolling punch-hole decorative band
@@ -27,6 +31,11 @@
  *                        cards whose header only needs 2–3 fields
  *   .register-grid     + .register-cell/-label/-val
  *                        — bordered "time register" row inside a card
+ *   .gig-toggles        + .toggle-group/.toggle-pair
+ *                        — the 4-up radio-pill classification control
+ *                          (Cadence / Scale / Setting / Skill Level)
+ *   .budget-table       + .add-row-btn/.del-btn/.budget-total-row
+ *                        — the editable line-item budget table
  *
  * Page-specific layout (forms, tables, buttons for one particular screen)
  * belongs in that page's own <style> block, not here — only genuinely
@@ -215,6 +224,128 @@ body {
 .register-cell-val.live  { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; color: var(--green); }
 .register-cell-val.green { color: var(--green); }
 .register-cell-val.mono  { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.04em; }
+
+/* ── GIG TOGGLES (Cadence / Scale / Setting / Skill Level radio-pills) ──
+   Ported from vtm.css during create_gig.html's migration. gig_eval.html
+   will want these same classes when it migrates — kept here rather than
+   forked page-local specifically because of that shared future need. ── */
+.gig-toggles {
+  background: var(--white);
+  padding: 24px 36px;
+  margin-bottom: 32px;
+  border-top: 4px solid var(--charcoal);
+}
+.toggles-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--stone);
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+.toggles-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+.toggle-group { display: flex; flex-direction: column; gap: 6px; }
+.toggle-group-label {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--stone);
+  font-weight: 500;
+  font-family: var(--font-mono);
+}
+.toggle-pair { display: flex; border: 1px solid var(--hole); overflow: hidden; }
+.toggle-pair input[type="radio"] { display: none; }
+.toggle-pair label {
+  flex: 1;
+  text-align: center;
+  padding: 8px 6px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  background: var(--light);
+  color: var(--stone);
+  transition: background 0.2s, color 0.2s;
+  border-right: 1px solid var(--hole);
+  user-select: none;
+  font-family: var(--font-body);
+}
+.toggle-pair label:last-of-type { border-right: none; }
+.toggle-pair input[type="radio"]:checked + label {
+  background: var(--black);
+  color: var(--white);
+}
+/* Major toggle gets red when selected — matches the "this costs more
+   attention" signal used elsewhere (overdue chips, danger buttons). */
+input[name="tog-scale"][value="major"]:checked + label {
+  background: var(--red);
+  color: var(--white);
+}
+
+/* ── BUDGET TABLE (editable line-item table — create_gig.html today,
+   gig_eval.html once migrated) ─────────────────────────────────────── */
+.budget-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--white);
+  margin: 16px 0;
+}
+.budget-table th {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 10px 12px;
+  background: var(--charcoal);
+  color: var(--white);
+  text-align: left;
+  font-family: var(--font-mono);
+}
+.budget-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--light);
+}
+.budget-table input {
+  width: 100%;
+  background: var(--light);
+  border: none;
+  border-bottom: 1px solid var(--hole);
+  padding: 6px 8px;
+  font-family: var(--font-body);
+  font-size: 13px;
+}
+.budget-total-row { background: var(--light); font-weight: 600; }
+#budgetBlock { display: none; }
+#budgetBlock.visible { display: block; }
+.del-btn {
+  background: none;
+  border: 1px solid var(--stone);
+  color: var(--stone);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  transition: all 0.2s;
+}
+.del-btn:hover { background: var(--red); border-color: var(--red); color: var(--white); }
+.add-row-btn {
+  background: var(--black);
+  color: var(--white);
+  border: none;
+  padding: 6px 14px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  margin: 8px 0;
+  font-family: var(--font-body);
+}
 
 /* ── HEADER (shared chrome — brand, nav, mobile menu, role/sign-out corner)
    Injected by assets/vtm_header.js into a page's <div id="vtmHeader"></div>.

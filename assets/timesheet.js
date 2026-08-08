@@ -3,6 +3,10 @@
  * Rewritten: toggle Auto/Manual, project→gig cascade,
  * Open Timesheets (null end_time), midnight-safe duration via DB,
  * auto-close guard on sign-out, owner+admin edit.
+ *
+ * Added: ?start=auto URL support — the dashboard's Clock block links here
+ * with that flag when the person isn't clocked in yet, so this page drops
+ * them straight into the Auto panel instead of the blank toggle state.
  */
 
 import { db } from './vtm_db.js'
@@ -35,8 +39,23 @@ await loadProjects()
 await checkActiveTimer()
 await loadEntries()
 initToggle()
+applyStartParam()
 patchSignOut()
 buildPunchStrip()
+
+// ── ?start=auto — hand-off from the dashboard's Clock block ───────────────
+// Only applies if there isn't already an active timer (matches what
+// picking "Auto" manually would do anyway — it's blocked while clocked in).
+
+function applyStartParam() {
+  const startParam = new URLSearchParams(window.location.search).get('start')
+  if (startParam !== 'auto' || activeEntry) return
+
+  const autoRadio = document.getElementById('tog-auto')
+  if (!autoRadio) return
+  autoRadio.checked = true
+  showEntryPanel('auto')
+}
 
 // ── PUNCH STRIP (decorative — mirrors the mulai.ch register motif) ────────
 

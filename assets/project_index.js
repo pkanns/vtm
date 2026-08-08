@@ -2,6 +2,9 @@
  * project_index.js — Vidai to Mulai · Project Index
  * Loads all projects with nested gigs.
  * Role-aware: rovers see only gigs assigned to them.
+ * Each gig row expands (click) into a lazy-loaded, read/check-off task
+ * checklist — fetched only the first time that row is opened, so the
+ * initial project list load stays as fast as it was before tasks existed.
  */
 
 import { db }                    from './vtm_db.js'
@@ -9,7 +12,11 @@ import { fetchProjectsWithGigs,
          fetchCategoriesByProject,
          deleteProject,
          deleteGig,
+         fetchTasksByGig,
+         fetchUsersByIds,
+         toggleTaskDone,
          fmtDate, esc }          from './vtm_api.js'
+import { renderTaskRowLight }    from './gig_tasks.js'
 
 // ── SESSION ───────────────────────────────────────────────────────────────
 
@@ -23,9 +30,14 @@ if (!session) {
 const role     = session.role
 const myUserId = session.user_id
 
+if (role === 'rover') {
+  document.getElementById('newProjectBtn')?.remove()
+}
+
 // ── STATE ─────────────────────────────────────────────────────────────────
 
 let allProjects = []
+const loadedTaskGigIds = new Set()   // gigs whose task panel has already been fetched once
 
 // ── LOAD ──────────────────────────────────────────────────────────────────
 
@@ -56,19 +68,6 @@ async function loadProjects() {
 
   statusEl.textContent = `● ${allProjects.length} project${allProjects.length !== 1 ? 's' : ''} · ${totalGigs} gig${totalGigs !== 1 ? 's' : ''}`
   statusEl.className   = 'db-status ok'
-
-  // Update stats strip
-  const recurringCount = allProjects.reduce((s, p) =>
-    s + p.gigs.filter(g => g.cadence === 'recurring' && !g.parent_gig_id).length, 0)
-  const completedCount = allProjects.reduce((s, p) =>
-    s + p.gigs.filter(g => g.status === 'completed').length, 0)
-  const activeCount    = allProjects.reduce((s, p) =>
-    s + p.gigs.filter(g => g.status !== 'completed').length, 0)
-
-  _setText('statProjects',  allProjects.length)
-  _setText('statGigs',      activeCount)
-  _setText('statRecurring', recurringCount)
-  _setText('statCompleted', completedCount)
 
   renderProjects()
 }
@@ -173,8 +172,8 @@ function renderGigRow(g, isInstance) {
   const catCode  = g.project_categories?.category_code || '—'
   const isRecurParent = g.cadence === 'recurring' && !g.parent_gig_id
   const rowStyle = isInstance
-    ? 'background:rgba(192,57,43,0.015)'
-    : isRecurParent ? 'background:rgba(192,57,43,0.025)' : ''
+    ? 'background:rgba(181,32,26,0.015)'
+    : isRecurParent ? 'background:rgba(181,32,26,0.025)' : ''
 
   const codeStyle = isInstance
     ? 'padding-left:28px;color:var(--stone)'
@@ -199,15 +198,81 @@ function renderGigRow(g, isInstance) {
     : ''
 
   return `
-    <tr style="${rowStyle}">
+    <tr style="${rowStyle}" class="gig-row-clickable" onclick="toggleGigTasks('${g.gig_id}')">
       <td class="gig-code-cell" style="${codeStyle}">${esc(g.gig_code)}</td>
       <td style="${isInstance ? 'color:var(--mid)' : ''}">${esc(g.title)}</td>
       <td><span class="cat-tag">${esc(catCode)}</span></td>
       <td>${cadenceBadge}</td>
       <td><span class="status-pill ${g.status || 'placed'}">${fmtStatus(g.status)}</span></td>
       <td style="color:var(--stone);font-size:11px">${fmtDate(g.date_due)}</td>
-      <td style="white-space:nowrap">${editBtn}${evalBtn}${deleteBtn}</td>
+      <td style="white-space:nowrap" onclick="event.stopPropagation()">${editBtn}${evalBtn}${deleteBtn}</td>
+    </tr>
+    <tr class="task-subrow" id="tasksRow-${g.gig_id}" style="display:none">
+      <td colspan="7"><div class="task-list-inline" id="taskListInline-${g.gig_id}"></div></td>
     </tr>`
+}
+
+// ── TASK CHECKLIST (lazy-loaded per gig row) ───────────────────────────────
+
+function findGigById(gigId) {
+  for (const p of allProjects) {
+    const g = p.gigs.find(x => x.gig_id === gigId)
+    if (g) return g
+  }
+  return null
+}
+
+window.toggleGigTasks = async function(gigId) {
+  const row = document.getElementById(`tasksRow-${gigId}`)
+  if (!row) return
+
+  const isHidden = row.style.display === 'none'
+  row.style.display = isHidden ? 'table-row' : 'none'
+
+  if (isHidden && !loadedTaskGigIds.has(gigId)) {
+    loadedTaskGigIds.add(gigId)
+    await loadTasksForGigRow(gigId)
+  }
+}
+
+async function loadTasksForGigRow(gigId) {
+  const container = document.getElementById(`taskListInline-${gigId}`)
+  const gig = findGigById(gigId)
+  if (!container || !gig) return
+
+  container.innerHTML = '<div class="tasks-empty">Loading…</div>'
+
+  const [taskRes, userRes] = await Promise.all([
+    fetchTasksByGig(db, gigId),
+    fetchUsersByIds(db, [gig.pacer_id, gig.rover_id]),
+  ])
+
+  if (taskRes.error) {
+    container.innerHTML = '<div class="tasks-empty">Could not load tasks.</div>'
+    return
+  }
+
+  const nameById = {}
+  ;(userRes.data || []).forEach(u => { nameById[u.user_id] = u.name })
+  const names = {
+    pacerName: nameById[gig.pacer_id] || '—',
+    roverName: nameById[gig.rover_id] || '—',
+  }
+
+  const tasks = taskRes.data || []
+  if (!tasks.length) {
+    container.innerHTML = '<div class="tasks-empty">No tasks on this gig yet — add one from the gig edit page.</div>'
+    return
+  }
+
+  container.innerHTML = tasks.map(t => renderTaskRowLight(t, session, gig, names)).join('')
+}
+
+window.toggleGigTaskLight = async function(taskId, done, gigId) {
+  const { error } = await toggleTaskDone(db, taskId, done)
+  if (error) { showToast('Could not update task', 'err'); return }
+  // Re-render just this gig's inline list so state stays current.
+  await loadTasksForGigRow(gigId)
 }
 
 // ── TOGGLE ACCORDION ──────────────────────────────────────────────────────
@@ -252,11 +317,6 @@ window.deleteProjectRow = async function(id, code) {
 
 function fmtStatus(s) {
   return (s || 'placed').replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())
-}
-
-function _setText(id, val) {
-  const el = document.getElementById(id)
-  if (el) el.textContent = val
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────

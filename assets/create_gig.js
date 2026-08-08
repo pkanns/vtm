@@ -24,7 +24,14 @@ import { fetchProjects,
          calcNextRunDate,
          fetchActiveLeads,
          fetchActiveDoers,
+         fetchUsersByIds,
+         fetchTasksByGig,
+         createTask,
+         updateTask,
+         toggleTaskDone,
+         deleteTask,
          esc }                         from './vtm_api.js'
+import { renderTaskRowFull }           from './gig_tasks.js'
 
 // ── SESSION ───────────────────────────────────────────────────────────────
 
@@ -53,6 +60,11 @@ if (role === 'rover' && !isEditMode) {
 
 let generatedGigCode = null   // the auto-generated code shown in preview
 let currentScheduleId = null  // existing schedule id in edit mode
+
+// ── TASKS STATE (edit mode only — a task needs a gig_id to attach to) ────
+let currentGigTasks = []
+let currentGigCtx   = null   // { gig_id, pacer_id, rover_id }
+let currentGigNames = { pacerName: '—', roverName: '—' }
 
 // ── DATE DEFAULTS (new-gig creation only) ───────────────────────────────
 // Date Placed and Date Start default to today; Date Due defaults to
@@ -291,6 +303,91 @@ async function loadGigForEdit(gigId) {
   document.getElementById('saveBtn').textContent      = 'Update Gig →'
 
   toggleBudgetBlock()
+
+  // Tasks need a real gig_id to attach to — only ever shown in edit mode
+  document.getElementById('tasksCard').style.display = 'block'
+  await loadGigTasks(gigId, data.pacer_id, data.rover_id)
+}
+
+// ── TASKS ─────────────────────────────────────────────────────────────────
+
+async function loadGigTasks(gigId, pacerId, roverId) {
+  currentGigCtx = { gig_id: gigId, pacer_id: pacerId, rover_id: roverId }
+
+  const { data: users } = await fetchUsersByIds(db, [pacerId, roverId])
+  const nameById = {}
+  ;(users || []).forEach(u => { nameById[u.user_id] = u.name })
+  currentGigNames = {
+    pacerName: nameById[pacerId] || '—',
+    roverName: nameById[roverId] || '—',
+  }
+
+  const { data, error } = await fetchTasksByGig(db, gigId)
+  if (error) { showToast('Could not load tasks', 'err'); return }
+  currentGigTasks = data || []
+  renderTaskList()
+}
+
+function renderTaskList() {
+  const body = document.getElementById('taskListBody')
+  if (!currentGigTasks.length) {
+    body.innerHTML = '<div class="tasks-empty">No tasks yet — add one below.</div>'
+    return
+  }
+  body.innerHTML = currentGigTasks
+    .map(t => renderTaskRowFull(t, session, currentGigCtx, currentGigNames))
+    .join('')
+}
+
+window.addGigTask = async function() {
+  const input = document.getElementById('newTaskTitle')
+  const title = input.value.trim()
+  if (!title)        { showToast('Enter a task title', 'err'); return }
+  if (!currentGigCtx) return
+
+  // Default assignee is always the gig's Doer, regardless of who adds it
+  const payload = {
+    gig_id:      currentGigCtx.gig_id,
+    title,
+    assigned_to: currentGigCtx.rover_id,
+    created_by:  myUserId,
+    done:        false,
+  }
+
+  const { error } = await createTask(db, payload)
+  if (error) { showToast('Could not add task — ' + error.message, 'err'); return }
+
+  input.value = ''
+  await loadGigTasks(currentGigCtx.gig_id, currentGigCtx.pacer_id, currentGigCtx.rover_id)
+}
+
+window.toggleGigTask = async function(taskId, done) {
+  const { error } = await toggleTaskDone(db, taskId, done)
+  if (error) { showToast('Could not update task', 'err'); return }
+  const t = currentGigTasks.find(x => x.task_id === taskId)
+  if (t) t.done = done
+  renderTaskList()
+}
+
+window.reassignGigTask = async function(taskId) {
+  const t = currentGigTasks.find(x => x.task_id === taskId)
+  if (!t || !currentGigCtx) return
+  const newAssignee = t.assigned_to === currentGigCtx.pacer_id
+    ? currentGigCtx.rover_id
+    : currentGigCtx.pacer_id
+
+  const { error } = await updateTask(db, taskId, { assigned_to: newAssignee })
+  if (error) { showToast('Could not reassign task', 'err'); return }
+  t.assigned_to = newAssignee
+  renderTaskList()
+}
+
+window.deleteGigTask = async function(taskId) {
+  if (!confirm('Delete this task?')) return
+  const { error } = await deleteTask(db, taskId)
+  if (error) { showToast('Could not delete task', 'err'); return }
+  currentGigTasks = currentGigTasks.filter(x => x.task_id !== taskId)
+  renderTaskList()
 }
 
 // ── SAVE ──────────────────────────────────────────────────────────────────

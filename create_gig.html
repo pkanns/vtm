@@ -247,6 +247,17 @@
       <button type="button" class="btn-primary" id="saveBtn" onclick="saveGigForm()">Save Gig →</button>
     </div>
   </div><!-- end second form-card -->
+
+  <!-- Tasks — edit mode only; a task needs a gig_id to attach to -->
+  <div class="form-card" id="tasksCard" style="display:none; border-top-color:var(--green);">
+    <div class="form-title" style="font-size:1.4rem;">Tasks</div>
+    <div class="form-subtitle">Checklist for this gig — add, assign, and track completion</div>
+    <div id="taskListBody"><div class="tasks-empty">Loading…</div></div>
+    <div class="task-add-row">
+      <input type="text" id="newTaskTitle" placeholder="Add a task…" onkeydown="if(event.key==='Enter') addGigTask()">
+      <button type="button" class="btn-secondary" onclick="addGigTask()">+ Add</button>
+    </div>
+  </div>
 </main>
 
 <script type="module" src="assets/create_gig.js"></script>

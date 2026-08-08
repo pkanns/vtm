@@ -13,8 +13,7 @@
  *  6. EVALUATIONS
  *  7. USERS
  *  8. COUNTS (dashboard)
- *  9. TIME ENTRIES (dashboard clock block + weekly teaser)
- * 10. SHARED HELPERS
+ *  9. SHARED HELPERS
  */
 
 // ── 1. PROJECTS ───────────────────────────────────────────────────────────
@@ -268,30 +267,14 @@ export async function advanceSchedule(db, scheduleId, nextRunDate) {
 
 // ── 5. GIG TASKS ───────────────────────────────────────────────────────────
 // Table: gig_tasks (task_id, gig_id, title, assigned_to, done, created_by,
-// created_at) — see the SQL shared alongside this file. Default assignee
-// on creation is always the gig's Doer; permission rules live in
-// gig_tasks.js, not here.
+// created_at). Default assignee on creation is always the gig's Doer;
+// permission rules live in gig_tasks.js, not here.
 
 export async function fetchTasksByGig(db, gigId) {
   return db
     .from('gig_tasks')
     .select('*')
     .eq('gig_id', gigId)
-    .order('created_at', { ascending: true })
-}
-
-/**
- * Every open (not-done) task assigned to a given user, across all their
- * gigs — powers the dashboard's "Gigs & Tasks" block. Joins just enough
- * gig context (code, title, due date, status) to sort by urgency and
- * link back to the gig.
- */
-export async function fetchMyActiveTasks(db, userId) {
-  return db
-    .from('gig_tasks')
-    .select('*, gigs ( gig_id, gig_code, title, status, date_due )')
-    .eq('assigned_to', userId)
-    .eq('done', false)
     .order('created_at', { ascending: true })
 }
 
@@ -322,29 +305,6 @@ export async function fetchEvaluations(db) {
     .from('evaluations')
     .select('*')
     .order('created_at', { ascending: false })
-}
-
-/**
- * Average Lead-rated final_score + count, for gigs where the given user
- * was the Doer (rover_id). Powers the star rating shown next to the name
- * on the dashboard. Only meaningful for Rovers today — evaluations don't
- * currently rate a Lead's own performance, so callers should only render
- * this for role === 'rover'.
- */
-export async function fetchMyRatingSummary(db, userId) {
-  const { data, error } = await db
-    .from('evaluations')
-    .select('final_score, gigs!inner ( rover_id )')
-    .eq('gigs.rover_id', userId)
-    .not('final_score', 'is', null)
-
-  if (error) return { average: null, count: 0, error }
-
-  const scores = (data || []).map(e => e.final_score).filter(s => s !== null)
-  if (!scores.length) return { average: null, count: 0, error: null }
-
-  const average = scores.reduce((s, v) => s + v, 0) / scores.length
-  return { average, count: scores.length, error: null }
 }
 
 // ── 7. USERS ──────────────────────────────────────────────────────────────
@@ -388,58 +348,7 @@ export async function fetchCounts(db) {
   }
 }
 
-/**
- * Count of gigs a user is currently on (as Doer or Lead) that aren't
- * completed, and the count of distinct projects those gigs belong to.
- * Powers the non-admin "My Projects" dashboard block teaser.
- */
-export async function fetchMyProjectsSummary(db, userId) {
-  const { data, error } = await db
-    .from('gigs')
-    .select('project_id, status, pacer_id, rover_id')
-    .or(`pacer_id.eq.${userId},rover_id.eq.${userId}`)
-    .neq('status', 'completed')
-
-  if (error) return { activeGigs: 0, projectCount: 0, error }
-
-  const rows = data || []
-  const projectIds = new Set(rows.map(r => r.project_id).filter(Boolean))
-  return { activeGigs: rows.length, projectCount: projectIds.size, error: null }
-}
-
-// ── 9. TIME ENTRIES (dashboard clock block + weekly teaser) ───────────────
-
-export async function fetchActiveTimeEntry(db, userId) {
-  return db
-    .from('time_entries')
-    .select('*, gigs ( gig_code, title )')
-    .eq('user_id', userId)
-    .eq('is_active', true)
-    .maybeSingle()
-}
-
-export async function clockOutTimeEntry(db, entryId, payload) {
-  return db.from('time_entries').update(payload).eq('entry_id', entryId)
-}
-
-/**
- * Sum of duration_mins for a user within a date range (inclusive) —
- * used for the dashboard's Weekly Report teaser ("This week: Xh Ym").
- */
-export async function fetchWeekTotalMinutes(db, userId, startISO, endISO) {
-  const { data, error } = await db
-    .from('time_entries')
-    .select('duration_mins')
-    .eq('user_id', userId)
-    .gte('entry_date', startISO)
-    .lte('entry_date', endISO)
-
-  if (error) return { totalMins: 0, error }
-  const totalMins = (data || []).reduce((s, e) => s + (e.duration_mins || 0), 0)
-  return { totalMins, error: null }
-}
-
-// ── 10. SHARED HELPERS ─────────────────────────────────────────────────────
+// ── 9. SHARED HELPERS ─────────────────────────────────────────────────────
 
 export function fmtDate(iso) {
   if (!iso) return '—'

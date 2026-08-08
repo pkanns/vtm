@@ -5,10 +5,15 @@
  * Edit mode: load via ?gig_id=xxx
  * Pre-select project via ?project_id=xxx (from project_index)
  *
- * New-gig date defaults (added):
+ * New-gig date defaults:
  *   Date Placed / Date Start → today, Date Due → today + 14 days.
  *   One-time fill only, on create mode load — fully editable afterward,
  *   no live recompute if the Lead changes Start Date later.
+ *
+ * Tasks (edit mode only — a task needs a real gig_id to attach to):
+ *   Option C "Compact Register Strip" checklist. Default assignee on
+ *   creation is always the gig's Doer. Permission rules and row markup
+ *   live in gig_tasks.js.
  */
 
 import { db }                          from './vtm_db.js'
@@ -31,7 +36,7 @@ import { fetchProjects,
          toggleTaskDone,
          deleteTask,
          esc }                         from './vtm_api.js'
-import { renderTaskRowFull }           from './gig_tasks.js'
+import { renderTaskCellCompact }       from './gig_tasks.js'
 
 // ── SESSION ───────────────────────────────────────────────────────────────
 
@@ -61,15 +66,12 @@ if (role === 'rover' && !isEditMode) {
 let generatedGigCode = null   // the auto-generated code shown in preview
 let currentScheduleId = null  // existing schedule id in edit mode
 
-// ── TASKS STATE (edit mode only — a task needs a gig_id to attach to) ────
+// Tasks — edit mode only
 let currentGigTasks = []
 let currentGigCtx   = null   // { gig_id, pacer_id, rover_id }
 let currentGigNames = { pacerName: '—', roverName: '—' }
 
 // ── DATE DEFAULTS (new-gig creation only) ───────────────────────────────
-// Date Placed and Date Start default to today; Date Due defaults to
-// Start + 14 days. Deliberately simple: a one-time fill on load, not a
-// live binding — changing Start Date afterward does not move Due Date.
 
 function applyNewGigDateDefaults() {
   const today = new Date()
@@ -331,11 +333,11 @@ async function loadGigTasks(gigId, pacerId, roverId) {
 function renderTaskList() {
   const body = document.getElementById('taskListBody')
   if (!currentGigTasks.length) {
-    body.innerHTML = '<div class="tasks-empty">No tasks yet — add one below.</div>'
+    body.innerHTML = '<div class="gtask-empty">No tasks yet — add one below.</div>'
     return
   }
   body.innerHTML = currentGigTasks
-    .map(t => renderTaskRowFull(t, session, currentGigCtx, currentGigNames))
+    .map(t => renderTaskCellCompact(t, session, currentGigCtx, currentGigNames))
     .join('')
 }
 

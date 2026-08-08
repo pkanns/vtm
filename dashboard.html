@@ -3,157 +3,212 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard — Mulai</title>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Special+Elite&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/vtm_2.css">
-  <script src="assets/vtm.js"></script>
-  <script src="assets/vtm_auth_guard.js"></script>
+  <title>Vidai to Mulai — Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/vtm.css">
   <style>
-    /* ── COVER ─────────────────────────────────────────────────────────── */
+    /* ── UNIFIED HEADER ─────────────────────────────────────────────────── */
+    .vtm-header { background:var(--black); border-bottom:3px solid var(--red); position:sticky; top:0; z-index:100; }
+    .vtm-header-inner { display:flex; align-items:center; justify-content:space-between; padding:0 32px; height:56px; max-width:1200px; margin:0 auto; }
+    .vtm-brand { font-family:var(--font-display); font-size:1rem; color:var(--white); text-decoration:none; letter-spacing:0.04em; flex-shrink:0; }
+    .vtm-brand span { color:var(--red); }
+    .vtm-nav { display:flex; align-items:center; gap:4px; }
+    .vtm-nav a { font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:rgba(247,246,242,0.45); text-decoration:none; padding:6px 12px; transition:color 0.15s,background 0.15s; font-family:var(--font-body); font-weight:500; white-space:nowrap; }
+    .vtm-nav a:hover { color:var(--white); }
+    .vtm-nav a.active { color:var(--white); background:rgba(247,246,242,0.08); }
+    .vtm-header-right { display:flex; align-items:center; gap:12px; flex-shrink:0; }
+    .vtm-timer-pill { display:none; align-items:center; gap:6px; background:rgba(45,90,61,0.3); border:1px solid rgba(45,90,61,0.6); padding:4px 10px; cursor:pointer; text-decoration:none; transition:background 0.2s; }
+    .vtm-timer-pill:hover { background:rgba(45,90,61,0.5); }
+    .vtm-timer-pill.visible { display:flex; }
+    .vtm-timer-dot { width:7px; height:7px; border-radius:50%; background:var(--green); animation:vtm-pulse 1.8s ease-in-out infinite; }
+    @keyframes vtm-pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
+    .vtm-timer-label { font-size:10px; font-family:var(--font-mono); color:var(--green); letter-spacing:0.06em; }
+    .vtm-signout { background:none; border:1px solid rgba(247,246,242,0.2); color:rgba(247,246,242,0.4); padding:4px 10px; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; font-family:var(--font-body); transition:all 0.2s; }
+    .vtm-signout:hover { border-color:rgba(247,246,242,0.5); color:var(--white); }
+    .vtm-hamburger { display:none; flex-direction:column; gap:5px; cursor:pointer; padding:4px; background:none; border:none; }
+    .vtm-hamburger span { display:block; width:22px; height:2px; background:rgba(247,246,242,0.6); transition:all 0.2s; }
+    .vtm-hamburger.open span:nth-child(1) { transform:translateY(7px) rotate(45deg); }
+    .vtm-hamburger.open span:nth-child(2) { opacity:0; }
+    .vtm-hamburger.open span:nth-child(3) { transform:translateY(-7px) rotate(-45deg); }
+    .vtm-nav-dropdown { display:none; flex-direction:column; background:var(--black); border-top:1px solid rgba(255,255,255,0.08); padding:8px 0 16px; }
+    .vtm-nav-dropdown.open { display:flex; }
+    .vtm-nav-dropdown a { font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:rgba(247,246,242,0.5); text-decoration:none; padding:12px 32px; font-family:var(--font-body); font-weight:500; border-bottom:1px solid rgba(255,255,255,0.04); transition:color 0.15s,background 0.15s; }
+    .vtm-nav-dropdown a:hover { color:var(--white); background:rgba(255,255,255,0.04); }
+    .vtm-nav-dropdown a.active { color:var(--white); }
+    .vtm-dropdown-user { padding:12px 32px 4px; display:flex; align-items:center; border-top:1px solid rgba(255,255,255,0.08); margin-top:4px; }
+    @media (max-width:768px) { .vtm-nav,.vtm-header-right{display:none} .vtm-hamburger{display:flex} .vtm-header-inner{padding:0 20px} }
+
+    .page-container { max-width: 1100px; margin: 0 auto; padding: 48px 24px 80px; }
+
+    /* ── Cover ── */
     .cover { background: var(--charcoal); padding: 40px 48px; border-bottom: 4px solid var(--red); }
-    .cover-welcome { font-family: var(--font-display); font-size: 2.4rem; letter-spacing: 0.02em; color: var(--white); line-height: 1.15; }
-    .cover-email { font-size: 12px; font-family: var(--font-mono); color: rgba(240,234,216,0.4); letter-spacing: 0.02em; margin-top: 6px; }
-    .cover-role-line { margin-top: 18px; font-size: 13px; font-family: var(--font-body); color: rgba(240,234,216,0.55); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .cover-welcome { font-family: var(--font-display); font-size: 2.2rem; font-weight: 600; color: var(--white); line-height: 1.2; }
+    .cover-email { font-size: 12px; font-family: var(--font-mono); color: rgba(247,246,242,0.4); letter-spacing: 0.02em; margin-top: 6px; }
+    .cover-role-line { margin-top: 18px; font-size: 13px; font-family: var(--font-body); color: rgba(247,246,242,0.5); display: flex; align-items: center; gap: 10px; }
     .cover-role-pill { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; padding: 5px 14px; font-weight: 600; font-family: var(--font-mono); }
-    .cover-role-pill.role-admin { background: rgba(240,234,216,0.15); color: var(--white); }
+    .cover-role-pill.role-admin { background: rgba(247,246,242,0.15); color: var(--white); }
     .cover-role-pill.role-pacer { background: var(--red); color: var(--white); }
     .cover-role-pill.role-rover { background: var(--green); color: var(--white); }
 
-    .cover-rating { display: inline-flex; align-items: center; gap: 8px; margin-left: 4px; }
-    .rating-stars { font-size: 15px; letter-spacing: 2px; }
-    .rating-stars .star { color: rgba(240,234,216,0.2); }
-    .rating-stars .star.filled { color: var(--red); }
-    .rating-value { font-family: var(--font-mono); font-size: 11px; color: rgba(240,234,216,0.5); }
-
-    /* ── BENTO GRID ────────────────────────────────────────────────────── */
-    .page-container { max-width: 1100px; margin: 0 auto; padding: 28px 24px 60px; }
-
-    .bento-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      grid-auto-rows: minmax(220px, 1fr);
-      gap: 3px;
-      background: var(--black);
-      min-height: 60vh;
-    }
-    .bento-block {
-      background: var(--white);
-      padding: 26px 30px;
-      display: flex;
-      flex-direction: column;
-      text-decoration: none;
-      color: inherit;
-      cursor: pointer;
-      transition: background 0.15s;
-      position: relative;
-      overflow: hidden;
-    }
-    .bento-block:hover { background: var(--light); }
-    .bento-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--stone); }
-    .bento-headline {
-      font-family: var(--font-display);
-      font-size: 2.1rem;
-      letter-spacing: 0.02em;
-      color: var(--black);
-      line-height: 1.05;
-      margin: 12px 0 4px;
-      display: flex;
-      align-items: center;
-    }
-    .bento-sub { font-family: var(--font-body); font-size: 13px; color: var(--stone); }
-    .bento-hint { font-family: var(--font-mono); font-size: 10px; color: var(--red); letter-spacing: 0.06em; margin-top: auto; padding-top: 14px; }
-
-    .bento-status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--stone); display: inline-block; margin-right: 10px; flex-shrink: 0; }
-    .bento-clock { border-left: 6px solid var(--stone); }
-    .bento-clock.clocked-in  { border-left-color: var(--green); }
-    .bento-clock.clocked-in .bento-status-dot { background: var(--green); animation: vtm-pulse 1.8s ease-in-out infinite; }
-    .bento-clock.clocked-out { border-left-color: var(--red); }
-    .bento-clock.clocked-out .bento-status-dot { background: var(--red); }
-    @keyframes vtm-pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.7); } }
-
-    .bento-report { border-left: 6px solid var(--charcoal); }
-
-    .bento-tasks { border-left: 6px solid var(--red); }
-    .bento-task-list { margin-top: 8px; flex: 1; display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
-    .bento-task-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--light); font-size: 12.5px; }
-    .bento-task-row:last-child { border-bottom: none; }
-    .bento-task-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-body); color: var(--black); }
-    .bento-task-title.done { color: var(--stone); text-decoration: line-through; }
-    .bento-task-due { font-family: var(--font-mono); font-size: 10px; color: var(--stone); white-space: nowrap; }
-    .bento-task-due.overdue { color: var(--red); font-weight: 700; }
-    .bento-task-check { width: 14px; height: 14px; accent-color: var(--green); cursor: pointer; flex-shrink: 0; }
-
-    .bento-fourth { border-left: 6px solid var(--green); }
-
-    @media (max-width: 768px) {
-      .bento-grid { grid-template-columns: 1fr; min-height: auto; }
-      .bento-block { padding: 22px 24px; }
-      .cover { padding: 32px 24px; }
-      .cover-welcome { font-size: 1.9rem; }
-    }
+    /* ── Tool cards ── */
+    .tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2px; margin-top: 40px; }
+    .tool-card { background: var(--white); padding: 32px 28px 28px; text-decoration: none; color: inherit; display: flex; flex-direction: column; border-top: 3px solid var(--charcoal); transition: border-top-color 0.2s, transform 0.15s, box-shadow 0.15s; }
+    .tool-card:hover { border-top-color: var(--red); transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.07); }
+    .tool-card-eyebrow { font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--stone); margin-bottom: 10px; }
+    .tool-card h3 { font-family: var(--font-display); font-size: 1.2rem; font-weight: 600; color: var(--black); margin-bottom: 8px; }
+    .tool-card-desc { font-size: 12px; color: var(--mid); line-height: 1.6; flex: 1; margin-bottom: 20px; }
+    .tool-card-footer { display: flex; align-items: center; justify-content: flex-end; border-top: 1px solid var(--light); padding-top: 12px; }
+    .tool-card-arrow { font-size: 13px; color: var(--stone); font-family: var(--font-mono); transition: color 0.2s, transform 0.2s; }
+    .tool-card:hover .tool-card-arrow { color: var(--red); transform: translateX(4px); }
+    .hidden { display: none; }
   </style>
 </head>
 <body data-page="home">
 
-<!-- ── HEADER — deferred until the session is confirmed populated. See
-     assets/dashboard.js: dashboard.html is the one page that might load
-     before sessionStorage has data (fresh landing after login, an OAuth
-     return, or a direct/refreshed visit), unlike every other page which
-     assumes vtmGetSession() is already ready. ── -->
-<div id="vtmHeader"></div>
+<!-- ── UNIFIED HEADER ──────────────────────────────────────────────────── -->
+<div class="vtm-header">
+  <div class="vtm-header-inner">
+    <a href="dashboard.html" class="vtm-brand">Vidai <span>to</span> Mulai</a>
+    <nav class="vtm-nav">
+      <a href="dashboard.html"     data-page="home">Home</a>
+      <a href="project_index.html" data-page="projects">Projects</a>
+      <a href="gig_index.html"     data-page="gigs">Gigs</a>
+      <a href="gig_eval.html"      data-page="evaluate">Evaluate</a>
+      <a href="timesheet.html"     data-page="timesheet">Timesheet</a>
+    </nav>
+    <div class="vtm-header-right">
+      <a href="timesheet.html" class="vtm-timer-pill" id="headerTimerPill">
+        <span class="vtm-timer-dot"></span>
+        <span class="vtm-timer-label" id="headerTimerLabel">Clocked in</span>
+      </a>
+      <button class="vtm-signout" onclick="signOut()">Sign out</button>
+    </div>
+    <button class="vtm-hamburger" id="hamburgerBtn" onclick="toggleMobileNav()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <div class="vtm-nav-dropdown" id="mobileNav">
+    <a href="dashboard.html"     data-page="home">Home</a>
+    <a href="project_index.html" data-page="projects">Projects</a>
+    <a href="gig_index.html"     data-page="gigs">Gigs</a>
+    <a href="gig_eval.html"      data-page="evaluate">Evaluate</a>
+    <a href="timesheet.html"     data-page="timesheet">Timesheet</a>
+    <div class="vtm-dropdown-user">
+      <button class="vtm-signout" style="margin-left:auto" onclick="signOut()">Sign out</button>
+    </div>
+  </div>
+</div>
 
 <div class="cover">
   <div class="cover-welcome">Welcome to Mulai, <strong id="coverFirstName">…</strong></div>
   <div class="cover-email" id="coverEmail"></div>
-  <div class="cover-role-line">
-    You are logged in as a <span class="cover-role-pill" id="coverRolePill">…</span>
-    <span class="cover-rating" id="coverRating" style="display:none">
-      <span class="rating-stars" id="ratingStars"></span>
-      <span class="rating-value" id="ratingValue"></span>
-    </span>
-  </div>
+  <div class="cover-role-line">You are logged in as a <span class="cover-role-pill" id="coverRolePill">…</span></div>
 </div>
-
-<div class="punch-strip" id="dashPunchStrip"></div>
 
 <div class="page-container">
-  <div class="bento-grid">
+  <div class="tools-grid">
 
-    <!-- BLOCK 1 — Clock -->
-    <div class="bento-block bento-clock" id="blockClock" onclick="handleClockBlock()">
-      <div class="bento-label">Time Register</div>
-      <div class="bento-headline" id="clockHeadline"><span class="bento-status-dot"></span>—</div>
-      <div class="bento-sub" id="clockSub">Checking…</div>
-      <div class="bento-hint" id="clockHint"></div>
-    </div>
-
-    <!-- BLOCK 2 — Weekly Report -->
-    <a class="bento-block bento-report" href="weekly_report.html">
-      <div class="bento-label">Weekly Report</div>
-      <div class="bento-headline">This Week</div>
-      <div class="bento-sub" id="weekTotalText">Loading…</div>
-      <div class="bento-hint">Open full report →</div>
+    <a href="gig_index.html" class="tool-card">
+      <div class="tool-card-eyebrow">Work</div>
+      <h3>Gigs</h3>
+      <div class="tool-card-desc">View and manage gigs across every stage of the pipeline — from placement through to completion.</div>
+      <div class="tool-card-footer"><span class="tool-card-arrow">→</span></div>
     </a>
 
-    <!-- BLOCK 3 — Gigs & Tasks -->
-    <div class="bento-block bento-tasks" id="blockTasks" onclick="window.location.href='project_index.html'">
-      <div class="bento-label">Gigs &amp; Tasks</div>
-      <div class="bento-headline" id="taskCountHeadline">—</div>
-      <div class="bento-task-list" id="bentoTaskList"><div class="tasks-empty">Loading…</div></div>
-      <div class="bento-hint">View all gigs →</div>
-    </div>
+    <a href="gig_eval.html" class="tool-card">
+      <div class="tool-card-eyebrow">Reflect</div>
+      <h3>Evaluations</h3>
+      <div class="tool-card-desc">Rate engagement and effectiveness for completed gigs. Calculate scores and confirm rewards.</div>
+      <div class="tool-card-footer"><span class="tool-card-arrow">→</span></div>
+    </a>
 
-    <!-- BLOCK 4 — role-conditional -->
-    <div class="bento-block bento-fourth" id="blockFourth">
-      <div class="bento-label" id="fourthLabel">—</div>
-      <div class="bento-headline" id="fourthHeadline">—</div>
-      <div class="bento-sub" id="fourthSub"></div>
-      <div class="bento-hint" id="fourthHint"></div>
-    </div>
+    <a href="timesheet.html" class="tool-card">
+      <div class="tool-card-eyebrow">Track</div>
+      <h3>Timesheet</h3>
+      <div class="tool-card-desc">Log time worked against your gigs. Record start and end times and review your personal time history.</div>
+      <div class="tool-card-footer"><span class="tool-card-arrow">→</span></div>
+    </a>
+
+    <!-- Create User — Admin only, shown/hidden based on role -->
+    <a href="create_user.html" class="tool-card hidden" id="cardCreateUser">
+      <div class="tool-card-eyebrow">Admin</div>
+      <h3>Users</h3>
+      <div class="tool-card-desc">Invite and manage platform users. Create Leads, Doers and Admins. Send email invites or set up OAuth access.</div>
+      <div class="tool-card-footer"><span class="tool-card-arrow">→</span></div>
+    </a>
 
   </div>
 </div>
 
-<script type="module" src="assets/dashboard.js"></script>
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+  const SUPABASE_URL = 'https://dbecwjhsewucqtfgoylv.supabase.co'
+  const SUPABASE_KEY = 'sb_publishable_aw39P_0nn4vB0yjfDqwEvw_mU-Hc1Sp'
+  const db = createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'vtm-auth' }
+  })
+
+  const { data: { session } } = await db.auth.getSession()
+
+  if (!session) {
+    window.location.href = 'login.html'
+  }
+
+  const { data: vtmUser } = await db
+    .from('vtm_users')
+    .select('user_id, name, role')
+    .eq('auth_user_id', session.user.id)
+    .maybeSingle()
+
+  if (!vtmUser) {
+    await db.auth.signOut()
+    sessionStorage.clear()
+    window.location.href = 'login.html'
+  } else {
+    sessionStorage.setItem('vtm_role', vtmUser.role)
+    sessionStorage.setItem('vtm_name', vtmUser.name)
+    sessionStorage.setItem('vtm_user_id', vtmUser.user_id)
+    sessionStorage.setItem('vtm_email', session.user.email || '')
+
+    const displayName = vtmUser.name || session.user.user_metadata?.full_name || session.user.email || 'User'
+    const firstName = displayName.split(' ')[0]
+    document.getElementById('coverFirstName').textContent = firstName
+    if (session.user.email) {
+      document.getElementById('coverEmail').textContent = session.user.email
+    }
+
+    const roleLabels = { admin: 'Admin', pacer: 'Lead', rover: 'Doer' }
+    const roleClasses = { admin: 'role-admin', pacer: 'role-pacer', rover: 'role-rover' }
+    const rolePill = document.getElementById('coverRolePill')
+    rolePill.textContent = roleLabels[vtmUser.role] || vtmUser.role
+    rolePill.classList.add(roleClasses[vtmUser.role] || '')
+
+    if (vtmUser.role === 'admin') {
+      const card = document.getElementById('cardCreateUser')
+      if (card) card.classList.remove('hidden')
+    }
+  }
+
+  window.signOut = async function() {
+    await db.auth.signOut()
+    sessionStorage.clear()
+    window.location.href = 'login.html'
+  }
+</script>
+
+<script>
+  (function() {
+    const page = document.body.dataset.page;
+    document.querySelectorAll('.vtm-nav a, .vtm-nav-dropdown a').forEach(a => {
+      if (a.dataset.page === page) a.classList.add('active');
+    });
+  })();
+  function toggleMobileNav() {
+    document.getElementById('mobileNav').classList.toggle('open');
+    document.getElementById('hamburgerBtn').classList.toggle('open');
+  }
+</script>
+
 </body>
 </html>

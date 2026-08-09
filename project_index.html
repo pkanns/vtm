@@ -3,57 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Projects — Vidai to Mulai</title>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/vtm.css">
+  <title>Projects — Mulai</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Special+Elite&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/vtm_2.css">
   <script src="assets/vtm.js"></script>
   <script src="assets/vtm_auth_guard.js"></script>
   <style>
-    /* ── UNIFIED HEADER ─────────────────────────────────────────────────── */
-    .vtm-header { background:var(--black); border-bottom:3px solid var(--red); position:sticky; top:0; z-index:100; }
-    .vtm-header-inner { display:flex; align-items:center; justify-content:space-between; padding:0 32px; height:56px; max-width:1200px; margin:0 auto; }
-    .vtm-brand { font-family:var(--font-display); font-size:1rem; color:var(--white); text-decoration:none; letter-spacing:0.04em; flex-shrink:0; }
-    .vtm-brand span { color:var(--red); }
-    .vtm-nav { display:flex; align-items:center; gap:4px; }
-    .vtm-nav a { font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:rgba(247,246,242,0.45); text-decoration:none; padding:6px 12px; transition:color 0.15s,background 0.15s; font-family:var(--font-body); font-weight:500; white-space:nowrap; }
-    .vtm-nav a:hover { color:var(--white); }
-    .vtm-nav a.active { color:var(--white); background:rgba(247,246,242,0.08); }
-    .vtm-header-right { display:flex; align-items:center; gap:12px; flex-shrink:0; }
-    .vtm-timer-pill { display:none; align-items:center; gap:6px; background:rgba(45,90,61,0.3); border:1px solid rgba(45,90,61,0.6); padding:4px 10px; cursor:pointer; text-decoration:none; transition:background 0.2s; }
-    .vtm-timer-pill:hover { background:rgba(45,90,61,0.5); }
-    .vtm-timer-pill.visible { display:flex; }
-    .vtm-timer-dot { width:7px; height:7px; border-radius:50%; background:var(--green); animation:vtm-pulse 1.8s ease-in-out infinite; }
-    @keyframes vtm-pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
-    .vtm-timer-label { font-size:10px; font-family:var(--font-mono); color:var(--green); letter-spacing:0.06em; }
-    .vtm-role-pill { font-size:9px; letter-spacing:0.12em; text-transform:uppercase; padding:3px 8px; font-weight:600; font-family:var(--font-mono); }
-    .vtm-role-pill.role-admin { background:rgba(247,246,242,0.15); color:var(--white); }
-    .vtm-role-pill.role-pacer { background:var(--red); color:var(--white); }
-    .vtm-role-pill.role-rover { background:var(--green); color:var(--white); }
-    .vtm-user-name { font-size:12px; color:rgba(247,246,242,0.6); font-family:var(--font-body); }
-    .vtm-signout { background:none; border:1px solid rgba(247,246,242,0.2); color:rgba(247,246,242,0.4); padding:4px 10px; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; font-family:var(--font-body); transition:all 0.2s; }
-    .vtm-signout:hover { border-color:rgba(247,246,242,0.5); color:var(--white); }
-    .vtm-hamburger { display:none; flex-direction:column; gap:5px; cursor:pointer; padding:4px; background:none; border:none; }
-    .vtm-hamburger span { display:block; width:22px; height:2px; background:rgba(247,246,242,0.6); transition:all 0.2s; }
-    .vtm-hamburger.open span:nth-child(1) { transform:translateY(7px) rotate(45deg); }
-    .vtm-hamburger.open span:nth-child(2) { opacity:0; }
-    .vtm-hamburger.open span:nth-child(3) { transform:translateY(-7px) rotate(-45deg); }
-    .vtm-nav-dropdown { display:none; flex-direction:column; background:var(--black); border-top:1px solid rgba(255,255,255,0.08); padding:8px 0 16px; }
-    .vtm-nav-dropdown.open { display:flex; }
-    .vtm-nav-dropdown a { font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:rgba(247,246,242,0.5); text-decoration:none; padding:12px 32px; font-family:var(--font-body); font-weight:500; border-bottom:1px solid rgba(255,255,255,0.04); transition:color 0.15s,background 0.15s; }
-    .vtm-nav-dropdown a:hover { color:var(--white); background:rgba(255,255,255,0.04); }
-    .vtm-nav-dropdown a.active { color:var(--white); }
-    .vtm-dropdown-user { padding:12px 32px 4px; display:flex; align-items:center; gap:10px; border-top:1px solid rgba(255,255,255,0.08); margin-top:4px; }
-    @media (max-width:768px) { .vtm-nav,.vtm-header-right{display:none} .vtm-hamburger{display:flex} .vtm-header-inner{padding:0 20px} }
-
     .page-container { max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
 
     .page-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 28px; }
-    .page-title { font-family: var(--font-display); font-size: 2rem; color: var(--black); }
+    .page-title { font-family: var(--font-display); font-size: 2.1rem; letter-spacing: 0.02em; color: var(--black); }
     .page-subtitle { font-size: 11px; color: var(--stone); font-family: var(--font-mono); margin-top: 4px; letter-spacing: 0.04em; }
 
-    .btn-primary { background: var(--red); color: white; border: none; padding: 10px 22px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; font-family: var(--font-body); transition: background 0.2s; text-decoration: none; display: inline-block; }
+    .btn-primary { background: var(--red); color: var(--white); border: none; padding: 10px 22px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; font-family: var(--font-body); transition: background 0.2s; text-decoration: none; display: inline-block; }
     .btn-primary:hover { background: var(--red-dark); }
-    .btn-secondary { background: transparent; color: var(--stone); border: 1px solid #ccc; padding: 7px 16px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; font-family: var(--font-body); transition: all 0.2s; text-decoration: none; display: inline-block; }
+    .btn-secondary { background: transparent; color: var(--stone); border: 1px solid var(--hole); padding: 7px 16px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; font-family: var(--font-body); transition: all 0.2s; text-decoration: none; display: inline-block; }
     .btn-secondary:hover { border-color: var(--charcoal); color: var(--black); }
     .btn-sm { padding: 4px 12px; font-size: 10px; }
 
@@ -69,7 +33,7 @@
     .project-row:hover { background: var(--light); }
 
     .project-code { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--red); letter-spacing: 0.08em; }
-    .project-name { font-family: var(--font-display); font-size: 1.15rem; color: var(--black); }
+    .project-name { font-family: var(--font-display); font-size: 1.25rem; letter-spacing: 0.02em; color: var(--black); }
     .project-desc { font-size: 12px; color: var(--stone); margin-top: 2px; }
     .project-meta { display: flex; align-items: center; gap: 12px; }
     .project-gig-count { font-size: 11px; font-family: var(--font-mono); color: var(--stone); background: var(--light); padding: 3px 10px; }
@@ -83,21 +47,21 @@
     .gig-panel { display: none; border-top: 1px solid var(--light); }
     .project-card.expanded .gig-panel { display: block; }
 
-    .gig-panel-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 28px; background: rgba(238,236,230,0.4); border-bottom: 1px solid var(--light); }
+    .gig-panel-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 28px; background: var(--light); border-bottom: 1px solid var(--hole); }
     .gig-panel-label { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--stone); font-family: var(--font-mono); }
 
     .gig-table { width: 100%; border-collapse: collapse; font-size: 12px; }
     .gig-table th { padding: 10px 14px; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; text-align: left; background: var(--black); color: var(--white); }
     .gig-table td { padding: 11px 14px; border-bottom: 1px solid var(--light); vertical-align: middle; color: var(--charcoal); }
     .gig-table tr:last-child td { border-bottom: none; }
-    .gig-table tr:hover td { background: rgba(238,236,230,0.5); }
+    .gig-table tr:hover td { background: var(--light); }
 
     .gig-code-cell { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--black); }
 
     .gig-type-badge { display: inline-block; font-size: 9px; letter-spacing: 0.1em; font-family: var(--font-mono); padding: 2px 7px; font-weight: 600; }
     .gig-type-badge.O        { background: #e8eef5; color: #2a5a8a; }
     .gig-type-badge.R        { background: #fceee8; color: var(--red); }
-    .gig-type-badge.instance { background: rgba(192,57,43,0.08); color: var(--red); border: 1px dashed rgba(192,57,43,0.3); }
+    .gig-type-badge.instance { background: rgba(181,32,26,0.08); color: var(--red); border: 1px dashed rgba(181,32,26,0.3); }
 
     .status-pill { display: inline-block; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; font-weight: 600; }
     .status-pill.placed      { background: #e8eef5; color: #2a5a8a; }
@@ -109,7 +73,7 @@
 
     .cat-tag { display: inline-block; font-size: 10px; font-family: var(--font-mono); color: var(--stone); background: var(--light); padding: 1px 7px; }
 
-    .tbl-btn { background: none; border: 1px solid #ccc; color: var(--mid); padding: 3px 10px; font-size: 10px; cursor: pointer; font-family: var(--font-body); letter-spacing: 0.06em; margin-right: 4px; transition: all 0.2s; }
+    .tbl-btn { background: none; border: 1px solid var(--hole); color: var(--charcoal); padding: 3px 10px; font-size: 10px; cursor: pointer; font-family: var(--font-body); letter-spacing: 0.06em; margin-right: 4px; transition: all 0.2s; }
     .tbl-btn:hover { border-color: var(--charcoal); color: var(--black); }
     .tbl-btn.danger:hover { border-color: var(--red); color: var(--red); }
 
@@ -119,43 +83,9 @@
 </head>
 <body data-page="projects">
 
-<!-- ── UNIFIED HEADER ──────────────────────────────────────────────────── -->
-<div class="vtm-header">
-  <div class="vtm-header-inner">
-    <a href="dashboard.html" class="vtm-brand">Vidai <span>to</span> Mulai</a>
-    <nav class="vtm-nav">
-      <a href="dashboard.html"         data-page="home">Home</a>
-      <a href="project_index.html" data-page="projects">Projects</a>
-      <a href="gig_index.html"     data-page="gigs">Gigs</a>
-      <a href="gig_eval.html"      data-page="evaluate">Evaluate</a>
-      <a href="timesheet.html"     data-page="timesheet">Timesheet</a>
-    </nav>
-    <div class="vtm-header-right">
-      <a href="timesheet.html" class="vtm-timer-pill" id="headerTimerPill">
-        <span class="vtm-timer-dot"></span>
-        <span class="vtm-timer-label" id="headerTimerLabel">Clocked in</span>
-      </a>
-      <span class="vtm-role-pill" id="headerRolePill"></span>
-      <span class="vtm-user-name" id="headerUserName"></span>
-      <button class="vtm-signout" onclick="vtmSignOut()">Sign out</button>
-    </div>
-    <button class="vtm-hamburger" id="hamburgerBtn" onclick="toggleMobileNav()" aria-label="Menu">
-      <span></span><span></span><span></span>
-    </button>
-  </div>
-  <div class="vtm-nav-dropdown" id="mobileNav">
-    <a href="dashboard.html"         data-page="home">Home</a>
-    <a href="project_index.html" data-page="projects">Projects</a>
-    <a href="gig_index.html"     data-page="gigs">Gigs</a>
-    <a href="gig_eval.html"      data-page="evaluate">Evaluate</a>
-    <a href="timesheet.html"     data-page="timesheet">Timesheet</a>
-    <div class="vtm-dropdown-user">
-      <span class="vtm-role-pill" id="mobileRolePill"></span>
-      <span class="vtm-user-name" id="mobileUserName"></span>
-      <button class="vtm-signout" style="margin-left:auto" onclick="vtmSignOut()">Sign out</button>
-    </div>
-  </div>
-</div>
+<!-- ── HEADER — injected by assets/vtm_header.js ─────────────────────────── -->
+<div id="vtmHeader"></div>
+<script src="assets/vtm_header.js"></script>
 
 <div class="page-container">
 
@@ -176,35 +106,5 @@
 </div>
 
 <script type="module" src="assets/project_index.js"></script>
-
-<script>
-  (function() {
-    const page = document.body.dataset.page;
-    document.querySelectorAll('.vtm-nav a, .vtm-nav-dropdown a').forEach(a => {
-      if (a.dataset.page === page) a.classList.add('active');
-    });
-    const s = vtmGetSession();
-    if (s) {
-      const rl = {admin:'Admin',pacer:'Lead',rover:'Doer'};
-      const rc = {admin:'role-admin',pacer:'role-pacer',rover:'role-rover'};
-      ['headerRolePill','mobileRolePill'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) { el.textContent = rl[s.role]||s.role; el.classList.add(rc[s.role]||''); }
-      });
-      ['headerUserName','mobileUserName'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = s.name;
-      });
-      if (s.role === 'rover') {
-        const newProjectBtn = document.getElementById('newProjectBtn');
-        if (newProjectBtn) newProjectBtn.remove();
-      }
-    }
-  })();
-  function toggleMobileNav() {
-    document.getElementById('mobileNav').classList.toggle('open');
-    document.getElementById('hamburgerBtn').classList.toggle('open');
-  }
-</script>
 </body>
 </html>

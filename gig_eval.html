@@ -3,357 +3,166 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gig Evaluation — Vidai to Mulai</title>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <title>Gig Evaluation — Mulai</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Special+Elite&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-  <link rel="stylesheet" href="assets/vtm.css">
+  <link rel="stylesheet" href="assets/vtm_2.css">
   <script src="assets/vtm.js"></script>
   <script src="assets/vtm_auth_guard.js"></script>
   <style>
-    /* ── UNIFIED HEADER ─────────────────────────────────────────────────── */
-    .vtm-header { background:var(--black); border-bottom:3px solid var(--red); position:sticky; top:0; z-index:100; }
-    .vtm-header-inner { display:flex; align-items:center; justify-content:space-between; padding:0 32px; height:56px; max-width:1200px; margin:0 auto; }
-    .vtm-brand { font-family:var(--font-display); font-size:1rem; color:var(--white); text-decoration:none; letter-spacing:0.04em; flex-shrink:0; }
-    .vtm-brand span { color:var(--red); }
-    .vtm-nav { display:flex; align-items:center; gap:4px; }
-    .vtm-nav a { font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:rgba(247,246,242,0.45); text-decoration:none; padding:6px 12px; transition:color 0.15s,background 0.15s; font-family:var(--font-body); font-weight:500; white-space:nowrap; }
-    .vtm-nav a:hover { color:var(--white); }
-    .vtm-nav a.active { color:var(--white); background:rgba(247,246,242,0.08); }
-    .vtm-header-right { display:flex; align-items:center; gap:12px; flex-shrink:0; }
-    .vtm-timer-pill { display:none; align-items:center; gap:6px; background:rgba(45,90,61,0.3); border:1px solid rgba(45,90,61,0.6); padding:4px 10px; cursor:pointer; text-decoration:none; transition:background 0.2s; }
-    .vtm-timer-pill:hover { background:rgba(45,90,61,0.5); }
-    .vtm-timer-pill.visible { display:flex; }
-    .vtm-timer-dot { width:7px; height:7px; border-radius:50%; background:var(--green); animation:vtm-pulse 1.8s ease-in-out infinite; }
-    @keyframes vtm-pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
-    .vtm-timer-label { font-size:10px; font-family:var(--font-mono); color:var(--green); letter-spacing:0.06em; }
-    .vtm-role-pill { font-size:9px; letter-spacing:0.12em; text-transform:uppercase; padding:3px 8px; font-weight:600; font-family:var(--font-mono); }
-    .vtm-role-pill.role-admin { background:rgba(247,246,242,0.15); color:var(--white); }
-    .vtm-role-pill.role-pacer { background:var(--red); color:var(--white); }
-    .vtm-role-pill.role-rover { background:var(--green); color:var(--white); }
-    .vtm-user-name { font-size:12px; color:rgba(247,246,242,0.6); font-family:var(--font-body); }
-    .vtm-signout { background:none; border:1px solid rgba(247,246,242,0.2); color:rgba(247,246,242,0.4); padding:4px 10px; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; font-family:var(--font-body); transition:all 0.2s; }
-    .vtm-signout:hover { border-color:rgba(247,246,242,0.5); color:var(--white); }
-    .vtm-hamburger { display:none; flex-direction:column; gap:5px; cursor:pointer; padding:4px; background:none; border:none; }
-    .vtm-hamburger span { display:block; width:22px; height:2px; background:rgba(247,246,242,0.6); transition:all 0.2s; }
-    .vtm-hamburger.open span:nth-child(1) { transform:translateY(7px) rotate(45deg); }
-    .vtm-hamburger.open span:nth-child(2) { opacity:0; }
-    .vtm-hamburger.open span:nth-child(3) { transform:translateY(-7px) rotate(-45deg); }
-    .vtm-nav-dropdown { display:none; flex-direction:column; background:var(--black); border-top:1px solid rgba(255,255,255,0.08); padding:8px 0 16px; }
-    .vtm-nav-dropdown.open { display:flex; }
-    .vtm-nav-dropdown a { font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:rgba(247,246,242,0.5); text-decoration:none; padding:12px 32px; font-family:var(--font-body); font-weight:500; border-bottom:1px solid rgba(255,255,255,0.04); transition:color 0.15s,background 0.15s; }
-    .vtm-nav-dropdown a:hover { color:var(--white); background:rgba(255,255,255,0.04); }
-    .vtm-nav-dropdown a.active { color:var(--white); }
-    .vtm-dropdown-user { padding:12px 32px 4px; display:flex; align-items:center; gap:10px; border-top:1px solid rgba(255,255,255,0.08); margin-top:4px; }
-    @media (max-width:768px) { .vtm-nav,.vtm-header-right{display:none} .vtm-hamburger{display:flex} .vtm-header-inner{padding:0 20px} }
+    .eval-container { max-width: 900px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    .picker-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--stone); margin-bottom: 14px; }
+    .picker-empty { background: var(--white); padding: 40px; text-align: center; color: var(--stone); font-size: 13px; border-top: 4px solid var(--charcoal); }
+
+    /* ── LOADED GIG ─────────────────────────────────────────────────────── */
+    #loadedSection { display: none; margin-top: 8px; }
+    .change-gig-bar { display: flex; align-items: center; justify-content: space-between; background: var(--green); padding: 10px 20px; margin-bottom: 20px; }
+    .change-gig-label { font-family: var(--font-mono); font-size: 11px; color: var(--white); letter-spacing: 0.04em; }
+    .change-gig-btn { background: none; border: 1px solid rgba(240,234,216,0.4); color: rgba(240,234,216,0.8); padding: 5px 14px; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; font-family: var(--font-body); }
+    .change-gig-btn:hover { border-color: var(--white); color: var(--white); }
+
+    .meta-strip { background: var(--black); display: grid; grid-template-columns: repeat(4, 1fr); margin-bottom: 4px; }
+    .meta-cell { padding: 12px 18px; border-right: 1px solid rgba(240,234,216,0.1); }
+    .meta-cell:last-child { border-right: none; }
+    .meta-cell-label { font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(240,234,216,0.35); margin-bottom: 4px; }
+    .meta-cell-val { font-family: var(--font-typed, 'Special Elite'), cursive; font-size: 13px; color: var(--white); }
+
+    .reflection-row { display: flex; align-items: center; gap: 14px; background: var(--white); padding: 14px 18px; margin-bottom: 20px; border-left: 3px solid var(--green); flex-wrap: wrap; }
+    .reflection-row label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--green); font-weight: 500; font-family: var(--font-mono); }
+    .reflection-row input[type="date"] { padding: 7px 10px; background: var(--light); border: none; border-bottom: 1px solid var(--hole); font-family: var(--font-body); font-size: 13px; outline: none; }
+
+    /* ── RATINGS TABLE ─────────────────────────────────────────────────── */
+    .eval-table { width: 100%; border-collapse: collapse; background: var(--white); margin-bottom: 20px; }
+    .eval-table thead tr { background: var(--black); color: var(--white); }
+    .eval-table th { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; padding: 10px 14px; text-align: left; font-family: var(--font-mono); }
+    .eval-table th.center { text-align: center; }
+    .eval-table td { padding: 14px; border-bottom: 1px solid var(--light); vertical-align: middle; }
+    .eval-table td.center { text-align: center; }
+
+    .attr-name { font-family: var(--font-display); font-size: 1.15rem; letter-spacing: 0.02em; color: var(--black); }
+    .attr-desc { font-size: 11.5px; color: var(--stone); margin-top: 2px; }
+    .attr-details-toggle { background: none; border: 1px solid var(--hole); color: var(--stone); font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 9px; cursor: pointer; margin-top: 8px; transition: all 0.15s; }
+    .attr-details-toggle:hover { border-color: var(--red); color: var(--red); }
+    .attr-details-toggle.open { border-color: var(--charcoal); color: var(--charcoal); background: var(--light); }
+
+    .details-row td { padding: 0; border-bottom: 1px solid var(--light); }
+    .details-panel { background: var(--light); border-left: 3px solid var(--red); padding: 14px 18px; margin: 2px 10px 10px; font-size: 12.5px; }
+    .details-row-line { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dotted var(--hole); }
+    .details-row-line:last-child { border-bottom: none; }
+    .details-row-line .k { color: var(--stone); font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.04em; }
+    .details-row-line .v { color: var(--black); font-weight: 700; }
+    .details-row-line .v.warn { color: var(--red); }
+    .details-list { margin-top: 8px; font-size: 12px; color: var(--charcoal); }
+    .details-list div { padding: 2px 0; }
+    .details-note { font-family: var(--font-mono); font-size: 10px; color: var(--stone); margin-top: 8px; font-style: italic; }
+
+    /* ── STAR + SLIDER — width-locked so the slider spans exactly the
+       star row's width ── */
+    .star-rating-widget { width: 116px; margin: 0 auto; }
+    .star-rating-widget .stars { display: flex; flex-direction: row-reverse; justify-content: space-between; width: 100%; }
+    .star-rating-widget .stars input { display: none; }
+    .star-rating-widget .stars label { font-size: 19px; color: var(--hole); cursor: pointer; transition: color 0.15s; line-height: 1; }
+    .star-rating-widget .stars label:hover,
+    .star-rating-widget .stars label:hover ~ label,
+    .star-rating-widget .stars input:checked ~ label { color: var(--red); }
+    .star-rating-widget .star-slider { width: 100%; margin-top: 6px; -webkit-appearance: none; appearance: none; height: 4px; background: var(--hole); border-radius: 2px; outline: none; cursor: pointer; display: block; }
+    .star-rating-widget .star-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%; background: var(--red); cursor: pointer; border: 2px solid var(--white); }
+    .star-rating-widget .star-slider::-moz-range-thumb { width: 13px; height: 13px; border-radius: 50%; background: var(--red); border: 2px solid var(--white); cursor: pointer; }
+    .star-rating-widget.disabled { opacity: 0.45; pointer-events: none; }
+
+    .score-cell { font-family: var(--font-display); font-size: 1.5rem; color: var(--red); }
+
+    /* ── NOTES (now above Final Score) ─────────────────────────────────── */
+    .notes-block { background: var(--white); border-top: 4px solid var(--charcoal); padding: 20px 24px; margin-bottom: 20px; }
+    .notes-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--stone); margin-bottom: 8px; }
+    .notes-input { width: 100%; background: var(--light); border: none; border-bottom: 1px solid var(--hole); padding: 10px 12px; font-family: var(--font-body); font-size: 13px; min-height: 70px; outline: none; resize: vertical; }
+    .notes-input:focus { border-bottom-color: var(--red); }
+
+    /* ── FINAL SCORE ────────────────────────────────────────────────────── */
+    .final-block { background: var(--black); padding: 26px 32px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .final-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(240,234,216,0.4); }
+    .final-sub { font-size: 11px; color: rgba(240,234,216,0.3); font-family: var(--font-mono); margin-top: 4px; }
+    .final-value { font-family: var(--font-display); font-size: 2.4rem; color: var(--white); display: flex; align-items: center; }
+    .final-value .star-glyphs { color: var(--red); letter-spacing: 2px; font-size: 1.5rem; margin-left: 12px; }
+
+    .submit-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .submit-note { font-size: 12px; color: var(--stone); }
+    .btn-submit { background: var(--red); color: var(--white); border: none; padding: 13px 32px; font-family: var(--font-body); font-size: 12px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: background 0.2s, transform 0.15s; }
+    .btn-submit:hover { background: var(--red-dark); transform: translateY(-1px); }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
   </style>
 </head>
 <body data-page="evaluate">
 
-<!-- ── UNIFIED HEADER ──────────────────────────────────────────────────── -->
-<div class="vtm-header">
-  <div class="vtm-header-inner">
-    <a href="dashboard.html" class="vtm-brand">Vidai <span>to</span> Mulai</a>
-    <nav class="vtm-nav">
-      <a href="dashboard.html"         data-page="home">Home</a>
-      <a href="project_index.html" data-page="projects">Projects</a>
-      <a href="gig_index.html"     data-page="gigs">Gigs</a>
-      <a href="gig_eval.html"      data-page="evaluate">Evaluate</a>
-      <a href="timesheet.html"     data-page="timesheet">Timesheet</a>
-    </nav>
-    <div class="vtm-header-right">
-      <a href="timesheet.html" class="vtm-timer-pill" id="headerTimerPill">
-        <span class="vtm-timer-dot"></span>
-        <span class="vtm-timer-label" id="headerTimerLabel">Clocked in</span>
-      </a>
-      <span class="vtm-role-pill" id="headerRolePill"></span>
-      <span class="vtm-user-name" id="headerUserName"></span>
-      <button class="vtm-signout" onclick="vtmSignOut()">Sign out</button>
-    </div>
-    <button class="vtm-hamburger" id="hamburgerBtn" onclick="toggleMobileNav()" aria-label="Menu">
-      <span></span><span></span><span></span>
-    </button>
-  </div>
-  <div class="vtm-nav-dropdown" id="mobileNav">
-    <a href="dashboard.html"         data-page="home">Home</a>
-    <a href="project_index.html" data-page="projects">Projects</a>
-    <a href="gig_index.html"     data-page="gigs">Gigs</a>
-    <a href="gig_eval.html"      data-page="evaluate">Evaluate</a>
-    <a href="timesheet.html"     data-page="timesheet">Timesheet</a>
-    <div class="vtm-dropdown-user">
-      <span class="vtm-role-pill" id="mobileRolePill"></span>
-      <span class="vtm-user-name" id="mobileUserName"></span>
-      <button class="vtm-signout" style="margin-left:auto" onclick="vtmSignOut()">Sign out</button>
-    </div>
-  </div>
-</div>
+<!-- ── HEADER — injected by assets/vtm_header.js ─────────────────────────── -->
+<div id="vtmHeader"></div>
+<script src="assets/vtm_header.js"></script>
 
-<main>
+<main class="eval-container">
 
   <!-- GIG PICKER -->
-  <div id="gigPickerSection" style="background:var(--black);padding:28px 48px;border-bottom:3px solid var(--red);">
-    <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--stone);font-family:var(--font-mono);margin-bottom:16px;" id="pickerLabel">Ready for Reflection — select a gig to begin</div>
-    <div id="gigPickerGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;"></div>
-    <div id="pickerEmpty" style="display:none;font-size:13px;color:var(--stone);padding:12px 0;">
-      No gigs ready for evaluation. Set a gig status to
-      <span style="font-family:var(--font-mono);color:rgba(247,246,242,0.5)">in_progress</span> or
-      <span style="font-family:var(--font-mono);color:rgba(247,246,242,0.5)">delivered</span> first.
+  <div id="pickerSection">
+    <div class="picker-label" id="pickerLabel">Ready for Reflection — select a gig</div>
+    <div class="vtm-picker-grid" id="gigPickerGrid"></div>
+    <div class="picker-empty" id="pickerEmpty" style="display:none;"></div>
+  </div>
+
+  <!-- LOADED GIG -->
+  <div id="loadedSection">
+    <div class="change-gig-bar">
+      <span class="change-gig-label" id="loadedGigLabel"></span>
+      <button class="change-gig-btn" onclick="resetPicker()">Change Gig</button>
     </div>
-  </div>
 
-  <!-- LOADED BANNER -->
-  <div class="load-gig-bar loaded" id="loadGigBar" style="display:none;">
-    <span class="load-gig-label">Loaded</span>
-    <span class="load-gig-hint" id="loadStatus" style="color:var(--white);"></span>
-    <button onclick="resetPicker()" style="margin-left:auto;background:none;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);padding:4px 12px;font-size:11px;cursor:pointer;letter-spacing:0.08em;text-transform:uppercase;font-family:var(--font-body);">Change Gig</button>
-  </div>
-
-  <!-- GIG META -->
-  <div class="gig-meta">
-    <div class="gig-meta-grid">
-      <div class="meta-label">Gig Code</div>
-      <input class="meta-input" id="gigCode" placeholder="G01" oninput="updateTitle()" />
-      <div class="meta-label">Date</div>
-      <input class="meta-input" id="gigDate" type="date" />
-      <div class="meta-label">Gig Name</div>
-      <input class="meta-input wide" id="gigName" placeholder="Short title of the gig" />
-      <div class="meta-label">Rover</div>
-      <input class="meta-input" id="roverDisplay" placeholder="Rover name" readonly />
-      <div class="meta-label">Pacer</div>
-      <input class="meta-input" id="pacerDisplay" placeholder="Pacer name" readonly />
-      <div class="meta-label">Description</div>
-      <textarea class="meta-input wide notes-input" id="gigDesc" placeholder="What was this gig about?" style="min-height:60px;"></textarea>
+    <div class="meta-strip">
+      <div class="meta-cell"><div class="meta-cell-label">Gig</div><div class="meta-cell-val" id="metaGigCode">—</div></div>
+      <div class="meta-cell"><div class="meta-cell-label">Doer</div><div class="meta-cell-val" id="metaRover">—</div></div>
+      <div class="meta-cell"><div class="meta-cell-label">Lead</div><div class="meta-cell-val" id="metaPacer">—</div></div>
+      <div class="meta-cell"><div class="meta-cell-label">Setting</div><div class="meta-cell-val" id="metaSetting">—</div></div>
     </div>
-  </div>
 
-  <!-- TOGGLES — read only in eval, set from gig data -->
-  <div class="gig-toggles" style="pointer-events:none;opacity:0.75;">
-    <div class="toggles-label">Gig Classification</div>
-    <div class="toggles-grid">
-      <div class="toggle-group">
-        <div class="toggle-group-label">Scale</div>
-        <div class="toggle-pair">
-          <input type="radio" name="tog-scale" id="tog-minor" value="minor" onchange="calcScores()" checked /><label for="tog-minor">Minor</label>
-          <input type="radio" name="tog-scale" id="tog-major" value="major" onchange="calcScores()" /><label for="tog-major">Major</label>
-        </div>
-      </div>
-      <div class="toggle-group">
-        <div class="toggle-group-label">Cadence</div>
-        <div class="toggle-pair">
-          <input type="radio" name="tog-cadence" id="tog-oneoff" value="oneoff" checked /><label for="tog-oneoff">One-off</label>
-          <input type="radio" name="tog-cadence" id="tog-recurring" value="recurring" /><label for="tog-recurring">Recurring</label>
-        </div>
-      </div>
-      <div class="toggle-group">
-        <div class="toggle-group-label">Setting</div>
-        <div class="toggle-pair">
-          <input type="radio" name="tog-setting" id="tog-field" value="field" onchange="onSettingChange();calcScores()" checked /><label for="tog-field">Field</label>
-          <input type="radio" name="tog-setting" id="tog-desk" value="desk" onchange="onSettingChange();calcScores()" /><label for="tog-desk">Desk</label>
-        </div>
-      </div>
-      <div class="toggle-group">
-        <div class="toggle-group-label">Skill Level</div>
-        <div class="toggle-pair">
-          <input type="radio" name="tog-skill" id="tog-unskilled" value="unskilled" checked /><label for="tog-unskilled">Unskilled</label>
-          <input type="radio" name="tog-skill" id="tog-skilled" value="skilled" /><label for="tog-skilled">Skilled</label>
-        </div>
-      </div>
+    <div class="reflection-row">
+      <label>Reflection Date</label>
+      <input type="date" id="reflectionDate">
+      <span style="color:var(--stone);font-size:11.5px;">Both parties should be present for this discussion.</span>
     </div>
-  </div>
 
-  <!-- D2: ENGAGEMENT -->
-  <div class="section-head">
-    <div class="section-num">D2</div>
-    <div><div class="section-title">Engagement</div><div class="section-weight">50% of Final Score</div></div>
-  </div>
-  <table class="eval-table">
-    <thead>
-      <tr>
-        <th style="width:35%">Attribute</th><th style="width:10%" class="center">Weight</th>
-        <th style="width:22%" class="center"><span class="col-badge rover-badge">Doer</span><br/>Self-Rating</th>
-        <th style="width:22%" class="center"><span class="col-badge pacer-badge">Lead</span><br/>Rating</th>
-        <th style="width:11%" class="center">Score</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td><div class="attr-name">Planning</div><div class="attr-desc">Ability to foresee needs, think long term</div></td>
-        <td style="text-align:center">33%</td>
-        <td><div class="rating-cell"><div class="stars"><input type="radio" name="d2p1rover" value="5" onchange="syncSlider('d2p1rover',5);calcScores()"><label>★</label><input type="radio" name="d2p1rover" value="4" onchange="syncSlider('d2p1rover',4);calcScores()"><label>★</label><input type="radio" name="d2p1rover" value="3" onchange="syncSlider('d2p1rover',3);calcScores()"><label>★</label><input type="radio" name="d2p1rover" value="2" onchange="syncSlider('d2p1rover',2);calcScores()"><label>★</label><input type="radio" name="d2p1rover" value="1" onchange="syncSlider('d2p1rover',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d2p1rover" min="1" max="5" value="1" oninput="syncStars('d2p1rover',this.value);calcScores()"></div></td>
-        <td><div class="rating-cell"><div class="stars"><input type="radio" name="d2p1pacer" value="5" onchange="syncSlider('d2p1pacer',5);calcScores()"><label>★</label><input type="radio" name="d2p1pacer" value="4" onchange="syncSlider('d2p1pacer',4);calcScores()"><label>★</label><input type="radio" name="d2p1pacer" value="3" onchange="syncSlider('d2p1pacer',3);calcScores()"><label>★</label><input type="radio" name="d2p1pacer" value="2" onchange="syncSlider('d2p1pacer',2);calcScores()"><label>★</label><input type="radio" name="d2p1pacer" value="1" onchange="syncSlider('d2p1pacer',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d2p1pacer" min="1" max="5" value="1" oninput="syncStars('d2p1pacer',this.value);calcScores()"></div></td>
-        <td class="score-cell" id="d2p1score">—</td>
-      </tr>
-      <tr>
-        <td><div class="attr-name">Execution</div><div class="attr-desc">Relationships maintained · Partnerships built</div></td>
-        <td style="text-align:center">33%</td>
-        <td><div class="rating-cell"><div class="stars"><input type="radio" name="d2p2rover" value="5" onchange="syncSlider('d2p2rover',5);calcScores()"><label>★</label><input type="radio" name="d2p2rover" value="4" onchange="syncSlider('d2p2rover',4);calcScores()"><label>★</label><input type="radio" name="d2p2rover" value="3" onchange="syncSlider('d2p2rover',3);calcScores()"><label>★</label><input type="radio" name="d2p2rover" value="2" onchange="syncSlider('d2p2rover',2);calcScores()"><label>★</label><input type="radio" name="d2p2rover" value="1" onchange="syncSlider('d2p2rover',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d2p2rover" min="1" max="5" value="1" oninput="syncStars('d2p2rover',this.value);calcScores()"></div></td>
-        <td><div class="rating-cell"><div class="stars"><input type="radio" name="d2p2pacer" value="5" onchange="syncSlider('d2p2pacer',5);calcScores()"><label>★</label><input type="radio" name="d2p2pacer" value="4" onchange="syncSlider('d2p2pacer',4);calcScores()"><label>★</label><input type="radio" name="d2p2pacer" value="3" onchange="syncSlider('d2p2pacer',3);calcScores()"><label>★</label><input type="radio" name="d2p2pacer" value="2" onchange="syncSlider('d2p2pacer',2);calcScores()"><label>★</label><input type="radio" name="d2p2pacer" value="1" onchange="syncSlider('d2p2pacer',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d2p2pacer" min="1" max="5" value="1" oninput="syncStars('d2p2pacer',this.value);calcScores()"></div></td>
-        <td class="score-cell" id="d2p2score">—</td>
-      </tr>
-      <tr>
-        <td><div class="attr-name">Reflection</div><div class="attr-desc">Learnings documented · Improvement opportunities identified</div></td>
-        <td style="text-align:center">34%</td>
-        <td><div class="rating-cell"><div class="stars"><input type="radio" name="d2p3rover" value="5" onchange="syncSlider('d2p3rover',5);calcScores()"><label>★</label><input type="radio" name="d2p3rover" value="4" onchange="syncSlider('d2p3rover',4);calcScores()"><label>★</label><input type="radio" name="d2p3rover" value="3" onchange="syncSlider('d2p3rover',3);calcScores()"><label>★</label><input type="radio" name="d2p3rover" value="2" onchange="syncSlider('d2p3rover',2);calcScores()"><label>★</label><input type="radio" name="d2p3rover" value="1" onchange="syncSlider('d2p3rover',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d2p3rover" min="1" max="5" value="1" oninput="syncStars('d2p3rover',this.value);calcScores()"></div></td>
-        <td><div class="rating-cell"><div class="stars"><input type="radio" name="d2p3pacer" value="5" onchange="syncSlider('d2p3pacer',5);calcScores()"><label>★</label><input type="radio" name="d2p3pacer" value="4" onchange="syncSlider('d2p3pacer',4);calcScores()"><label>★</label><input type="radio" name="d2p3pacer" value="3" onchange="syncSlider('d2p3pacer',3);calcScores()"><label>★</label><input type="radio" name="d2p3pacer" value="2" onchange="syncSlider('d2p3pacer',2);calcScores()"><label>★</label><input type="radio" name="d2p3pacer" value="1" onchange="syncSlider('d2p3pacer',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d2p3pacer" min="1" max="5" value="1" oninput="syncStars('d2p3pacer',this.value);calcScores()"></div></td>
-        <td class="score-cell" id="d2p3score">—</td>
-      </tr>
-      <tr class="dim-score-row">
-        <td colspan="2" style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;">Engagement Score</td>
-        <td class="score-cell" id="d2rover-avg" style="background:var(--light);color:var(--charcoal);">—</td>
-        <td class="score-cell" id="d2pacer-avg" style="background:var(--light);color:var(--charcoal);">—</td>
-        <td class="score-cell" id="d2final">—</td>
-      </tr>
-    </tbody>
-  </table>
+    <table class="eval-table">
+      <thead>
+        <tr>
+          <th style="width:38%">Attribute</th>
+          <th class="center" style="width:20%">Doer Rating</th>
+          <th class="center" style="width:20%">Lead Rating</th>
+          <th class="center" style="width:12%">Score</th>
+        </tr>
+      </thead>
+      <tbody id="ratingsBody"></tbody>
+    </table>
 
-  <!-- D3: EFFECTIVENESS -->
-  <div class="section-head">
-    <div class="section-num">D3</div>
-    <div><div class="section-title">Effectiveness</div><div class="section-weight">50% of Final Score</div></div>
-  </div>
-  <table class="eval-table">
-    <thead>
-      <tr>
-        <th style="width:35%">Attribute</th><th style="width:10%" class="center">Weight</th>
-        <th style="width:22%" class="center"><span class="col-badge rover-badge">Doer</span><br/>Self-Rating</th>
-        <th style="width:22%" class="center"><span class="col-badge pacer-badge">Lead</span><br/>Rating</th>
-        <th style="width:11%" class="center">Score</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr class="cost-row" id="d3-row-cost">
-        <td><div class="attr-name">Cost</div><div class="attr-desc">Delivered within agreed budget</div></td>
-        <td style="text-align:center" id="wCost">33%</td>
-        <td><div class="rating-cell"><div class="stars"><input type="radio" name="d3p1rover" value="5" onchange="syncSlider('d3p1rover',5);calcScores()"><label>★</label><input type="radio" name="d3p1rover" value="4" onchange="syncSlider('d3p1rover',4);calcScores()"><label>★</label><input type="radio" name="d3p1rover" value="3" onchange="syncSlider('d3p1rover',3);calcScores()"><label>★</label><input type="radio" name="d3p1rover" value="2" onchange="syncSlider('d3p1rover',2);calcScores()"><label>★</label><input type="radio" name="d3p1rover" value="1" onchange="syncSlider('d3p1rover',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d3p1rover" min="1" max="5" value="1" oninput="syncStars('d3p1rover',this.value);calcScores()"></div></td>
-        <td><div class="rating-cell"><div class="stars"><input type="radio" name="d3p1pacer" value="5" onchange="syncSlider('d3p1pacer',5);calcScores()"><label>★</label><input type="radio" name="d3p1pacer" value="4" onchange="syncSlider('d3p1pacer',4);calcScores()"><label>★</label><input type="radio" name="d3p1pacer" value="3" onchange="syncSlider('d3p1pacer',3);calcScores()"><label>★</label><input type="radio" name="d3p1pacer" value="2" onchange="syncSlider('d3p1pacer',2);calcScores()"><label>★</label><input type="radio" name="d3p1pacer" value="1" onchange="syncSlider('d3p1pacer',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d3p1pacer" min="1" max="5" value="1" oninput="syncStars('d3p1pacer',this.value);calcScores()"></div></td>
-        <td class="score-cell" id="d3p1score">—</td>
-      </tr>
-      <tr>
-        <td><div class="attr-name">Quality</div><div class="attr-desc">Quality of deliverable meets agreed standard</div></td>
-        <td style="text-align:center" id="wQuality">33%</td>
-        <td><div class="rating-cell"><div class="stars"><input type="radio" name="d3p2rover" value="5" onchange="syncSlider('d3p2rover',5);calcScores()"><label>★</label><input type="radio" name="d3p2rover" value="4" onchange="syncSlider('d3p2rover',4);calcScores()"><label>★</label><input type="radio" name="d3p2rover" value="3" onchange="syncSlider('d3p2rover',3);calcScores()"><label>★</label><input type="radio" name="d3p2rover" value="2" onchange="syncSlider('d3p2rover',2);calcScores()"><label>★</label><input type="radio" name="d3p2rover" value="1" onchange="syncSlider('d3p2rover',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d3p2rover" min="1" max="5" value="1" oninput="syncStars('d3p2rover',this.value);calcScores()"></div></td>
-        <td><div class="rating-cell"><div class="stars"><input type="radio" name="d3p2pacer" value="5" onchange="syncSlider('d3p2pacer',5);calcScores()"><label>★</label><input type="radio" name="d3p2pacer" value="4" onchange="syncSlider('d3p2pacer',4);calcScores()"><label>★</label><input type="radio" name="d3p2pacer" value="3" onchange="syncSlider('d3p2pacer',3);calcScores()"><label>★</label><input type="radio" name="d3p2pacer" value="2" onchange="syncSlider('d3p2pacer',2);calcScores()"><label>★</label><input type="radio" name="d3p2pacer" value="1" onchange="syncSlider('d3p2pacer',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d3p2pacer" min="1" max="5" value="1" oninput="syncStars('d3p2pacer',this.value);calcScores()"></div></td>
-        <td class="score-cell" id="d3p2score">—</td>
-      </tr>
-      <tr>
-        <td><div class="attr-name">Timeline</div><div class="attr-desc">Delivered on time as agreed</div></td>
-        <td style="text-align:center" id="wTimeline">34%</td>
-        <td><div class="rating-cell"><div class="stars"><input type="radio" name="d3p3rover" value="5" onchange="syncSlider('d3p3rover',5);calcScores()"><label>★</label><input type="radio" name="d3p3rover" value="4" onchange="syncSlider('d3p3rover',4);calcScores()"><label>★</label><input type="radio" name="d3p3rover" value="3" onchange="syncSlider('d3p3rover',3);calcScores()"><label>★</label><input type="radio" name="d3p3rover" value="2" onchange="syncSlider('d3p3rover',2);calcScores()"><label>★</label><input type="radio" name="d3p3rover" value="1" onchange="syncSlider('d3p3rover',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d3p3rover" min="1" max="5" value="1" oninput="syncStars('d3p3rover',this.value);calcScores()"></div></td>
-        <td><div class="rating-cell"><div class="stars"><input type="radio" name="d3p3pacer" value="5" onchange="syncSlider('d3p3pacer',5);calcScores()"><label>★</label><input type="radio" name="d3p3pacer" value="4" onchange="syncSlider('d3p3pacer',4);calcScores()"><label>★</label><input type="radio" name="d3p3pacer" value="3" onchange="syncSlider('d3p3pacer',3);calcScores()"><label>★</label><input type="radio" name="d3p3pacer" value="2" onchange="syncSlider('d3p3pacer',2);calcScores()"><label>★</label><input type="radio" name="d3p3pacer" value="1" onchange="syncSlider('d3p3pacer',1);calcScores()" checked><label>★</label></div><input type="range" class="star-slider" id="sl-d3p3pacer" min="1" max="5" value="1" oninput="syncStars('d3p3pacer',this.value);calcScores()"></div></td>
-        <td class="score-cell" id="d3p3score">—</td>
-      </tr>
-      <tr class="dim-score-row">
-        <td colspan="2" style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;">Effectiveness Score</td>
-        <td class="score-cell" id="d3rover-avg" style="background:var(--light);color:var(--charcoal);">—</td>
-        <td class="score-cell" id="d3pacer-avg" style="background:var(--light);color:var(--charcoal);">—</td>
-        <td class="score-cell" id="d3final">—</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <!-- FINAL SCORE — Lead weighted average only, no rewards -->
-  <div class="final-block">
-    <div class="final-item" style="grid-column:1/-1;text-align:center;">
-      <div class="final-label">Final Score — Lead Rating</div>
-      <div class="final-value red final-stars" id="finalStarsDisplay">— ★</div>
+    <div class="notes-block">
+      <div class="notes-label">Discussion Notes</div>
+      <textarea class="notes-input" id="notes" placeholder="Key points from the discussion session…"></textarea>
     </div>
-  </div>
 
-  <!-- REFLECTION DATE -->
-  <div class="reflection-row">
-    <label>Reflection Session Date</label>
-    <input class="meta-input" id="reflectionDate" type="date" style="max-width:180px;" />
-    <label style="color:var(--stone);font-size:12px;text-transform:none;">Both parties must be present. Payout conditional on completed reflection.</label>
-  </div>
+    <div class="final-block">
+      <div>
+        <div class="final-label">Final Score</div>
+        <div class="final-sub" id="finalSub">Average of Lead ratings</div>
+      </div>
+      <div class="final-value"><span id="finalNum">—</span><span class="star-glyphs" id="finalStars"></span></div>
+    </div>
 
-  <!-- NOTES -->
-  <div class="notes-block">
-    <div class="notes-label">Discussion Notes</div>
-    <textarea class="notes-input" id="notes" placeholder="Key points from the discussion session…"></textarea>
-  </div>
-
-  <!-- SUBMIT -->
-  <div class="submit-block">
-    <p class="submit-note" id="submitNote">Evaluation saved to database. Gig marked completed.</p>
-    <button class="btn-submit" id="submitRoverBtn" style="display:none;background:var(--green);" onclick="submitRoverEval()">Save Self-Rating &rarr;</button>
-    <button class="btn-submit" id="submitPacerBtn" style="display:none;" onclick="submitPacerEval()">Save Evaluation &rarr;</button>
-    <button class="btn-submit" id="submitBtn" onclick="submitEval()">Save Evaluation &rarr;</button>
+    <div class="submit-row">
+      <p class="submit-note" id="submitNote">Evaluation saved to database.</p>
+      <button class="btn-submit" id="submitRoverBtn" style="display:none;background:var(--green);" onclick="submitRoverEval()">Save Self-Rating →</button>
+      <button class="btn-submit" id="submitPacerBtn" style="display:none;" onclick="submitPacerEval()">Save Evaluation →</button>
+      <button class="btn-submit" id="submitBtn" style="display:none;" onclick="submitEval()">Save Evaluation →</button>
+    </div>
   </div>
 
 </main>
 
-<script>
-  function updateTitle() {
-    const code = document.getElementById('gigCode').value || 'Gig'
-    document.title = code + ' Evaluation — Vidai to Mulai'
-  }
-
-  function downloadEvalXLSX() {
-    const code = document.getElementById('gigCode').value || 'G00'
-    const _t   = id => document.getElementById(id)?.textContent || ''
-    const rows = [
-      ['Gig Code', code],
-      ['Gig Name', document.getElementById('gigName').value || ''],
-      ['Date',     document.getElementById('gigDate').value || ''],
-      [],
-      ['Dimension','Attribute','Rover','Pacer','Score'],
-      ['D2','Planning',   getVal('d2p1rover'), getVal('d2p1pacer'), _t('d2p1score')],
-      ['D2','Execution',  getVal('d2p2rover'), getVal('d2p2pacer'), _t('d2p2score')],
-      ['D2','Reflection', getVal('d2p3rover'), getVal('d2p3pacer'), _t('d2p3score')],
-      ['D2 Score','','',  _t('d2rover-avg'), _t('d2pacer-avg'), _t('d2final')],
-      [],
-      ['D3','Cost',     getVal('d3p1rover'), getVal('d3p1pacer'), _t('d3p1score')],
-      ['D3','Quality',  getVal('d3p2rover'), getVal('d3p2pacer'), _t('d3p2score')],
-      ['D3','Timeline', getVal('d3p3rover'), getVal('d3p3pacer'), _t('d3p3score')],
-      ['D3 Score','','', _t('d3rover-avg'), _t('d3pacer-avg'), _t('d3final')],
-      [],
-      ['Final Score (Lead)', _t('finalStarsDisplay')],
-      [],
-      ['Notes', document.getElementById('notes')?.value || ''],
-    ]
-    const ws = XLSX.utils.aoa_to_sheet(rows)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, code)
-    XLSX.writeFile(wb, code + '_eval.xlsx')
-  }
-  
-  window.downloadEvalXLSX = downloadEvalXLSX;
-  window.getVal = function(name) {
-    const checked = document.querySelector(`input[name="${name}"]:checked`);
-    return checked ? parseFloat(checked.value) : null;
-  }
-</script>
-
 <script type="module" src="assets/gig_eval.js"></script>
-
-<script>
-  (function() {
-    const page = document.body.dataset.page;
-    document.querySelectorAll('.vtm-nav a, .vtm-nav-dropdown a').forEach(a => {
-      if (a.dataset.page === page) a.classList.add('active');
-    });
-    const s = vtmGetSession();
-    if (s) {
-      const rl = {admin:'Admin',pacer:'Pacer',rover:'Rover'};
-      const rc = {admin:'role-admin',pacer:'role-pacer',rover:'role-rover'};
-      ['headerRolePill','mobileRolePill'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) { el.textContent = rl[s.role]||s.role; el.classList.add(rc[s.role]||''); }
-      });
-      ['headerUserName','mobileUserName'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = s.name;
-      });
-    }
-  })();
-  function toggleMobileNav() {
-    document.getElementById('mobileNav').classList.toggle('open');
-    document.getElementById('hamburgerBtn').classList.toggle('open');
-  }
-  window.toggleMobileNav = toggleMobileNav;
-  window.resetPicker = function() { location.reload(); };
-  window.submitRoverEval = function() { alert("Self-rating saved (stub)"); };
-  window.submitPacerEval = function() { alert("Evaluation saved (stub)"); };
-  window.submitEval = function() { alert("Final evaluation saved (stub)"); };
-</script>
 </body>
 </html>

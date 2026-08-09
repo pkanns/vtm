@@ -81,6 +81,8 @@
     .gtask-del { background: none; border: none; color: var(--hole); font-size: 15px; cursor: pointer; line-height: 1; }
     .gtask-del:hover { color: var(--red); }
     .gtask-empty { font-size: 12.5px; color: var(--stone); padding: 12px 4px; font-style: italic; }
+    .gtask-extract-row { display: flex; align-items: center; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+    .gtask-extract-hint { font-size: 11px; color: var(--stone); font-family: var(--font-mono); }
     .gtask-add-row { display: flex; gap: 10px; margin-top: 16px; }
     .gtask-add-row input { flex: 1; padding: 10px 12px; background: var(--light); border: none; border-bottom: 1px solid var(--hole); font-family: var(--font-body); font-size: 13px; outline: none; }
     .gtask-add-row input:focus { border-bottom-color: var(--red); }
@@ -277,6 +279,10 @@
     <div class="form-title" style="font-size:1.4rem;">Tasks</div>
     <div class="form-subtitle">Checklist for this gig — add, assign, and track completion</div>
     <div class="gtask-strip" id="taskListBody"><div class="gtask-empty">Loading…</div></div>
+    <div class="gtask-extract-row">
+      <button type="button" class="btn-secondary" onclick="extractTasksFromDescription()">↓ Extract Tasks from Description</button>
+      <span class="gtask-extract-hint">Reads the Description field above — one task per line</span>
+    </div>
     <div class="gtask-add-row">
       <input type="text" id="newTaskTitle" placeholder="Add a task…" onkeydown="if(event.key==='Enter') addGigTask()">
       <button type="button" class="btn-secondary" onclick="addGigTask()">+ Add</button>

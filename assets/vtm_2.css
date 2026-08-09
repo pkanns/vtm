@@ -467,3 +467,124 @@ input[name="tog-scale"][value="major"]:checked + label {
   .vtm-hamburger    { display: flex; }
   .vtm-header-inner { padding: 0 20px; }
 }
+
+/* ── GIG PICKER CARD ────────────────────────────────────────────────────
+   Reusable "pick a gig" card — first built for gig_eval's selection grid,
+   generalized here so any page can render the same look. Rendering lives
+   in assets/gig_picker.js (renderGigPickerCard / renderGigPickerGrid);
+   this is just the styling half. Planned next for gig_index.html (as the
+   pattern for browsing by pipeline stage) and the dashboard. ── */
+.gpicker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.gpicker-card {
+  background: var(--white);
+  border: 1px solid var(--hole);
+  border-left: 5px solid var(--stone);
+  padding: 16px 18px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.gpicker-card:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,0.08); }
+.gpicker-card.selected { box-shadow: 0 4px 16px rgba(0,0,0,0.12); border-left-width: 7px; }
+
+.gpicker-card.status-delivered   { border-left-color: var(--green); background: linear-gradient(135deg, rgba(30,122,61,0.07), var(--white) 45%); }
+.gpicker-card.status-in_progress { border-left-color: var(--red);   background: linear-gradient(135deg, rgba(181,32,26,0.07), var(--white) 45%); }
+.gpicker-card.status-placed      { border-left-color: #2a5a8a; }
+.gpicker-card.status-matched     { border-left-color: #7b3fa0; }
+.gpicker-card.status-aligned     { border-left-color: #8a6200; }
+.gpicker-card.status-completed   { border-left-color: var(--stone); }
+
+.gpicker-code { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; margin-bottom: 4px; }
+.gpicker-code.status-delivered   { color: var(--green); }
+.gpicker-code.status-in_progress { color: var(--red); }
+
+.gpicker-title { font-family: var(--font-display); font-size: 1.15rem; letter-spacing: 0.02em; color: var(--black); line-height: 1.15; margin-bottom: 8px; }
+.gpicker-subtitle { font-size: 11px; color: var(--stone); margin: -4px 0 8px; }
+.gpicker-meta { display: flex; align-items: center; justify-content: space-between; font-size: 10px; font-family: var(--font-mono); color: var(--stone); border-top: 1px solid var(--light); padding-top: 8px; }
+
+.gpicker-status-badge { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 8px; font-weight: 600; }
+.gpicker-status-badge.status-delivered   { background: #e8f5ee; color: var(--green); }
+.gpicker-status-badge.status-in_progress { background: #fceee8; color: var(--red); }
+.gpicker-status-badge.status-placed      { background: #e8eef5; color: #2a5a8a; }
+.gpicker-status-badge.status-matched     { background: #f5eef8; color: #7b3fa0; }
+.gpicker-status-badge.status-aligned     { background: #fdf5e0; color: #8a6200; }
+.gpicker-status-badge.status-completed   { background: var(--light); color: var(--stone); }
+
+/* ── TASK ROWS (gig checklist — shared by the gig edit form's full
+   management view and Project Index's lightweight check-off panel) ──── */
+.task-row, .task-row-light {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--light);
+}
+.task-row:last-child, .task-row-light:last-child { border-bottom: none; }
+.task-check { width: 16px; height: 16px; accent-color: var(--green); cursor: pointer; flex-shrink: 0; }
+.task-check:disabled { cursor: not-allowed; opacity: 0.6; }
+.task-title { flex: 1; font-family: var(--font-body); font-size: 13.5px; color: var(--black); }
+.task-row.task-done .task-title,
+.task-row-light.task-done .task-title { color: var(--stone); text-decoration: line-through; }
+.task-assignee-pill {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--stone);
+  background: var(--light);
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+.task-assignee-mini { font-family: var(--font-mono); font-size: 10px; color: var(--stone); white-space: nowrap; }
+.task-btn {
+  background: none;
+  border: 1px solid var(--hole);
+  color: var(--stone);
+  padding: 3px 9px;
+  font-size: 10px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  letter-spacing: 0.04em;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.task-btn:hover { border-color: var(--charcoal); color: var(--black); }
+.task-btn-danger:hover { border-color: var(--red); color: var(--red); }
+.task-add-row { display: flex; gap: 10px; margin-top: 14px; align-items: center; }
+.task-add-row input {
+  flex: 1;
+  padding: 9px 12px;
+  background: var(--light);
+  border: none;
+  border-bottom: 1px solid var(--hole);
+  font-family: var(--font-body);
+  font-size: 13px;
+  outline: none;
+}
+.task-add-row input:focus { border-bottom-color: var(--red); }
+.tasks-empty { font-size: 12.5px; color: var(--stone); padding: 10px 4px; font-style: italic; }
+
+/* ── PICKER CARDS (generic "choose one of several" pattern — first used
+   in gig_eval's gig picker; render logic lives in assets/vtm_cards.js.
+   Planned future reuse in gig_index's workflow filters and the dashboard
+   — not built yet, this is the first real consumer.) ─────────────────── */
+.vtm-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.vtm-picker-card { background: var(--white); border: 1px solid var(--hole); border-top: 4px solid var(--stone); padding: 16px 18px; cursor: pointer; transition: all 0.15s; }
+.vtm-picker-card:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0,0,0,0.08); }
+.vtm-picker-card.selected { box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+.vtm-picker-code { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; margin-bottom: 6px; font-weight: 700; }
+.vtm-picker-title { font-family: var(--font-display); font-size: 1.2rem; letter-spacing: 0.02em; color: var(--black); line-height: 1.15; margin-bottom: 10px; }
+.vtm-picker-meta { display: flex; justify-content: space-between; align-items: center; font-size: 10px; font-family: var(--font-mono); letter-spacing: 0.04em; color: var(--stone); border-top: 1px solid var(--light); padding-top: 8px; }
+.vtm-picker-meta .status-label { font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+
+.vtm-picker-card.status-placed      { border-top-color: #2a5a8a; }
+.vtm-picker-card.status-matched     { border-top-color: #7b3fa0; }
+.vtm-picker-card.status-aligned     { border-top-color: #8a6200; }
+.vtm-picker-card.status-in_progress { border-top-color: var(--red); }
+.vtm-picker-card.status-delivered   { border-top-color: var(--green); }
+.vtm-picker-card.status-completed   { border-top-color: var(--stone); }
+.vtm-picker-card.status-placed      .vtm-picker-code, .vtm-picker-card.status-placed      .status-label { color: #2a5a8a; }
+.vtm-picker-card.status-matched     .vtm-picker-code, .vtm-picker-card.status-matched     .status-label { color: #7b3fa0; }
+.vtm-picker-card.status-aligned     .vtm-picker-code, .vtm-picker-card.status-aligned     .status-label { color: #8a6200; }
+.vtm-picker-card.status-in_progress .vtm-picker-code, .vtm-picker-card.status-in_progress .status-label { color: var(--red); }
+.vtm-picker-card.status-delivered   .vtm-picker-code, .vtm-picker-card.status-delivered   .status-label { color: var(--green); }
+.vtm-picker-card.status-completed   .vtm-picker-code, .vtm-picker-card.status-completed   .status-label { color: var(--stone); }

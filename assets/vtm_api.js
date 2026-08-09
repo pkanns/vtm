@@ -163,16 +163,31 @@ export async function fetchGigById(db, id) {
     .single()
 }
 
+/**
+ * Gigs eligible for evaluation — delivered only. A gig has to actually be
+ * marked delivered (not just in_progress) before evaluation can start;
+ * this used to also include in_progress, which cluttered the picker with
+ * gigs that weren't really ready yet.
+ */
 export async function fetchGigsForEval(db) {
   return db
     .from('gigs')
     .select(`
       gig_id, gig_code, title, description, status, cadence,
-      date_due, pacer_id, rover_id,
+      date_due, date_start, pacer_id, rover_id,
+      setting, scale, skill_level, budget_total,
       project_categories ( category_code )
     `)
-    .in('status', ['in_progress', 'delivered'])
+    .eq('status', 'delivered')
     .order('date_due', { ascending: true })
+}
+
+export async function fetchEvaluationByGig(db, gigId) {
+  return db
+    .from('evaluations')
+    .select('*')
+    .eq('gig_id', gigId)
+    .maybeSingle()
 }
 
 /**

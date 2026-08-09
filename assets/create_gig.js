@@ -363,6 +363,52 @@ window.addGigTask = async function() {
   await loadGigTasks(currentGigCtx.gig_id, currentGigCtx.pacer_id, currentGigCtx.rover_id)
 }
 
+// ── EXTRACT TASKS FROM DESCRIPTION ─────────────────────────────────────────
+// Reads whatever's currently in the Description textarea, one task per
+// line. Strips common leading bullet/number markers so the task title
+// comes out clean regardless of how the line was formatted. Lines that
+// already match an existing task's title are skipped, so clicking this
+// twice on the same description doesn't create duplicates.
+
+function parseDescriptionLines(text) {
+  return (text || '')
+    .split('\n')
+    .map(line => line.trim())
+    .map(line => line.replace(/^[-•*]\s+/, '').replace(/^\d+[.)]\s+/, ''))
+    .filter(line => line.length > 0)
+}
+
+window.extractTasksFromDescription = async function() {
+  if (!currentGigCtx) return
+
+  const desc  = document.getElementById('gigDesc').value
+  const lines = parseDescriptionLines(desc)
+
+  if (!lines.length) { showToast('Description is empty', 'err'); return }
+
+  const existingTitles = new Set(currentGigTasks.map(t => t.title.trim().toLowerCase()))
+  const newLines = lines.filter(l => !existingTitles.has(l.toLowerCase()))
+
+  if (!newLines.length) { showToast('All lines are already on the checklist', 'err'); return }
+
+  const count = newLines.length
+  if (!confirm(`Add ${count} task${count !== 1 ? 's' : ''} from the description?`)) return
+
+  const payloads = newLines.map(title => ({
+    gig_id:      currentGigCtx.gig_id,
+    title,
+    assigned_to: currentGigCtx.rover_id,
+    created_by:  myUserId,
+    done:        false,
+  }))
+
+  const { error } = await createTask(db, payloads)
+  if (error) { showToast('Could not add tasks — ' + error.message, 'err'); return }
+
+  showToast(`Added ${count} task${count !== 1 ? 's' : ''}`, 'ok')
+  await loadGigTasks(currentGigCtx.gig_id, currentGigCtx.pacer_id, currentGigCtx.rover_id)
+}
+
 window.toggleGigTask = async function(taskId, done) {
   const { error } = await toggleTaskDone(db, taskId, done)
   if (error) { showToast('Could not update task', 'err'); return }

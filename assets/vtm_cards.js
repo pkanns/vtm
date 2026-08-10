@@ -30,3 +30,20 @@ export function renderGigPickerCard(gig, { dueLabel = '', selected = false } = {
       </div>
     </div>`
 }
+
+/**
+ * The dashboard's "your workspace" tile — same card, no gig code line
+ * (nothing to put there), a fixed green accent (these are always live,
+ * available destinations, not status-varying like a gig), and it's an
+ * actual link rather than a click handler since it just navigates.
+ */
+export function renderMenuPickerCard(page) {
+  return `
+    <a class="vtm-picker-card status-delivered" href="${esc(page.url)}">
+      <div class="vtm-picker-title">${esc(page.label)}</div>
+      <div class="vtm-picker-meta">
+        <span>${esc(page.description || '')}</span>
+        <span class="status-label">Open →</span>
+      </div>
+    </a>`
+}

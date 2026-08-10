@@ -10,10 +10,11 @@
  *  3. GIGS
  *  4. RECURRENCE SCHEDULE
  *  5. GIG TASKS
- *  6. EVALUATIONS
- *  7. USERS
- *  8. COUNTS (dashboard)
- *  9. SHARED HELPERS
+ *  6. DASHBOARD PAGES
+ *  7. EVALUATIONS
+ *  8. USERS
+ *  9. COUNTS (dashboard)
+ * 10. SHARED HELPERS
  */
 
 // ── 1. PROJECTS ───────────────────────────────────────────────────────────
@@ -309,7 +310,32 @@ export async function deleteTask(db, taskId) {
   return db.from('gig_tasks').delete().eq('task_id', taskId)
 }
 
-// ── 6. EVALUATIONS ────────────────────────────────────────────────────────
+// ── 6. DASHBOARD PAGES (dash_admin.html config; dashboard.html reads it) ──
+// Table: dashboard_pages (page_id, label, description, url, sort_order,
+// visible_admin, visible_pacer, visible_rover). No auto-discovery is
+// possible on a static site — this list is maintained by hand via
+// dash_admin.html, not derived from the repo's actual files.
+
+export async function fetchDashboardPages(db) {
+  return db
+    .from('dashboard_pages')
+    .select('*')
+    .order('sort_order', { ascending: true })
+}
+
+export async function addDashboardPage(db, payload) {
+  return db.from('dashboard_pages').insert(payload).select()
+}
+
+export async function updateDashboardPageVisibility(db, pageId, field, value) {
+  return db.from('dashboard_pages').update({ [field]: value }).eq('page_id', pageId)
+}
+
+export async function deleteDashboardPage(db, pageId) {
+  return db.from('dashboard_pages').delete().eq('page_id', pageId)
+}
+
+// ── 7. EVALUATIONS ────────────────────────────────────────────────────────
 
 export async function saveEvaluation(db, payload) {
   return db.from('evaluations').insert([payload])
@@ -322,7 +348,7 @@ export async function fetchEvaluations(db) {
     .order('created_at', { ascending: false })
 }
 
-// ── 7. USERS ──────────────────────────────────────────────────────────────
+// ── 8. USERS ──────────────────────────────────────────────────────────────
 
 export async function fetchActiveLeads(db) {
   return db
@@ -348,7 +374,7 @@ export async function fetchUsersByIds(db, ids) {
   return db.from('vtm_users').select('user_id, name').in('user_id', clean)
 }
 
-// ── 8. COUNTS (dashboard) ─────────────────────────────────────────────────
+// ── 9. COUNTS (dashboard) ─────────────────────────────────────────────────
 
 export async function fetchCounts(db) {
   const [users, gigs, evals] = await Promise.all([
@@ -363,7 +389,7 @@ export async function fetchCounts(db) {
   }
 }
 
-// ── 9. SHARED HELPERS ─────────────────────────────────────────────────────
+// ── 10. SHARED HELPERS ─────────────────────────────────────────────────────
 
 export function fmtDate(iso) {
   if (!iso) return '—'

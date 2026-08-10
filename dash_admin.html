@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Admin — Mulai</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Special+Elite&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/vtm_2.css">
+  <script src="assets/vtm.js"></script>
+  <script src="assets/vtm_auth_guard.js"></script>
+  <style>
+    .page-container { max-width: 900px; margin: 0 auto; padding: 40px 24px 80px; }
+    .page-title { font-family: var(--font-display); font-size: 2.1rem; letter-spacing: 0.02em; color: var(--black); margin-bottom: 4px; }
+    .page-subtitle { font-size: 11px; color: var(--stone); font-family: var(--font-mono); margin-bottom: 24px; letter-spacing: 0.04em; }
+
+    .db-status { font-size: 11px; font-family: var(--font-mono); color: var(--stone); margin-bottom: 16px; }
+    .db-status.ok  { color: var(--green); }
+    .db-status.err { color: var(--red); }
+
+    table.config-table { width: 100%; border-collapse: collapse; background: var(--white); margin-bottom: 28px; }
+    table.config-table th { background: var(--black); color: var(--white); font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 10px 14px; text-align: left; }
+    table.config-table th.center { text-align: center; }
+    table.config-table td { padding: 12px 14px; border-bottom: 1px solid var(--light); vertical-align: middle; }
+    table.config-table td.center { text-align: center; }
+    table.config-table tr:last-child td { border-bottom: none; }
+    .page-label { font-family: var(--font-display); font-size: 1.1rem; color: var(--black); letter-spacing: 0.02em; }
+    .page-url { font-family: var(--font-mono); font-size: 10px; color: var(--stone); margin-top: 2px; }
+    .config-check { width: 18px; height: 18px; accent-color: var(--red); cursor: pointer; }
+    .row-del { background: none; border: 1px solid var(--hole); color: var(--stone); width: 24px; height: 24px; border-radius: 50%; cursor: pointer; font-size: 14px; line-height: 1; transition: all 0.15s; }
+    .row-del:hover { background: var(--red); border-color: var(--red); color: var(--white); }
+
+    .add-card { background: var(--white); border-top: 4px solid var(--green); padding: 24px 28px; }
+    .add-card-title { font-family: var(--font-display); font-size: 1.3rem; letter-spacing: 0.02em; margin-bottom: 14px; }
+    .add-row { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 12px; align-items: end; }
+    .add-row .form-row label { display: block; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--stone); margin-bottom: 5px; font-family: var(--font-mono); }
+    .add-row input { width: 100%; padding: 9px 10px; background: var(--light); border: none; border-bottom: 1px solid var(--hole); font-family: var(--font-body); font-size: 13px; outline: none; }
+    .add-row input:focus { border-bottom-color: var(--red); }
+    .btn-add { background: var(--black); color: var(--white); border: none; padding: 11px 20px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; font-family: var(--font-body); white-space: nowrap; }
+    .btn-add:hover { background: var(--charcoal); }
+
+    @media (max-width: 640px) { .add-row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body data-page="home">
+
+<div id="vtmHeader"></div>
+<script src="assets/vtm_header.js"></script>
+<script type="module" src="assets/vtm_admin_guard.js"></script>
+
+<div class="page-container">
+  <div class="page-title">Dashboard Admin</div>
+  <div class="page-subtitle">Choose which pages appear on each role's dashboard</div>
+  <div class="db-status" id="dbStatus">Loading…</div>
+
+  <table class="config-table">
+    <thead>
+      <tr>
+        <th>Page</th>
+        <th class="center">Admin</th>
+        <th class="center">Lead</th>
+        <th class="center">Doer</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="pagesBody">
+      <tr><td colspan="5" style="text-align:center;color:var(--stone);padding:24px;">Loading…</td></tr>
+    </tbody>
+  </table>
+
+  <div class="add-card">
+    <div class="add-card-title">Register a New Page</div>
+    <div class="add-row">
+      <div class="form-row"><label>Label</label><input type="text" id="newLabel" placeholder="e.g. Client Portal"></div>
+      <div class="form-row"><label>URL</label><input type="text" id="newUrl" placeholder="e.g. client_portal.html"></div>
+      <div class="form-row"><label>Description</label><input type="text" id="newDesc" placeholder="Optional short line"></div>
+      <button class="btn-add" onclick="addPage()">+ Add</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="assets/dash_admin.js"></script>
+</body>
+</html>

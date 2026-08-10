@@ -744,6 +744,7 @@ window.resetManual = function() {
   document.getElementById('manualPanelAction').textContent   = 'Manual Entry'
   document.getElementById('manualPanelSubtitle').textContent = 'Log time worked — end time is optional, entry stays open until added'
   document.getElementById('manualSaveBtn').textContent  = 'Save →'
+  document.getElementById('manualSaveBtn').disabled     = false
   document.getElementById('manualClearBtn').textContent = 'Clear'
 
   // "Cancel" (leaving an edit) collapses the panel again; "Clear" while

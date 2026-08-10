@@ -53,7 +53,7 @@ export function renderTaskCellCompact(task, session, gig, names) {
     ? `onchange="toggleGigTask('${task.task_id}', this.checked)"`
     : 'disabled'
 
-  const assigneeEl = manage
+  const assigneeEl = (manage || task.assigned_to === session.user_id)
     ? `<button type="button" class="gtask-assignee${isLead ? ' lead' : ''}" onclick="reassignGigTask('${task.task_id}')" title="Click to reassign">${roleLabel}</button>`
     : `<span class="gtask-assignee${isLead ? ' lead' : ''}">${roleLabel}</span>`
 

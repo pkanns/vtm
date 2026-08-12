@@ -2,6 +2,13 @@
  * project_index.js — Vidai to Mulai · Project Index
  * Loads all projects with nested gigs.
  * Role-aware: rovers see only gigs assigned to them.
+ *
+ * Adhoc templates (a recurring gig with recurrence_frequency:'adhoc' and
+ * no parent_gig_id) get an extra row action — "Create Gig from Template →"
+ * — that spawns one more instance via vtm_api.js's spawnAdhocInstance()
+ * and drops the Lead straight onto it in create_gig.html to finish the
+ * details (Rover/dates/etc). See create_gig.js for how templates are
+ * created in the first place.
  */
 
 import { db }                    from './vtm_db.js'
@@ -9,6 +16,7 @@ import { fetchProjectsWithGigs,
          fetchCategoriesByProject,
          deleteProject,
          deleteGig,
+         spawnAdhocInstance,
          fmtDate, esc }          from './vtm_api.js'
 
 // ── SESSION ───────────────────────────────────────────────────────────────
@@ -172,6 +180,7 @@ function renderGigTable(p) {
 function renderGigRow(g, isInstance) {
   const catCode  = g.project_categories?.category_code || '—'
   const isRecurParent = g.cadence === 'recurring' && !g.parent_gig_id
+  const isTemplate     = isRecurParent && g.recurrence_frequency === 'adhoc'
   const rowStyle = isInstance
     ? 'background:rgba(192,57,43,0.015)'
     : isRecurParent ? 'background:rgba(192,57,43,0.025)' : ''
@@ -182,9 +191,15 @@ function renderGigRow(g, isInstance) {
 
   const cadenceBadge = isInstance
     ? `<span class="gig-type-badge instance">Instance</span>`
-    : g.cadence === 'recurring'
-      ? `<span class="gig-type-badge R">Recurring</span>`
-      : `<span class="gig-type-badge O">One-off</span>`
+    : isTemplate
+      ? `<span class="gig-type-badge R" title="Adhoc — no schedule, create instances on request">Template</span>`
+      : g.cadence === 'recurring'
+        ? `<span class="gig-type-badge R">Recurring</span>`
+        : `<span class="gig-type-badge O">One-off</span>`
+
+  const templateBtn = (isTemplate && role !== 'rover')
+    ? `<button class="tbl-btn" style="border-color:var(--green);color:var(--green)" onclick="createFromTemplate('${g.gig_id}','${esc(g.gig_code)}')">+ Instance</button>`
+    : ''
 
   const editBtn = role !== 'rover'
     ? `<button class="tbl-btn" onclick="editGig('${g.gig_id}')">Edit</button>`
@@ -206,7 +221,7 @@ function renderGigRow(g, isInstance) {
       <td>${cadenceBadge}</td>
       <td><span class="status-pill ${g.status || 'placed'}">${fmtStatus(g.status)}</span></td>
       <td style="color:var(--stone);font-size:11px">${fmtDate(g.date_due)}</td>
-      <td style="white-space:nowrap">${editBtn}${evalBtn}${deleteBtn}</td>
+      <td style="white-space:nowrap">${templateBtn}${editBtn}${evalBtn}${deleteBtn}</td>
     </tr>`
 }
 
@@ -228,6 +243,24 @@ window.editGig = function(id) {
 
 window.goToEval = function(id) {
   window.location.href = `gig_eval.html?gig_id=${id}`
+}
+
+window.createFromTemplate = async function(gigId, code) {
+  if (role === 'rover') return
+
+  const btn = event?.target
+  if (btn) { btn.disabled = true; btn.textContent = 'Creating…' }
+
+  const { data, error } = await spawnAdhocInstance(db, gigId)
+
+  if (error || !data) {
+    showToast('Could not create instance — ' + (error?.message || 'unknown error'), 'err')
+    if (btn) { btn.disabled = false; btn.textContent = '+ Instance' }
+    return
+  }
+
+  showToast(`${data.gig_code} created from ${code}`, 'ok')
+  window.location.href = `create_gig.html?gig_id=${data.gig_id}`
 }
 
 window.deleteGigRow = async function(id, code) {

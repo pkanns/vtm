@@ -1,14 +1,24 @@
 /**
  * create_gig.js — Vidai to Mulai · Create / Edit Gig V2
  * Project → Category → Cadence → auto-generates gig code
- * Recurring gigs create a recurrence_schedule row on save
+ * Recurring gigs create a recurrence_schedule row on save — UNLESS the
+ * frequency is 'adhoc', in which case no schedule is written at all and
+ * the gig becomes a reusable template instead (see ADHOC TEMPLATES below).
  * Edit mode: load via ?gig_id=xxx
- * Pre-select project via ?project_id=xxx (from project_index)
  *
  * New-gig date defaults:
  *   Date Placed / Date Start → today, Date Due → today + 14 days.
  *   One-time fill only, on create mode load — fully editable afterward,
  *   no live recompute if the Lead changes Start Date later.
+ *
+ * ADHOC TEMPLATES:
+ *   Frequency 'adhoc' skips recurrence_schedule entirely — nothing runs
+ *   automatically, so the daily cron (create_recurrences.py) never sees
+ *   it. On first save (create mode only) one instance is spawned
+ *   immediately via spawnAdhocInstance() so there's something to work
+ *   with right away. Further instances are created later from
+ *   project_index.html's "Create Gig from Template →" row action, which
+ *   calls the same spawnAdhocInstance() helper in vtm_api.js.
  *
  * Tasks (edit mode only — a task needs a real gig_id to attach to):
  *   Option C "Compact Register Strip" checklist. Default assignee on
@@ -27,6 +37,7 @@ import { fetchProjects,
          fetchActiveSchedules,
          deactivateSchedule,
          calcNextRunDate,
+         spawnAdhocInstance,
          fetchActiveLeads,
          fetchActiveDoers,
          fetchUsersByIds,
@@ -176,6 +187,23 @@ window.onCadenceChange = async function() {
   await refreshGigCode()
 }
 
+// ── FREQUENCY CHANGE — Adhoc hides scheduling-only fields ──────────────
+// Adhoc templates never get a recurrence_schedule row, so End Date and
+// Stop-recurrence (both schedule concepts) don't apply and stay hidden.
+
+window.onFrequencyChange = function() {
+  const freq    = document.getElementById('recurFrequency').value
+  const isAdhoc = freq === 'adhoc'
+
+  const endRow  = document.getElementById('recurEndDateRow')
+  const stopRow = document.getElementById('recurStoppedRow')
+  const hint    = document.getElementById('adhocHint')
+
+  if (endRow)  endRow.style.display  = isAdhoc ? 'none' : ''
+  if (stopRow) stopRow.style.display = isAdhoc ? 'none' : ''
+  if (hint)    hint.classList.toggle('visible', isAdhoc)
+}
+
 // ── CATEGORY CHANGE ───────────────────────────────────────────────────────
 
 window.onCategoryChange = async function() {
@@ -281,8 +309,10 @@ async function loadGigForEdit(gigId) {
     document.getElementById('recurFrequency').value = data.recurrence_frequency || ''
     document.getElementById('recurEndDate').value   = data.recurrence_end_date  || ''
     document.getElementById('recurStopped').checked = data.recurrence_stopped   || false
+    onFrequencyChange()
 
-    // Load existing schedule id
+    // Load existing schedule id — adhoc templates never have one, so this
+    // simply won't find a match for them and currentScheduleId stays null.
     const { data: scheds } = await fetchActiveSchedules(db)
     const sched = (scheds || []).find(s => s.parent_gig_id === gigId)
     if (sched) currentScheduleId = sched.schedule_id
@@ -454,9 +484,10 @@ window.saveGigForm = async function() {
   if (!pacer)              { showToast('Please select a Lead',     'err'); return }
   if (!rover)              { showToast('Please select a Doer',     'err'); return }
 
+  let freqValue = null
   if (cadence === 'recurring') {
-    const freq = document.getElementById('recurFrequency').value
-    if (!freq) { showToast('Please select a recurrence frequency', 'err'); return }
+    freqValue = document.getElementById('recurFrequency').value
+    if (!freqValue) { showToast('Please select a recurrence frequency', 'err'); return }
   }
 
   // In create mode the code comes from generation; in edit mode it's frozen
@@ -492,9 +523,13 @@ window.saveGigForm = async function() {
     date_start:             document.getElementById('gigDateStart').value  || null,
     date_due:               document.getElementById('gigDateDue').value    || null,
     notes:                  document.getElementById('gigNotes').value.trim() || null,
-    recurrence_frequency:   cadence === 'recurring' ? document.getElementById('recurFrequency').value : null,
-    recurrence_end_date:    cadence === 'recurring' ? (document.getElementById('recurEndDate').value || null) : null,
-    recurrence_stopped:     cadence === 'recurring' ? document.getElementById('recurStopped').checked : false,
+    recurrence_frequency:   cadence === 'recurring' ? freqValue : null,
+    recurrence_end_date:    (cadence === 'recurring' && freqValue !== 'adhoc')
+                               ? (document.getElementById('recurEndDate').value || null)
+                               : null,
+    recurrence_stopped:     (cadence === 'recurring' && freqValue !== 'adhoc')
+                               ? document.getElementById('recurStopped').checked
+                               : false,
   }
 
   const budgetItems = getBudgetItems()
@@ -517,19 +552,41 @@ window.saveGigForm = async function() {
     ? urlGigId
     : (Array.isArray(saved) ? saved[0]?.gig_id : saved?.gig_id)
 
-  // Handle recurrence schedule
-  if (cadence === 'recurring') {
+  // Handle recurrence — scheduled frequencies get a recurrence_schedule
+  // row same as before; adhoc gets none, ever, and instead spawns its
+  // first instance right away (create mode only — re-saving an existing
+  // template on edit shouldn't spawn a new instance every time).
+  let finalMsg  = `${gigCode} ${isEditMode ? 'updated' : 'saved'}`
+  let finalType = 'ok'
+
+  if (cadence === 'recurring' && freqValue === 'adhoc') {
+    if (isEditMode && currentScheduleId) {
+      await deactivateSchedule(db, currentScheduleId)
+      currentScheduleId = null
+    }
+    if (!isEditMode) {
+      const { data: instance, error: instErr } = await spawnAdhocInstance(db, newGigId)
+      if (instErr) {
+        finalMsg  = `${gigCode} saved as template, but first instance failed — ${instErr.message}`
+        finalType = 'err'
+      } else if (instance) {
+        finalMsg = `${gigCode} saved as template · first instance ${instance.gig_code} created`
+      }
+    }
+  } else if (cadence === 'recurring') {
     await saveOrUpdateSchedule(newGigId, rover, payload)
   } else if (isEditMode && currentScheduleId) {
     // Was recurring, now changed to oneoff — deactivate schedule
     await deactivateSchedule(db, currentScheduleId)
   }
 
-  showToast(`${gigCode} ${isEditMode ? 'updated' : 'saved'}`, 'ok')
+  showToast(finalMsg, finalType)
   setTimeout(() => { window.location.href = 'project_index.html' }, 1200)
 }
 
 // ── SAVE / UPDATE RECURRENCE SCHEDULE ────────────────────────────────────
+// Only ever called for scheduled frequencies (weekly/fortnightly/monthly)
+// — adhoc never reaches here, see saveGigForm() above.
 
 async function saveOrUpdateSchedule(gigId, roverId, payload) {
   const freq    = payload.recurrence_frequency
@@ -578,6 +635,7 @@ window.resetGigForm = function() {
   document.getElementById('recurEndDate').value   = ''
   document.getElementById('recurStopped').checked = false
   document.getElementById('recurringBlock').classList.remove('visible')
+  onFrequencyChange()
   document.getElementById('tog-oneoff').checked   = true
   document.getElementById('statusRow').style.display = 'none'
   document.getElementById('editBanner').classList.remove('visible')
@@ -623,4 +681,5 @@ if (isEditMode) {
   applyNewGigDateDefaults()
   toggleBudgetBlock()
   addBudgetRow()
+  onFrequencyChange()
 }

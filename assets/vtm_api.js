@@ -8,6 +8,7 @@
  *  1. PROJECTS
  *  2. PROJECT CATEGORIES
  *  3. GIGS
+ *  3b. ADHOC TEMPLATES
  *  4. RECURRENCE SCHEDULE
  *  5. GIG TASKS
  *  6. DASHBOARD PAGES
@@ -124,6 +125,10 @@ export async function fetchGigsByProject(db, projectId) {
 /**
  * Fetch all projects with their gigs nested — for project_index.
  * Returns projects array; each has a gigs array attached in JS after fetch.
+ *
+ * recurrence_frequency is included so the UI can tell an adhoc template
+ * (cadence:'recurring', recurrence_frequency:'adhoc', no parent_gig_id)
+ * apart from a normally-scheduled recurring gig, without a second fetch.
  */
 export async function fetchProjectsWithGigs(db) {
   const [projRes, gigsRes] = await Promise.all([
@@ -133,6 +138,7 @@ export async function fetchProjectsWithGigs(db) {
     db.from('gigs')
       .select(`
         gig_id, gig_code, title, description, status, cadence,
+        recurrence_frequency,
         date_due, pacer_id, rover_id, parent_gig_id,
         project_id,
         project_categories ( category_code, category_name )
@@ -243,6 +249,80 @@ export async function updateGigStatus(db, id, status) {
 
 export async function deleteGig(db, id) {
   return db.from('gigs').delete().eq('gig_id', id)
+}
+
+// ── 3b. ADHOC TEMPLATES ─────────────────────────────────────────────────
+// A "template" is just a gig saved with cadence:'recurring' and
+// recurrence_frequency:'adhoc' — no recurrence_schedule row gets written,
+// so the daily cron (create_recurrences.py) never touches it. It sits
+// there as a reusable definition until someone triggers a copy.
+//
+// spawnAdhocInstance() is the manual, on-demand equivalent of what
+// create_recurrences.py already does automatically for scheduled gigs:
+// generate the next _NNN instance code off the template's own code, copy
+// the template's fields generously (including dates/budget/notes, so the
+// instance can be taken through the same steps as before and edited from
+// there) plus its task checklist, and save it as a fresh instance.
+//
+// Instances are always saved as cadence:'oneoff' — never 'recurring' —
+// so an instance can never itself become a template and re-trigger this.
+// Only the true template (recurring + adhoc + no parent_gig_id) ever
+// shows a "create from template" action anywhere in the UI.
+
+export async function spawnAdhocInstance(db, templateGigId) {
+  const { data: template, error: tErr } = await fetchGigById(db, templateGigId)
+  if (tErr || !template) return { data: null, error: tErr || new Error('Template not found') }
+
+  const { code: instanceCode, error: codeErr } =
+    await generateGigCode(db, null, null, null, template.gig_code)
+  if (codeErr || !instanceCode) return { data: null, error: codeErr || new Error('Could not generate instance code') }
+
+  const today = new Date().toISOString().split('T')[0]
+
+  const payload = {
+    gig_code:              instanceCode,
+    project_id:            template.project_id,
+    category_id:           template.category_id,
+    parent_gig_id:         template.gig_id,
+    title:                 template.title,
+    description:           template.description,
+    pacer_id:               template.pacer_id,
+    rover_id:               template.rover_id,
+    cadence:                'oneoff',
+    scale:                  template.scale,
+    setting:                template.setting,
+    skill_level:            template.skill_level,
+    status:                 'placed',
+    date_placed:            today,
+    date_start:             template.date_start,
+    date_due:               template.date_due,
+    notes:                  template.notes,
+    budget_total:           template.budget_total,
+    recurrence_frequency:   null,
+    recurrence_end_date:    null,
+    recurrence_stopped:     false,
+  }
+
+  const { data: saved, error: saveErr } = await saveGig(db, payload)
+  if (saveErr) return { data: null, error: saveErr }
+  const newGig = Array.isArray(saved) ? saved[0] : saved
+
+  // Copy the checklist too, so the instance can be worked through the same
+  // steps as the template — progress resets (done:false) but the task
+  // list doesn't have to be rebuilt from scratch every time.
+  const { data: tasks } = await fetchTasksByGig(db, templateGigId)
+  if (tasks?.length) {
+    const taskPayloads = tasks.map(t => ({
+      gig_id:      newGig.gig_id,
+      title:       t.title,
+      assigned_to: t.assigned_to,
+      created_by:  template.pacer_id || null,
+      done:        false,
+    }))
+    await createTask(db, taskPayloads)
+  }
+
+  return { data: newGig, error: null }
 }
 
 // ── 4. RECURRENCE SCHEDULE ────────────────────────────────────────────────

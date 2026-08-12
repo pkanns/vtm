@@ -581,7 +581,10 @@ window.saveGigForm = async function() {
   }
 
   showToast(finalMsg, finalType)
-  setTimeout(() => { window.location.href = 'project_index.html' }, 1200)
+  // Gigs stay the foreground view — land back on the Gig Index, pre-filtered
+  // to this gig's project via the filter it already supports, rather than
+  // bouncing out to the Projects list every time.
+  setTimeout(() => { window.location.href = `gig_index.html?project=${projSel.value}` }, 1200)
 }
 
 // ── SAVE / UPDATE RECURRENCE SCHEDULE ────────────────────────────────────
@@ -618,7 +621,8 @@ async function saveOrUpdateSchedule(gigId, roverId, payload) {
 // ── RESET ─────────────────────────────────────────────────────────────────
 
 window.cancelEdit = function() {
-  window.location.href = 'project_index.html'
+  const projSel = document.getElementById('gigProject')
+  window.location.href = projSel?.value ? `gig_index.html?project=${projSel.value}` : 'gig_index.html'
 }
 
 window.resetGigForm = function() {

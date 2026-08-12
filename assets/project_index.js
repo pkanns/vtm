@@ -198,7 +198,7 @@ function renderGigRow(g, isInstance) {
         : `<span class="gig-type-badge O">One-off</span>`
 
   const templateBtn = (isTemplate && role !== 'rover')
-    ? `<button class="tbl-btn" style="border-color:var(--green);color:var(--green)" onclick="createFromTemplate('${g.gig_id}','${esc(g.gig_code)}')">+ Instance</button>`
+    ? `<button class="tbl-btn" style="border-color:var(--green);color:var(--green)" onclick="createFromTemplate(this,'${g.gig_id}','${esc(g.gig_code)}')">+ Instance</button>`
     : ''
 
   const editBtn = role !== 'rover'
@@ -245,10 +245,9 @@ window.goToEval = function(id) {
   window.location.href = `gig_eval.html?gig_id=${id}`
 }
 
-window.createFromTemplate = async function(gigId, code) {
+window.createFromTemplate = async function(btn, gigId, code) {
   if (role === 'rover') return
 
-  const btn = event?.target
   if (btn) { btn.disabled = true; btn.textContent = 'Creating…' }
 
   const { data, error } = await spawnAdhocInstance(db, gigId)

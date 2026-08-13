@@ -3,12 +3,12 @@
  * Loads all projects with nested gigs.
  * Role-aware: rovers see only gigs assigned to them.
  *
- * Adhoc templates (a recurring gig with recurrence_frequency:'adhoc' and
- * no parent_gig_id) get an extra row action — "Create Gig from Template →"
- * — that spawns one more instance via vtm_api.js's spawnAdhocInstance()
- * and drops the Lead straight onto it in create_gig.html to finish the
- * details (Rover/dates/etc). See create_gig.js for how templates are
- * created in the first place.
+ * Per-gig row actions (Edit / Move to next stage / Evaluate / Create
+ * Instance / Delete) live in the shared "⋯" menu from gig_actions.js —
+ * same component gig_index.html uses, so declutter happens once instead
+ * of per-page. advanceGigStage() and createFromTemplate() are both
+ * defined there too; this file only listens for the refresh signal
+ * advanceGigStage() fires on success.
  */
 
 import { db }                    from './vtm_db.js'
@@ -16,8 +16,8 @@ import { fetchProjectsWithGigs,
          fetchCategoriesByProject,
          deleteProject,
          deleteGig,
-         spawnAdhocInstance,
          fmtDate, esc }          from './vtm_api.js'
+import { renderActionsMenu }     from './gig_actions.js'
 
 // ── SESSION ───────────────────────────────────────────────────────────────
 
@@ -197,22 +197,6 @@ function renderGigRow(g, isInstance) {
         ? `<span class="gig-type-badge R">Recurring</span>`
         : `<span class="gig-type-badge O">One-off</span>`
 
-  const templateBtn = (isTemplate && role !== 'rover')
-    ? `<button class="tbl-btn" style="border-color:var(--green);color:var(--green)" onclick="createFromTemplate(this,'${g.gig_id}','${esc(g.gig_code)}')">+ Instance</button>`
-    : ''
-
-  const editBtn = role !== 'rover'
-    ? `<button class="tbl-btn" onclick="editGig('${g.gig_id}')">Edit</button>`
-    : ''
-
-  const evalBtn = ['in_progress','delivered'].includes(g.status)
-    ? `<button class="tbl-btn" onclick="goToEval('${g.gig_id}')">Evaluate</button>`
-    : ''
-
-  const deleteBtn = role === 'admin'
-    ? `<button class="tbl-btn danger" onclick="deleteGigRow('${g.gig_id}','${esc(g.gig_code)}')">Delete</button>`
-    : ''
-
   return `
     <tr style="${rowStyle}">
       <td class="gig-code-cell" style="${codeStyle}">${esc(g.gig_code)}</td>
@@ -221,7 +205,7 @@ function renderGigRow(g, isInstance) {
       <td>${cadenceBadge}</td>
       <td><span class="status-pill ${g.status || 'placed'}">${fmtStatus(g.status)}</span></td>
       <td style="color:var(--stone);font-size:11px">${fmtDate(g.date_due)}</td>
-      <td style="white-space:nowrap">${templateBtn}${editBtn}${evalBtn}${deleteBtn}</td>
+      <td onclick="event.stopPropagation()">${renderActionsMenu(g, session, { variant: 'row' })}</td>
     </tr>`
 }
 
@@ -245,23 +229,6 @@ window.goToEval = function(id) {
   window.location.href = `gig_eval.html?gig_id=${id}`
 }
 
-window.createFromTemplate = async function(btn, gigId, code) {
-  if (role === 'rover') return
-
-  if (btn) { btn.disabled = true; btn.textContent = 'Creating…' }
-
-  const { data, error } = await spawnAdhocInstance(db, gigId)
-
-  if (error || !data) {
-    showToast('Could not create instance — ' + (error?.message || 'unknown error'), 'err')
-    if (btn) { btn.disabled = false; btn.textContent = '+ Instance' }
-    return
-  }
-
-  showToast(`${data.gig_code} created from ${code}`, 'ok')
-  window.location.href = `create_gig.html?gig_id=${data.gig_id}`
-}
-
 window.deleteGigRow = async function(id, code) {
   if (role !== 'admin') { showToast('Only admins can delete gigs', 'err'); return }
   if (!confirm(`Delete gig "${code}"? This cannot be undone.`)) return
@@ -279,6 +246,12 @@ window.deleteProjectRow = async function(id, code) {
   showToast(`${code} deleted`, 'ok')
   loadProjects()
 }
+
+// advanceGigStage() and createFromTemplate() live in gig_actions.js —
+// createFromTemplate() navigates away on success so needs no refresh
+// signal here, but advanceGigStage() stays on this page, so listen for
+// its completion event and reload the list in place.
+window.addEventListener('vtm:gig-status-changed', () => loadProjects())
 
 // ── HELPERS ───────────────────────────────────────────────────────────────
 

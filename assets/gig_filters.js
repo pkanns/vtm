@@ -18,17 +18,23 @@ export function enrichGig(g) {
   return { ...g, isOverdue }
 }
 
-// ── SCOPE (Status: Open / Complete / All) ─────────────────────────────
+// ── SCOPE (Status: Open / Complete / All / Templates) ──────────────────
 // Single-select. "Open" is the default — completed gigs stay out of the
 // way until asked for. Only applies when no specific pipeline stage is
 // picked from the flow strip — a stage selection is already a more
 // specific ask than this coarse scope, so it takes precedence instead of
 // fighting with it.
+//
+// "Templates" surfaces true adhoc-recurring templates only — never the
+// instances spawned from them (those are cadence:'oneoff' and simply
+// don't match this predicate).
 
 export const SCOPE_OPTIONS = [
-  { id: 'open',     label: 'Open',     predicate: g => g.status !== 'completed' },
-  { id: 'complete', label: 'Complete', predicate: g => g.status === 'completed' },
-  { id: 'all',      label: 'All',      predicate: () => true },
+  { id: 'open',      label: 'Open',      predicate: g => g.status !== 'completed' },
+  { id: 'complete',  label: 'Complete',  predicate: g => g.status === 'completed' },
+  { id: 'all',       label: 'All',       predicate: () => true },
+  { id: 'templates', label: 'Templates', predicate: g =>
+      g.cadence === 'recurring' && g.recurrence_frequency === 'adhoc' && !g.parent_gig_id },
 ]
 
 // ── CHIPS (On track / Overdue) ──────────────────────────────────────────
@@ -44,14 +50,18 @@ export const FILTER_CHIPS = [
 // ── APPLY ────────────────────────────────────────────────────────────────
 // activeChipIds: Set of chip ids currently toggled on (empty = no chip
 // filter applied, i.e. everything passes).
+// leadId/doerId: exact-match on pacer_id/rover_id — undefined/'' is a
+// no-op, so existing callers that don't pass them are unaffected.
 
-export function applyFilters(gigs, { scopeId, projectId, activeChipIds }) {
+export function applyFilters(gigs, { scopeId, projectId, activeChipIds, leadId, doerId }) {
   let out = gigs
 
   const scope = SCOPE_OPTIONS.find(s => s.id === scopeId)
   if (scope) out = out.filter(scope.predicate)
 
   if (projectId) out = out.filter(g => g.project_id === projectId)
+  if (leadId)    out = out.filter(g => g.pacer_id === leadId)
+  if (doerId)    out = out.filter(g => g.rover_id === doerId)
 
   if (activeChipIds && activeChipIds.size > 0) {
     const active = FILTER_CHIPS.filter(c => activeChipIds.has(c.id))

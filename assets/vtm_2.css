@@ -36,6 +36,12 @@
  *                          (Cadence / Scale / Setting / Skill Level)
  *   .budget-table       + .add-row-btn/.del-btn/.budget-total-row
  *                        — the editable line-item budget table
+ *   .gaction-*          — the shared "⋯" gig actions menu (Edit / Move to
+ *                          next stage / Evaluate / Create Instance /
+ *                          Delete), used by gig_index.html's table and
+ *                          card views and by project_index.html's gig
+ *                          table. Markup + wiring live in
+ *                          assets/gig_actions.js.
  *
  * Page-specific layout (forms, tables, buttons for one particular screen)
  * belongs in that page's own <style> block, not here — only genuinely
@@ -565,10 +571,11 @@ input[name="tog-scale"][value="major"]:checked + label {
 
 /* ── PICKER CARDS (generic "choose one of several" pattern — first used
    in gig_eval's gig picker; render logic lives in assets/vtm_cards.js.
-   Planned future reuse in gig_index's workflow filters and the dashboard
-   — not built yet, this is the first real consumer.) ─────────────────── */
+   Also used by gig_index.html's card view when a filter is active — see
+   assets/gig_index.js — and gets the gig actions menu (below) anchored
+   to its top-right corner via .gaction-card-anchor.) ─────────────────── */
 .vtm-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
-.vtm-picker-card { background: var(--white); border: 1px solid var(--hole); border-top: 4px solid var(--stone); padding: 16px 18px; cursor: pointer; transition: all 0.15s; }
+.vtm-picker-card { background: var(--white); border: 1px solid var(--hole); border-top: 4px solid var(--stone); padding: 16px 18px; cursor: pointer; transition: all 0.15s; position: relative; }
 a.vtm-picker-card { display: block; text-decoration: none; color: inherit; }
 .vtm-picker-card:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0,0,0,0.08); }
 .vtm-picker-card.selected { box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
@@ -590,3 +597,55 @@ a.vtm-picker-card { display: block; text-decoration: none; color: inherit; }
 .vtm-picker-card.status-in_progress .vtm-picker-code, .vtm-picker-card.status-in_progress .status-label { color: var(--red); }
 .vtm-picker-card.status-delivered   .vtm-picker-code, .vtm-picker-card.status-delivered   .status-label { color: var(--green); }
 .vtm-picker-card.status-completed   .vtm-picker-code, .vtm-picker-card.status-completed   .status-label { color: var(--stone); }
+
+/* ── GIG ACTIONS MENU ("⋯" — declutters row/card action buttons) ────────
+   Shared by gig_index.html (table + cards) and project_index.html's gig
+   table. Markup + wiring live in assets/gig_actions.js. */
+.gaction-wrap { position: relative; display: inline-block; }
+.gaction-card-anchor { position: absolute; top: 10px; right: 10px; z-index: 5; }
+
+.gaction-trigger {
+  background: var(--white);
+  border: 1px solid var(--hole);
+  color: var(--stone);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  transition: all 0.15s;
+}
+.gaction-trigger:hover { border-color: var(--charcoal); color: var(--black); }
+
+.gaction-menu {
+  display: none;
+  flex-direction: column;
+  position: absolute;
+  top: 32px;
+  right: 0;
+  background: var(--white);
+  border: 1px solid var(--hole);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  min-width: 170px;
+  z-index: 50;
+}
+.gaction-menu.open { display: flex; }
+
+.gaction-item {
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 9px 14px;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  color: var(--charcoal);
+  cursor: pointer;
+  border-bottom: 1px solid var(--light);
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.gaction-item:last-child { border-bottom: none; }
+.gaction-item:hover { background: var(--light); }
+.gaction-item.danger { color: var(--red); }
+.gaction-item.danger:hover { background: #fceee8; }

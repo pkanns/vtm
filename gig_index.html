@@ -46,6 +46,7 @@
     }
     .filter-select.scope-select { background-color: var(--black); color: var(--white); border-color: var(--black);
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23f0ead8'/%3E%3C/svg%3E"); }
+    .filter-select:disabled { opacity: 0.4; cursor: not-allowed; }
 
     .filter-chip {
       display: inline-flex; align-items: center; gap: 6px;
@@ -84,16 +85,15 @@
     .status-pill.delivered   { background: #e8f5ee; color: var(--green); }
     .status-pill.completed   { background: var(--light); color: var(--stone); }
 
-    .tbl-btn { background: none; border: 1px solid #ccc; color: var(--mid); padding: 4px 10px; font-size: 11px; cursor: pointer; font-family: var(--font-body); letter-spacing: 0.06em; margin-right: 4px; transition: all 0.2s; }
-    .tbl-btn:hover { border-color: var(--charcoal); color: var(--black); }
-    .tbl-btn.danger:hover { border-color: var(--red); color: var(--red); }
-
     .cat-tag { display: inline-block; font-size: 10px; font-family: var(--font-mono); color: var(--stone); background: var(--light); padding: 1px 7px; }
 
     .empty-state { text-align: center; padding: 48px 0; color: var(--stone); font-size: 13px; }
     .empty-state a { color: var(--red); text-decoration: none; }
 
     .placement-flag { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: #8a6200; background: #fdf5e0; padding: 2px 6px; font-family: var(--font-mono); }
+
+    /* Card view — same vtm-picker-* component gig_eval.html uses */
+    #gigCardWrap.vtm-picker-grid { margin-top: 4px; }
   </style>
 </head>
 <body data-page="gigs">
@@ -166,9 +166,25 @@
             <option value="open">Status: Open</option>
             <option value="complete">Status: Complete</option>
             <option value="all">Status: All</option>
+            <option value="templates">Status: Templates</option>
           </select>
           <select class="filter-select" id="projectSelect">
             <option value="">Project</option>
+          </select>
+          <select class="filter-select" id="leadSelect">
+            <option value="">Lead</option>
+          </select>
+          <select class="filter-select" id="doerSelect">
+            <option value="">Doer</option>
+          </select>
+          <select class="filter-select" id="stageSelect">
+            <option value="">Stage</option>
+            <option value="placed">Placed</option>
+            <option value="matched">Matched</option>
+            <option value="aligned">Aligned</option>
+            <option value="in_progress">In Progress</option>
+            <option value="delivered">Delivered</option>
+            <option value="completed">Completed</option>
           </select>
           <div class="filter-sep"></div>
           <div class="filter-chip chip-on_track" id="chipOnTrack" onclick="toggleChip('on_track')">On track</div>
@@ -186,23 +202,30 @@
     </div>
     <div class="register-subtitle" id="registerSubtitle">All gigs</div>
     <div class="db-status" id="dbStatus">Connecting…</div>
-    <table class="register-table">
-      <thead>
-        <tr>
-          <th>Code</th>
-          <th>Title</th>
-          <th>Project</th>
-          <th>Category</th>
-          <th>Status</th>
-          <th>Start</th>
-          <th>Due</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="gigTableBody">
-        <tr><td colspan="8"><div class="empty-state">Loading…</div></td></tr>
-      </tbody>
-    </table>
+
+    <!-- Default, fully-unfiltered view -->
+    <div id="gigTableWrap">
+      <table class="register-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Title</th>
+            <th>Project</th>
+            <th>Category</th>
+            <th>Status</th>
+            <th>Start</th>
+            <th>Due</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="gigTableBody">
+          <tr><td colspan="8"><div class="empty-state">Loading…</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Any filter active, or a pipeline stage picked — cards instead -->
+    <div id="gigCardWrap" class="vtm-picker-grid" style="display:none;"></div>
   </div>
 </main>
 

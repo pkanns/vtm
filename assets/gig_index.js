@@ -6,6 +6,11 @@
  * lives there; this file owns fetching, DOM state, and rendering only.
  * Role-aware: rovers see only their gigs.
  *
+ * Lead/Doer filter options are scoped to whoever actually appears on
+ * gigs visible to this person — never the full org roster — for
+ * pacer/rover. Admins still get the full roster, since they see every
+ * gig anyway. Same fix applied to task_index.js's populateLeadDoerOptions().
+ *
  * VIEW SWITCHING: the fully-unfiltered default (scope=Open, nothing else
  * selected) renders as a table, same as always. Any filter being active —
  * scope changed (Templates included), a Project/Lead/Doer picked, a chip
@@ -23,7 +28,7 @@
 
 import { db }                                 from './vtm_db.js'
 import { fetchGigs, deleteGig, fetchActiveLeads, fetchActiveDoers,
-         fmtDate, esc }                       from './vtm_api.js'
+         fetchUsersByIds, fmtDate, esc }       from './vtm_api.js'
 import { enrichGig, SCOPE_OPTIONS, FILTER_CHIPS, applyFilters, sortByDueDate } from './gig_filters.js'
 import { renderActionsMenu }                  from './gig_actions.js'
 
@@ -119,17 +124,40 @@ async function loadGigs() {
   allGigs = filtered.map(enrichGig)
 
   populateProjectOptions()
+  await populateLeadDoerOptions()
   applyChipUI()
   render()
 }
 
+// Admins get the full org roster (they see every gig anyway, so scoping
+// the dropdown wouldn't hide anything). Pacer/rover only see the
+// Leads/Doers that actually appear on gigs visible to them — a Doer
+// shouldn't be offered every Lead in the company as a filter option,
+// only the ones whose gigs they actually work on.
 async function populateLeadDoerOptions() {
-  const [leadsRes, doersRes] = await Promise.all([fetchActiveLeads(db), fetchActiveDoers(db)])
+  if (role === 'admin') {
+    const [leadsRes, doersRes] = await Promise.all([fetchActiveLeads(db), fetchActiveDoers(db)])
+    leadSelect.innerHTML = '<option value="">Lead</option>' +
+      (leadsRes.data || []).map(u => `<option value="${u.user_id}">${esc(u.name)}</option>`).join('')
+    doerSelect.innerHTML = '<option value="">Doer</option>' +
+      (doersRes.data || []).map(u => `<option value="${u.user_id}">${esc(u.name)}</option>`).join('')
+  } else {
+    const leadIds = new Set()
+    const doerIds = new Set()
+    allGigs.forEach(g => {
+      if (g.pacer_id) leadIds.add(g.pacer_id)
+      if (g.rover_id) doerIds.add(g.rover_id)
+    })
 
-  leadSelect.innerHTML = '<option value="">Lead</option>' +
-    (leadsRes.data || []).map(u => `<option value="${u.user_id}">${esc(u.name)}</option>`).join('')
-  doerSelect.innerHTML = '<option value="">Doer</option>' +
-    (doersRes.data || []).map(u => `<option value="${u.user_id}">${esc(u.name)}</option>`).join('')
+    const { data: users } = await fetchUsersByIds(db, [...leadIds, ...doerIds])
+    const nameById = {}
+    ;(users || []).forEach(u => { nameById[u.user_id] = u.name })
+
+    leadSelect.innerHTML = '<option value="">Lead</option>' +
+      Array.from(leadIds).map(id => `<option value="${id}">${esc(nameById[id] || '—')}</option>`).join('')
+    doerSelect.innerHTML = '<option value="">Doer</option>' +
+      Array.from(doerIds).map(id => `<option value="${id}">${esc(nameById[id] || '—')}</option>`).join('')
+  }
 
   leadSelect.value = leadId
   doerSelect.value = doerId
@@ -360,4 +388,3 @@ function fmtStatus(s) {
 // ── INIT ──────────────────────────────────────────────────────────────────
 
 loadGigs()
-populateLeadDoerOptions()

@@ -3,10 +3,13 @@
  * Single source of truth for site chrome: brand, nav (desktop + mobile),
  * active-link highlight, and the role/name/sign-out corner.
  *
- * Extracted from timesheet.html's inline header script — that logic was
- * already correct (Lead/Doer labels, active-link matching, mobile toggle),
- * it just lived on one page instead of being shared. This file changes
- * nothing about that behavior, only where it lives.
+ * Nav trimmed to four items — Home, Gigs, Tasks, Timesheet. Projects and
+ * Evaluate are dropped from the header itself; both pages still exist
+ * and work exactly as before (project_index.html reachable from the
+ * dashboard picker and from gig_actions.js's "Edit"/row links,
+ * gig_eval.html reachable via the "Evaluate →" action on delivered gigs
+ * — see gig_actions.js's renderActionsMenu) — they're just not in the
+ * top-level nav anymore.
  *
  * A page using this needs, in this order:
  *   <script src="assets/vtm_auth_guard.js"></script>   (vtmGetSession, vtmSignOut)
@@ -21,8 +24,11 @@
  *                                                         type="module" or
  *                                                         defer to this tag)
  * and, on <body>:
- *   <body data-page="timesheet">   one of: home, projects, gigs, tasks,
- *                                   evaluate, timesheet
+ *   <body data-page="timesheet">   one of: home, gigs, tasks, timesheet
+ *                                   (projects/evaluate pages can still set
+ *                                   data-page="projects"/"evaluate" — there's
+ *                                   just no nav link that highlights as
+ *                                   active for them anymore)
  *
  * A page needing extra header-right content (timesheet's active-timer
  * pill, for example) can populate #vtmHeaderExtra right after this script
@@ -35,10 +41,8 @@
 
 const VTM_NAV_ITEMS = [
   { page: 'home',      label: 'Home',      href: 'dashboard.html' },
-  { page: 'projects',  label: 'Projects',  href: 'project_index.html' },
-  { page: 'gigs',       label: 'Gigs',      href: 'gig_index.html' },
-  { page: 'tasks',      label: 'Tasks',     href: 'task_index.html' },
-  { page: 'evaluate',  label: 'Evaluate',  href: 'gig_eval.html' },
+  { page: 'gigs',      label: 'Gigs',      href: 'gig_index.html' },
+  { page: 'tasks',     label: 'Tasks',     href: 'task_index.html' },
   { page: 'timesheet', label: 'Timesheet', href: 'timesheet.html' },
 ];
 

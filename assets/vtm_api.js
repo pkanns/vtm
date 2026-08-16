@@ -268,6 +268,11 @@ export async function deleteGig(db, id) {
 // so an instance can never itself become a template and re-trigger this.
 // Only the true template (recurring + adhoc + no parent_gig_id) ever
 // shows a "create from template" action anywhere in the UI.
+//
+// Note on task copies: this always writes fresh gig_tasks rows via
+// createTask() below (no task_id/created_at carried over from the
+// template), so each instance's tasks get their own honest creation
+// timestamp — never inherit the template's original (possibly old) age.
 
 export async function spawnAdhocInstance(db, templateGigId) {
   const { data: template, error: tErr } = await fetchGigById(db, templateGigId)
@@ -363,8 +368,16 @@ export async function advanceSchedule(db, scheduleId, nextRunDate) {
 
 // ── 5. GIG TASKS ───────────────────────────────────────────────────────────
 // Table: gig_tasks (task_id, gig_id, title, assigned_to, done, created_by,
-// created_at). Default assignee on creation is always the gig's Doer;
-// permission rules live in gig_tasks.js, not here.
+// created_at, updated_at). Default assignee on creation is always the
+// gig's Doer; permission rules live in gig_tasks.js, not here.
+//
+// updated_at is stamped here — by this API layer, not by a DB trigger —
+// on every write that changes a task: creation, toggling done, and
+// reassignment/other field edits via updateTask(). created_at is never
+// touched again after insert, so it stays the true creation time; that
+// split is what lets task_index.html and the weekly report eventually
+// tell "added" apart from "last changed" instead of collapsing both into
+// one ambiguous timestamp.
 
 export async function fetchTasksByGig(db, gigId) {
   return db
@@ -374,16 +387,46 @@ export async function fetchTasksByGig(db, gigId) {
     .order('created_at', { ascending: true })
 }
 
+/**
+ * Fetch every task across all gigs, with the parent gig's context joined
+ * (status, due date, project, Lead/Doer) — the data source for
+ * task_index.html's cross-gig register. No role filtering here, same
+ * convention as fetchGigs(): the page applies role scoping after fetch.
+ */
+export async function fetchAllTasksWithGigContext(db) {
+  return db
+    .from('gig_tasks')
+    .select(`
+      *,
+      gigs (
+        gig_id, gig_code, title, status, date_due,
+        project_id, pacer_id, rover_id,
+        projects ( project_code )
+      )
+    `)
+    .order('created_at', { ascending: false })
+}
+
 export async function createTask(db, payload) {
-  return db.from('gig_tasks').insert(payload).select()
+  const now = new Date().toISOString()
+  const stamped = Array.isArray(payload)
+    ? payload.map(p => ({ ...p, updated_at: now }))
+    : { ...payload, updated_at: now }
+  return db.from('gig_tasks').insert(stamped).select()
 }
 
 export async function updateTask(db, taskId, payload) {
-  return db.from('gig_tasks').update(payload).eq('task_id', taskId)
+  return db
+    .from('gig_tasks')
+    .update({ ...payload, updated_at: new Date().toISOString() })
+    .eq('task_id', taskId)
 }
 
 export async function toggleTaskDone(db, taskId, done) {
-  return db.from('gig_tasks').update({ done }).eq('task_id', taskId)
+  return db
+    .from('gig_tasks')
+    .update({ done, updated_at: new Date().toISOString() })
+    .eq('task_id', taskId)
 }
 
 export async function deleteTask(db, taskId) {

@@ -21,12 +21,14 @@
  *                                                         type="module" or
  *                                                         defer to this tag)
  * and, on <body>:
- *   <body data-page="timesheet">   one of: home, projects, gigs, evaluate, timesheet
+ *   <body data-page="timesheet">   one of: home, projects, gigs, tasks,
+ *                                   evaluate, timesheet
  *
- * A page needing extra header-right content (timesheet's active-timer pill,
- * for example) can populate #vtmHeaderExtra right after this script runs —
- * see timesheet.html for the pattern. This file has no opinion on what goes
- * in that slot; keeping it that way is what keeps this file page-agnostic.
+ * A page needing extra header-right content (timesheet's active-timer
+ * pill, for example) can populate #vtmHeaderExtra right after this script
+ * runs — see timesheet.html for the pattern. This file has no opinion on
+ * what goes in that slot; keeping it that way is what keeps this file
+ * page-agnostic.
  */
 
 'use strict';
@@ -35,6 +37,7 @@ const VTM_NAV_ITEMS = [
   { page: 'home',      label: 'Home',      href: 'dashboard.html' },
   { page: 'projects',  label: 'Projects',  href: 'project_index.html' },
   { page: 'gigs',       label: 'Gigs',      href: 'gig_index.html' },
+  { page: 'tasks',      label: 'Tasks',     href: 'task_index.html' },
   { page: 'evaluate',  label: 'Evaluate',  href: 'gig_eval.html' },
   { page: 'timesheet', label: 'Timesheet', href: 'timesheet.html' },
 ];

@@ -267,7 +267,7 @@ async function loadGigForEdit(gigId) {
     throw new Error('Rover blocked — not their gig')
   }
 
-  // Set project dropdown then load its categories
+// Set project dropdown then load its categories
   const projSel = document.getElementById('gigProject')
   if (data.project_id) {
     projSel.value = data.project_id
@@ -275,11 +275,23 @@ async function loadGigForEdit(gigId) {
   }
 
   // Set category
+  const catSel = document.getElementById('gigCategory')
   if (data.category_id) {
-    const catSel = document.getElementById('gigCategory')
     catSel.value = data.category_id
   }
 
+  // Project/Category are locked after creation, for every role including
+  // admin — gig_code is derived from them and frozen once generated, so
+  // changing either here would silently break the code without a proper
+  // migration/regeneration path. Reassigning a gig to a different
+  // project/category is a deliberately deferred future feature, not
+  // supported today.
+  projSel.disabled = true
+  projSel.title    = 'Project cannot be changed after creation — gig code is derived from it'
+  catSel.disabled  = true
+  catSel.title     = 'Category cannot be changed after creation — gig code is derived from it'
+
+         
   // Freeze the code display — show the existing code
   document.getElementById('gigCodeDisplay').textContent = data.gig_code || ''
   document.getElementById('gigCodeDisplay').className   = 'code-preview-value'

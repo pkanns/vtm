@@ -28,8 +28,6 @@
     }
     .filter-select.scope-select { background-color: var(--black); color: var(--white); border-color: var(--black);
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23f0ead8'/%3E%3C/svg%3E"); }
-    .filter-select.show-select { background-color: var(--red); color: var(--white); border-color: var(--red);
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23f0ead8'/%3E%3C/svg%3E"); }
     .filter-select:disabled { opacity: 0.4; cursor: not-allowed; }
 
     .filter-summary { margin-top: 12px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.04em; color: var(--stone); }
@@ -119,13 +117,6 @@
         <option value="">Assigned To</option>
         <option value="pacer">Lead</option>
         <option value="rover">Doer</option>
-      </select>
-      <div class="filter-sep"></div>
-      <select class="filter-select show-select" id="showSelect">
-        <option value="all">Show: All</option>
-        <option value="overdue">Show: Overdue</option>
-        <option value="stale">Show: Stale (gig closed, task open)</option>
-        <option value="mine">Show: Assigned to me</option>
       </select>
     </div>
     <div class="filter-summary" id="filterSummary"></div>

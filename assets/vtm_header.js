@@ -24,7 +24,7 @@
  *                                                         type="module" or
  *                                                         defer to this tag)
  * and, on <body>:
- *   <body data-page="timesheet">   one of: home, gigs, tasks, timesheet
+ *   <body data-page="timesheet">   one of: home, gigs, tasks, timesheet, weekly
  *                                   (projects/evaluate pages can still set
  *                                   data-page="projects"/"evaluate" — there's
  *                                   just no nav link that highlights as
@@ -44,6 +44,7 @@ const VTM_NAV_ITEMS = [
   { page: 'gigs',      label: 'Gigs',      href: 'gig_index.html' },
   { page: 'tasks',     label: 'Tasks',     href: 'task_index.html' },
   { page: 'timesheet', label: 'Timesheet', href: 'timesheet.html' },
+  { page: 'weekly',    label: 'Weekly',    href: 'weekly_report.html' },
 ];
 
 const VTM_ROLE_LABELS = { admin: 'Admin', pacer: 'Lead', rover: 'Doer' };

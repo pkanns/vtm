@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEO Intake — Mulai</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Special+Elite&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/vtm_2.css">
+<script src="assets/vtm.js"></script>
+<script src="assets/vtm_auth_guard.js"></script>
+<style>
+  /* ── PAGE-LOCAL LAYOUT — extends vtm_2.css tokens, same convention
+     as every other migrated page (timesheet.html, create_gig.html). ── */
+
+  .si-wrap { max-width: 780px; margin: 0 auto; padding: 32px 24px 80px; }
+
+  .si-eyebrow {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--red); margin: 0 0 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .si-eyebrow::before { content: ''; width: 24px; height: 1px; background: var(--red); display: inline-block; }
+  .si-h1 {
+    font-family: var(--font-display); font-size: clamp(2rem, 4.5vw, 2.9rem);
+    letter-spacing: 0.02em; line-height: 1.05; color: var(--black); margin: 0 0 10px; max-width: 20ch;
+  }
+  .si-lede { color: var(--stone); font-size: 14px; max-width: 56ch; margin: 0 0 28px; font-family: var(--font-body); font-style: italic; }
+
+  /* ── PROGRESS TRACK ── */
+  .si-track { margin-bottom: 22px; }
+  .si-track-bar { height: 3px; background: var(--hole); border-radius: 99px; overflow: hidden; margin-bottom: 12px; }
+  .si-track-fill { height: 100%; width: 20%; background: var(--red); transition: width .45s cubic-bezier(.65,0,.35,1); }
+  .si-steps-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .si-step-chip {
+    flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; padding: 8px 9px;
+    border: 1px solid var(--hole); background: var(--white); border-radius: 2px;
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--stone); transition: all .2s ease;
+  }
+  .si-step-chip .dot {
+    width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid currentColor;
+    display: flex; align-items: center; justify-content: center; font-size: 9px; flex-shrink: 0;
+  }
+  .si-step-chip.done { color: var(--green); border-color: var(--green); background: #e8f5ee; }
+  .si-step-chip.done .dot { background: var(--green); border-color: var(--green); color: var(--white); }
+  .si-step-chip.active { color: var(--red); border-color: var(--red); background: #fceee8; }
+  .si-step-chip.active .dot { background: var(--red); border-color: var(--red); color: var(--white); }
+  @media (max-width: 640px) { .si-step-chip span.label { display: none; } }
+
+  /* ── FORM CARD (punch-card variant) ── */
+  .si-form { background: var(--white); border: 2px solid var(--black); position: relative; overflow: hidden; }
+  .si-panel { display: none; padding: 32px clamp(20px, 4vw, 40px) 30px; }
+  .si-panel.active { display: block; animation: si-enter .35s cubic-bezier(.2,.7,.3,1); }
+  @keyframes si-enter { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: translateX(0); } }
+  .si-panel-head { margin-bottom: 24px; }
+  .si-panel-num { font-family: var(--font-mono); font-size: 10px; color: var(--red); letter-spacing: 0.12em; text-transform: uppercase; margin: 0 0 6px; }
+  .si-panel-title { font-family: var(--font-display); font-size: 1.6rem; letter-spacing: 0.02em; margin: 0; color: var(--black); }
+  .si-panel-sub { color: var(--stone); font-size: 12.5px; margin: 8px 0 0; font-family: var(--font-body); }
+
+  .si-field { margin-bottom: 18px; position: relative; }
+  .si-field:last-child { margin-bottom: 0; }
+  .si-field label {
+    display: block; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--stone); font-weight: 500; margin-bottom: 6px; font-family: var(--font-mono);
+  }
+  .si-hint { font-size: 11.5px; color: var(--stone); font-weight: 400; margin: -2px 0 7px; font-family: var(--font-body); font-style: italic; }
+  .si-req { color: var(--red); font-weight: 700; }
+
+  .si-field input[type="text"], .si-field input[type="email"], .si-field select, .si-field textarea {
+    width: 100%; padding: 10px 12px; background: var(--light); border: none;
+    border-bottom: 2px solid var(--hole); font-size: 14px; font-family: var(--font-body);
+    color: var(--black); outline: none; transition: border-color .15s ease;
+  }
+  .si-field select { cursor: pointer; }
+  .si-field input:focus, .si-field textarea:focus, .si-field select:focus { border-bottom-color: var(--red); }
+  .si-field textarea { resize: vertical; min-height: 72px; }
+
+  .si-field .check {
+    position: absolute; right: 10px; top: 32px; width: 17px; height: 17px; border-radius: 50%;
+    background: var(--green); color: var(--white); display: none; align-items: center; justify-content: center; font-size: 10px;
+  }
+  .si-field.valid .check { display: flex; }
+  .si-field.valid input { padding-right: 34px; }
+
+  .si-grid-list { display: grid; gap: 9px; }
+  .si-grid-list .si-row { display: grid; grid-template-columns: 20px 1fr; align-items: center; gap: 9px; position: relative; }
+  .si-grid-list .si-num { font-family: var(--font-mono); font-size: 12px; color: var(--red); text-align: right; }
+  .si-grid-list .si-row .check { right: 10px; top: 8px; }
+
+  .si-error-msg { font-size: 11.5px; color: var(--red); margin-top: 6px; display: none; font-family: var(--font-body); }
+  .si-field.invalid input, .si-field.invalid textarea { border-bottom-color: var(--red); }
+  .si-field.invalid .si-error-msg { display: block; }
+  .si-field.invalid .check { display: none; }
+
+  /* ── Yes/No pills — built on the shared .toggle-pair pattern ── */
+  .si-yesno { display: flex; border: 1px solid var(--hole); overflow: hidden; margin-top: 4px; max-width: 260px; }
+  .si-yesno input[type="radio"] { display: none; }
+  .si-yesno label {
+    flex: 1; text-align: center; padding: 9px 10px; font-size: 12px; font-weight: 500;
+    letter-spacing: 0.04em; cursor: pointer; background: var(--light); color: var(--stone);
+    transition: background .2s, color .2s; border-right: 1px solid var(--hole); user-select: none;
+    font-family: var(--font-body);
+  }
+  .si-yesno label:last-of-type { border-right: none; }
+  .si-yesno input:checked + label { background: var(--green); color: var(--white); }
+
+  /* ── Access-grant cards ── */
+  .si-grant-card { border: 1px solid var(--hole); padding: 18px 18px 16px; margin-bottom: 16px; background: var(--light); }
+  .si-grant-card:last-child { margin-bottom: 0; }
+  .si-grant-title { font-family: var(--font-body); font-size: 13.5px; font-weight: 700; margin: 0 0 3px; color: var(--black); }
+  .si-grant-plain { font-size: 11.5px; color: var(--stone); margin: 0 0 12px; font-family: var(--font-body); }
+  .si-email-row {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: var(--white);
+    border: 1px dashed var(--hole); padding: 9px 12px; margin-bottom: 12px; font-size: 12.5px; font-family: var(--font-body);
+  }
+  .si-email-row code { font-family: var(--font-mono); font-weight: 700; color: var(--black); }
+  .si-copy-btn {
+    margin-left: auto; border: 1px solid var(--hole); background: var(--white); color: var(--stone);
+    font-size: 10.5px; font-weight: 600; padding: 5px 10px; cursor: pointer; transition: all .15s ease;
+    white-space: nowrap; font-family: var(--font-body); letter-spacing: 0.02em;
+  }
+  .si-copy-btn:hover { border-color: var(--green); color: var(--green); }
+  .si-copy-btn.copied { border-color: var(--green); color: var(--green); background: #e8f5ee; }
+
+  .si-howto { margin-bottom: 12px; }
+  .si-howto summary {
+    font-size: 11.5px; color: var(--red); cursor: pointer; font-weight: 600; list-style: none;
+    display: inline-flex; align-items: center; gap: 5px; font-family: var(--font-mono); letter-spacing: 0.02em;
+  }
+  .si-howto summary::-webkit-details-marker { display: none; }
+  .si-howto summary::before { content: '+'; font-size: 14px; line-height: 1; }
+  .si-howto[open] summary::before { content: '–'; }
+  .si-howto p { font-size: 11.5px; color: var(--stone); margin: 8px 0 0; padding: 10px 12px; background: var(--white); font-family: var(--font-body); }
+
+  .si-role-select { max-height: 0; overflow: hidden; opacity: 0; transition: max-height .3s ease, opacity .25s ease, margin .3s ease; }
+  .si-role-select.open { max-height: 120px; opacity: 1; margin-top: 12px; }
+
+  .si-conditional-box { max-height: 0; overflow: hidden; opacity: 0; transition: max-height .3s ease, opacity .25s ease, margin .3s ease; }
+  .si-conditional-box.open { max-height: 170px; opacity: 1; margin-top: 14px; }
+
+  /* ── NAV ROW ── */
+  .si-nav-row { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--light); }
+  .si-btn {
+    font-family: var(--font-body); font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 12px 26px; cursor: pointer; transition: all .15s ease; border: 1px solid transparent;
+  }
+  .si-btn-primary { background: var(--red); color: var(--white); }
+  .si-btn-primary:hover { background: var(--red-dark); transform: translateY(-1px); }
+  .si-btn-primary:disabled { background: var(--hole); color: var(--stone); cursor: not-allowed; transform: none; }
+  .si-btn-ghost { background: transparent; color: var(--stone); border-color: var(--hole); }
+  .si-btn-ghost:hover { border-color: var(--charcoal); color: var(--black); }
+  .si-btn-ghost:disabled { opacity: 0; pointer-events: none; }
+  .si-status { font-size: 12px; font-weight: 600; margin-top: 12px; text-align: right; font-family: var(--font-mono); }
+  .si-status.err { color: var(--red); }
+
+  /* ── SUCCESS PANEL ── */
+  .si-success-panel { display: none; background: var(--white); border: 2px solid var(--black); padding: 44px 40px; text-align: left; }
+  .si-success-panel .si-tick {
+    width: 54px; height: 54px; border-radius: 50%; background: var(--green); color: var(--white);
+    display: flex; align-items: center; justify-content: center; font-size: 24px; margin: 0 auto 20px;
+    animation: si-pop .4s cubic-bezier(.2,.9,.3,1.4);
+  }
+  @keyframes si-pop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .si-success-panel h2 { font-family: var(--font-display); margin: 0 0 6px; font-size: 1.6rem; text-align: center; letter-spacing: 0.02em; color: var(--black); }
+  .si-success-panel > p { color: var(--stone); margin: 0 0 22px; font-size: 13px; text-align: center; font-family: var(--font-body); }
+  .si-summary-list { border-top: 2px solid var(--black); }
+  .si-summary-row { display: flex; justify-content: space-between; gap: 16px; padding: 11px 0; border-bottom: 1px solid var(--light); font-size: 12.5px; font-family: var(--font-body); }
+  .si-summary-row .k { color: var(--stone); }
+  .si-summary-row .v { font-weight: 700; text-align: right; }
+  .si-summary-row .v.pending { color: var(--red); }
+  .si-summary-row .v.done { color: var(--green); }
+
+  @media (max-width: 640px) {
+    .si-nav-row { flex-wrap: wrap; gap: 10px; }
+    .si-status { width: 100%; text-align: left; }
+  }
+</style>
+</head>
+<body data-page="seo_intake">
+
+<!-- ── HEADER — injected by assets/vtm_header.js, same as every other
+     post-login page. This page isn't in the shared nav list; it's meant
+     to be reached via a dashboard tile added separately. ── -->
+<div id="vtmHeader"></div>
+<script src="assets/vtm_header.js"></script>
+
+<div class="punch-strip" id="topPunchStrip"></div>
+
+<div class="si-wrap">
+
+  <p class="si-eyebrow">Website &amp; SEO Audit Request</p>
+  <h1 class="si-h1">Let's find out what's holding your site back.</h1>
+  <p class="si-lede">A few quick steps — nothing here needs technical know-how. Skip anything you're not sure about and we'll follow up.</p>
+
+  <div class="si-track">
+    <div class="si-track-bar"><div class="si-track-fill" id="trackFill"></div></div>
+    <div class="si-steps-row" id="stepsRow">
+      <div class="si-step-chip active" data-step="0"><span class="dot">1</span><span class="label">Basics</span></div>
+      <div class="si-step-chip" data-step="1"><span class="dot">2</span><span class="label">Competitors</span></div>
+      <div class="si-step-chip" data-step="2"><span class="dot">3</span><span class="label">Access</span></div>
+      <div class="si-step-chip" data-step="3"><span class="dot">4</span><span class="label">Local</span></div>
+      <div class="si-step-chip" data-step="4"><span class="dot">5</span><span class="label">Targeting</span></div>
+    </div>
+  </div>
+
+  <form id="auditForm" class="si-form" novalidate>
+
+    <!-- STEP 0 — Basics -->
+    <div class="si-panel active" data-panel="0">
+      <div class="si-panel-head">
+        <p class="si-panel-num">01 · Your details</p>
+        <h2 class="si-panel-title">Who are we auditing this for?</h2>
+      </div>
+      <div class="si-field">
+        <label for="fullName">Full Name <span class="si-req">*</span></label>
+        <input type="text" id="fullName" required><span class="check">✓</span>
+        <div class="si-error-msg">Please enter your full name.</div>
+      </div>
+      <div class="si-field">
+        <label for="email">Business/Work Email <span class="si-req">*</span></label>
+        <input type="email" id="email" required><span class="check">✓</span>
+        <div class="si-error-msg">Please enter a valid work email address.</div>
+      </div>
+      <div class="si-field">
+        <label for="company">Company Name <span class="si-req">*</span></label>
+        <input type="text" id="company" required><span class="check">✓</span>
+        <div class="si-error-msg">Please enter your company name.</div>
+      </div>
+      <div class="si-field">
+        <label for="websiteUrl">Website URL <span class="si-req">*</span></label>
+        <div class="si-hint">Just the domain is fine — e.g. company.com</div>
+        <input type="text" id="websiteUrl" placeholder="company.com" required><span class="check">✓</span>
+        <div class="si-error-msg">Please enter a domain, e.g. company.com</div>
+      </div>
+    </div>
+
+    <!-- STEP 1 — Competitors -->
+    <div class="si-panel" data-panel="1">
+      <div class="si-panel-head">
+        <p class="si-panel-num">02 · Competitors</p>
+        <h2 class="si-panel-title">Who are you up against?</h2>
+        <p class="si-panel-sub">At least one is required — add up to four. Just the domain, e.g. competitor.com</p>
+      </div>
+      <div class="si-field">
+        <label>Competitor websites <span class="si-req">*</span></label>
+        <div class="si-grid-list">
+          <div class="si-row"><span class="si-num">1)</span><input type="text" id="competitor1" placeholder="competitor1.com" required><span class="check">✓</span></div>
+          <div class="si-row"><span class="si-num">2)</span><input type="text" id="competitor2" placeholder="competitor2.com"></div>
+          <div class="si-row"><span class="si-num">3)</span><input type="text" id="competitor3" placeholder="competitor3.com"></div>
+          <div class="si-row"><span class="si-num">4)</span><input type="text" id="competitor4" placeholder="competitor4.com"></div>
+        </div>
+        <div class="si-error-msg">Please provide at least one valid competitor domain.</div>
+      </div>
+    </div>
+
+    <!-- STEP 2 — Google Access -->
+    <div class="si-panel" data-panel="2">
+      <div class="si-panel-head">
+        <p class="si-panel-num">03 · Google access</p>
+        <h2 class="si-panel-title">Can we see your numbers?</h2>
+        <p class="si-panel-sub">Answer what you can — anything you skip, we'll help you set up later.</p>
+      </div>
+
+      <div class="si-grant-card">
+        <p class="si-grant-title">Google Ads account access</p>
+        <p class="si-grant-plain">Lets us see and manage your ad campaigns.</p>
+        <div class="si-email-row"><span>Grant access to</span> <code>optimize.engine.schweiz@gmail.com</code> <button type="button" class="si-copy-btn" data-copy="optimize.engine.schweiz@gmail.com">Copy email</button></div>
+        <details class="si-howto"><summary>How do I do this?</summary><p>Google Ads → Admin (gear icon) → Access and security → Users → click + and paste the email above.</p></details>
+        <div class="si-yesno" data-grant="ads">
+          <input type="radio" name="adsGranted" id="adsGranted-yes" value="Yes"><label for="adsGranted-yes">Yes</label>
+          <input type="radio" name="adsGranted" id="adsGranted-no" value="No"><label for="adsGranted-no">No</label>
+        </div>
+        <div class="si-role-select" id="adsRoleWrap">
+          <label for="adsRole">Role granted</label>
+          <select id="adsRole">
+            <option value="Full access">Full access</option>
+            <option value="Read-only / Analyst">Read-only / Analyst</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="si-grant-card">
+        <p class="si-grant-title">Google Analytics (GA4) access</p>
+        <p class="si-grant-plain">Lets us see how visitors use your site.</p>
+        <div class="si-email-row"><span>Grant access to</span> <code>optimize.engine.schweiz@gmail.com</code> <button type="button" class="si-copy-btn" data-copy="optimize.engine.schweiz@gmail.com">Copy email</button></div>
+        <details class="si-howto"><summary>How do I do this?</summary><p>Google Analytics → Admin → Property Access Management → click + → Add users → paste the email above.</p></details>
+        <div class="si-yesno" data-grant="ga4">
+          <input type="radio" name="ga4Granted" id="ga4Granted-yes" value="Yes"><label for="ga4Granted-yes">Yes</label>
+          <input type="radio" name="ga4Granted" id="ga4Granted-no" value="No"><label for="ga4Granted-no">No</label>
+        </div>
+        <div class="si-role-select" id="ga4RoleWrap">
+          <label for="ga4Role">Role granted</label>
+          <select id="ga4Role">
+            <option value="Full access (Administrator)">Full access (Administrator)</option>
+            <option value="Read-only (Viewer)">Read-only (Viewer)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="si-grant-card">
+        <p class="si-grant-title">Google Search Console access</p>
+        <p class="si-grant-plain">Shows us how your site performs in Google Search.</p>
+        <div class="si-email-row"><span>Grant access to</span> <code>optimize.engine.schweiz@gmail.com</code> <button type="button" class="si-copy-btn" data-copy="optimize.engine.schweiz@gmail.com">Copy email</button></div>
+        <details class="si-howto"><summary>How do I do this?</summary><p>Search Console → Settings → Users and permissions → Add user → paste the email above.</p></details>
+        <div class="si-yesno" data-grant="gsc">
+          <input type="radio" name="gscGranted" id="gscGranted-yes" value="Yes"><label for="gscGranted-yes">Yes</label>
+          <input type="radio" name="gscGranted" id="gscGranted-no" value="No"><label for="gscGranted-no">No</label>
+        </div>
+        <div class="si-role-select" id="gscRoleWrap">
+          <label for="gscRole">Role granted</label>
+          <select id="gscRole">
+            <option value="Full access (Owner)">Full access (Owner)</option>
+            <option value="Restricted user">Restricted user</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3 — Business Profile & Local -->
+    <div class="si-panel" data-panel="3">
+      <div class="si-panel-head">
+        <p class="si-panel-num">04 · Business profile &amp; local presence</p>
+        <h2 class="si-panel-title">Do you show up locally?</h2>
+      </div>
+
+      <div class="si-grant-card">
+        <p class="si-grant-title">Google Business Profile</p>
+        <p class="si-grant-plain">Do you have a Google Business Profile listing (the panel that shows on Google Maps/Search)?</p>
+        <div class="si-yesno" id="gbpHasGroup">
+          <input type="radio" name="gbpHas" id="gbpHas-yes" value="Yes"><label for="gbpHas-yes">Yes</label>
+          <input type="radio" name="gbpHas" id="gbpHas-no" value="No"><label for="gbpHas-no">No</label>
+        </div>
+        <div class="si-conditional-box" id="gbpAccessWrap">
+          <div class="si-email-row"><span>Add as manager:</span> <code>optimize.engine.schweiz@gmail.com</code> <button type="button" class="si-copy-btn" data-copy="optimize.engine.schweiz@gmail.com">Copy email</button></div>
+          <details class="si-howto"><summary>How do I do this?</summary><p>Google Business Profile → Managers → Invite new managers → paste the email above → choose "Manager" role.</p></details>
+          <div class="si-yesno">
+            <input type="radio" name="gbpGranted" id="gbpGranted-yes" value="Yes, manager access given"><label for="gbpGranted-yes">Access given</label>
+            <input type="radio" name="gbpGranted" id="gbpGranted-no" value="Not yet"><label for="gbpGranted-no">Not yet</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="si-field">
+        <label>Do you target local search (a specific city/area)?</label>
+        <div class="si-yesno" id="localHasGroup">
+          <input type="radio" name="localHas" id="localHas-yes" value="Yes"><label for="localHas-yes">Yes</label>
+          <input type="radio" name="localHas" id="localHas-no" value="No"><label for="localHas-no">No</label>
+        </div>
+        <div class="si-conditional-box" id="localAreaWrap">
+          <label for="localArea" style="margin-top:0;">Which city/area(s)?</label>
+          <input type="text" id="localArea" placeholder="e.g. Zurich, Basel">
+        </div>
+      </div>
+
+    </div>
+
+    <!-- STEP 4 — Targeting -->
+    <div class="si-panel" data-panel="4">
+      <div class="si-panel-head">
+        <p class="si-panel-num">05 · Targeting &amp; keywords</p>
+        <h2 class="si-panel-title">How should customers find you?</h2>
+      </div>
+
+      <div class="si-field">
+        <label>Top 5 keywords/phrases <span class="si-req">*</span></label>
+        <div class="si-hint">How you want customers to discover you online.</div>
+        <div class="si-grid-list">
+          <div class="si-row"><span class="si-num">1)</span><input type="text" id="keyword1" required><span class="check">✓</span></div>
+          <div class="si-row"><span class="si-num">2)</span><input type="text" id="keyword2"></div>
+          <div class="si-row"><span class="si-num">3)</span><input type="text" id="keyword3"></div>
+          <div class="si-row"><span class="si-num">4)</span><input type="text" id="keyword4"></div>
+          <div class="si-row"><span class="si-num">5)</span><input type="text" id="keyword5"></div>
+        </div>
+        <div class="si-error-msg">Please provide at least one keyword or phrase.</div>
+      </div>
+      <div class="si-field">
+        <label for="negativeKeywords">Are there any campaigns or keywords that are suspected of underperforming?</label>
+        <div class="si-hint">Optional — flag anything you already suspect isn't working.</div>
+        <textarea id="negativeKeywords"></textarea>
+      </div>
+      <div class="si-field">
+        <label for="otherInfo">Is there anything else we should know?</label>
+        <div class="si-hint">Optional</div>
+        <textarea id="otherInfo"></textarea>
+      </div>
+    </div>
+
+    <div class="si-nav-row" style="padding-left:clamp(20px,4vw,40px);padding-right:clamp(20px,4vw,40px);padding-bottom:30px;">
+      <button type="button" class="si-btn si-btn-ghost" id="backBtn" disabled>Back</button>
+      <button type="button" class="si-btn si-btn-primary" id="nextBtn">Continue</button>
+      <button type="submit" class="si-btn si-btn-primary" id="submitBtn" style="display:none;">Submit Audit Request</button>
+    </div>
+    <div class="si-status" id="statusMsg" role="status" aria-live="polite" style="padding-right:clamp(20px,4vw,40px);"></div>
+  </form>
+
+  <div class="si-success-panel" id="successPanel">
+    <div class="si-tick">✓</div>
+    <h2>Request received.</h2>
+    <p>Here's a quick recap — we'll follow up on anything still pending.</p>
+    <div class="si-summary-list" id="summaryList"></div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  // ── SESSION GATE — same pattern as weekly_report.js / task_index.js:
+  // any signed-in role (Admin, Lead, Doer) may access; no session → login.
+  var session = vtmGetSession();
+  if (!session) { window.location.replace('login.html'); return; }
+
+  // ── Decorative punch strip (visual only — matches every other
+  // post-login page's header treatment) ──────────────────────────────
+  (function buildPunchStrip(){
+    var strip = document.getElementById('topPunchStrip');
+    if (!strip) return;
+    var pattern = [1,0,0,1,0,1,1,0,1,0,0,1,1,0,0,1,0,1,0,1,1,0,1,0,1,0,0,1,0,1];
+    for (var s = 0; s < 2; s++) {
+      var div = document.createElement('div');
+      div.className = 'punch-holes' + (s === 1 ? ' punch-holes-2' : '');
+      for (var r = 0; r < 6; r++) {
+        pattern.forEach(function(p){
+          var h = document.createElement('div');
+          h.className = 'hole' + (p ? ' punched' : '');
+          div.appendChild(h);
+        });
+      }
+      strip.appendChild(div);
+    }
+  })();
+
+  var form = document.getElementById('auditForm');
+  var panels = Array.prototype.slice.call(document.querySelectorAll('.si-panel'));
+  var chips = Array.prototype.slice.call(document.querySelectorAll('.si-step-chip'));
+  var backBtn = document.getElementById('backBtn');
+  var nextBtn = document.getElementById('nextBtn');
+  var submitBtn = document.getElementById('submitBtn');
+  var statusMsg = document.getElementById('statusMsg');
+  var trackFill = document.getElementById('trackFill');
+  var successPanel = document.getElementById('successPanel');
+  var current = 0;
+  var TOTAL_STEPS = 5;
+
+  // Google Apps Script "Web app URL" — UNCHANGED. This is the live
+  // endpoint the Google Sheet listens on; do not edit.
+  var ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbyHvFKWKz2A2La-ayalWEUKPJOravq43LL9b7sTuDo8CIeG3PeDCDN0CkKxo7TBj8uh/exec";
+
+  function isValidDomain(v){
+    return /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+([\/?#].*)?$/.test(v.trim());
+  }
+
+  function fieldValid(el, extra){
+    var v = el.value.trim();
+    var wrap = el.closest('.si-field');
+    var ok = v.length > 0 && (extra === undefined ? true : extra(v));
+    wrap.classList.toggle('valid', ok);
+    return ok;
+  }
+
+  function liveCheck(){
+    fieldValid(document.getElementById('fullName'));
+    fieldValid(document.getElementById('email'), function(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); });
+    fieldValid(document.getElementById('company'));
+    fieldValid(document.getElementById('websiteUrl'), isValidDomain);
+    fieldValid(document.getElementById('competitor1'), isValidDomain);
+    fieldValid(document.getElementById('keyword1'));
+  }
+  form.addEventListener('input', liveCheck);
+  form.addEventListener('change', liveCheck);
+
+  // ---- copy-to-clipboard buttons ----
+  document.querySelectorAll('.si-copy-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var text = btn.getAttribute('data-copy');
+      navigator.clipboard.writeText(text).then(function(){
+        var original = btn.textContent;
+        btn.textContent = 'Copied ✓';
+        btn.classList.add('copied');
+        setTimeout(function(){ btn.textContent = original; btn.classList.remove('copied'); }, 1800);
+      });
+    });
+  });
+
+  // ---- conditional role dropdowns (Ads / GA4 / GSC) ----
+  function wireGrant(radioName, wrapId){
+    document.querySelectorAll('input[name="'+radioName+'"]').forEach(function(r){
+      r.addEventListener('change', function(){
+        document.getElementById(wrapId).classList.toggle('open', r.value === 'Yes' && r.checked);
+      });
+    });
+  }
+  wireGrant('adsGranted', 'adsRoleWrap');
+  wireGrant('ga4Granted', 'ga4RoleWrap');
+  wireGrant('gscGranted', 'gscRoleWrap');
+
+  // ---- Business Profile conditional ----
+  document.querySelectorAll('input[name="gbpHas"]').forEach(function(r){
+    r.addEventListener('change', function(){
+      document.getElementById('gbpAccessWrap').classList.toggle('open', r.value === 'Yes' && r.checked);
+    });
+  });
+
+  // ---- Local search conditional textbox ----
+  document.querySelectorAll('input[name="localHas"]').forEach(function(r){
+    r.addEventListener('change', function(){
+      document.getElementById('localAreaWrap').classList.toggle('open', r.value === 'Yes' && r.checked);
+    });
+  });
+
+  function validateStep(i){
+    var valid = true;
+    function mark(el, ok){ el.closest('.si-field').classList.toggle('invalid', !ok); if(!ok) valid = false; }
+    if(i===0){
+      mark(document.getElementById('fullName'), document.getElementById('fullName').value.trim().length>0);
+      mark(document.getElementById('email'), /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(document.getElementById('email').value.trim()));
+      mark(document.getElementById('company'), document.getElementById('company').value.trim().length>0);
+      mark(document.getElementById('websiteUrl'), isValidDomain(document.getElementById('websiteUrl').value.trim()));
+    }
+    if(i===1){
+      var comps = [1,2,3,4].map(function(k){return document.getElementById('competitor'+k).value.trim();});
+      var any = comps.some(function(v){return v.length>0;});
+      var allOk = comps.every(function(v){return v.length===0 || isValidDomain(v);});
+      mark(document.getElementById('competitor1'), any && allOk);
+    }
+    // Steps 2 (Access) and 3 (Local) are intentionally optional — no hard validation,
+    // so nothing blocks a customer who wants to skip and follow up later.
+    if(i===4){
+      mark(document.getElementById('keyword1'), document.getElementById('keyword1').value.trim().length>0);
+    }
+    return valid;
+  }
+
+  function goTo(i){
+    var goingForward = i > current;
+    panels[current].classList.remove('active');
+    chips[current].classList.toggle('done', goingForward);
+    current = i;
+    panels[current].classList.add('active');
+    chips.forEach(function(c, idx){
+      c.classList.toggle('active', idx === current);
+      c.classList.toggle('done', idx < current);
+    });
+    trackFill.style.width = (((current + 1) / TOTAL_STEPS) * 100) + '%';
+    backBtn.disabled = current === 0;
+    nextBtn.style.display = current === TOTAL_STEPS-1 ? 'none' : 'inline-block';
+    submitBtn.style.display = current === TOTAL_STEPS-1 ? 'inline-block' : 'none';
+    statusMsg.textContent = '';
+    window.scrollTo({top: form.offsetTop - 40, behavior:'smooth'});
+  }
+
+  nextBtn.addEventListener('click', function(){
+    if(!validateStep(current)){
+      statusMsg.textContent = 'Please fix the highlighted fields.';
+      statusMsg.classList.add('err');
+      return;
+    }
+    if(current < TOTAL_STEPS-1) goTo(current+1);
+  });
+  backBtn.addEventListener('click', function(){ if(current>0) goTo(current-1); });
+
+  function radioVal(name){ var r = form.querySelector('input[name="'+name+'"]:checked'); return r ? r.value : ''; }
+
+  function buildSummary(data){
+    var rows = [
+      ['Website', data.websiteUrl],
+      ['Competitors provided', data.competitors.length + ' of 4'],
+      ['Google Ads access', data.adsGranted === 'Yes' ? ('Granted — '+data.adsRole) : 'Not granted yet'],
+      ['GA4 access', data.ga4Granted === 'Yes' ? ('Granted — '+data.ga4Role) : 'Not granted yet'],
+      ['Search Console access', data.gscGranted === 'Yes' ? ('Granted — '+data.gscRole) : 'Not granted yet'],
+      ['Business Profile', data.gbpHas === 'Yes' ? (data.gbpGranted === 'Yes, manager access given' ? 'Access given' : 'Listed — access pending') : 'No listing'],
+      ['Local search targeting', data.localHas === 'Yes' ? (data.localArea || 'Yes') : 'Not targeted'],
+      ['Keywords provided', data.keywords.length + ' of 5']
+    ];
+    var list = document.getElementById('summaryList');
+    list.innerHTML = '';
+    rows.forEach(function(r){
+      var pending = /not granted|no listing|pending|not targeted/i.test(r[1]);
+      var div = document.createElement('div');
+      div.className = 'si-summary-row';
+      div.innerHTML = '<span class="k">'+r[0]+'</span><span class="v '+(pending?'pending':'done')+'">'+r[1]+'</span>';
+      list.appendChild(div);
+    });
+  }
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    if(!validateStep(4)){
+      statusMsg.textContent = 'Please fix the highlighted fields.';
+      statusMsg.classList.add('err');
+      return;
+    }
+
+    // Payload shape is UNCHANGED from the original form — same keys, same
+    // order of construction — so the Google Sheet / Apps Script on the
+    // other end keeps working without any changes on that side.
+    var data = {
+      fullName: document.getElementById('fullName').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      company: document.getElementById('company').value.trim(),
+      websiteUrl: document.getElementById('websiteUrl').value.trim(),
+      competitors: [1,2,3,4].map(function(i){return document.getElementById('competitor'+i).value.trim();}).filter(Boolean),
+
+      adsGranted: radioVal('adsGranted'),
+      adsRole: document.getElementById('adsRole').value,
+      ga4Granted: radioVal('ga4Granted'),
+      ga4Role: document.getElementById('ga4Role').value,
+      gscGranted: radioVal('gscGranted'),
+      gscRole: document.getElementById('gscRole').value,
+
+      gbpHas: radioVal('gbpHas'),
+      gbpGranted: radioVal('gbpGranted'),
+      localHas: radioVal('localHas'),
+      localArea: document.getElementById('localArea').value.trim(),
+
+      keywords: [1,2,3,4,5].map(function(i){return document.getElementById('keyword'+i).value.trim();}).filter(Boolean),
+      negativeKeywords: document.getElementById('negativeKeywords').value.trim(),
+      otherInfo: document.getElementById('otherInfo').value.trim(),
+      submittedAt: new Date().toISOString()
+    };
+
+    if(ENDPOINT_URL === ""){
+      console.log('Audit form data (no endpoint configured):', data);
+      statusMsg.textContent = 'Form endpoint not configured yet — see console output.';
+      statusMsg.classList.add('err');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    statusMsg.classList.remove('err');
+    statusMsg.textContent = 'Sending…';
+
+    fetch(ENDPOINT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {'Content-Type': 'text/plain;charset=utf-8'},
+      body: JSON.stringify(data)
+    }).then(function(){
+      buildSummary(data);
+      form.style.display = 'none';
+      document.querySelector('.si-track').style.display = 'none';
+      successPanel.style.display = 'block';
+    }).catch(function(){
+      statusMsg.textContent = 'Something went wrong — please try again.';
+      statusMsg.classList.add('err');
+      submitBtn.disabled = false;
+    });
+  });
+})();
+</script>
+</body>
+</html>

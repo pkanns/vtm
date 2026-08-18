@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Website Audit Request</title>
+<style>
+  :root{
+    --ink:#0E1520;
+    --ink-soft:#5B6472;
+    --paper:#F3F4F7;
+    --card:#FFFFFF;
+    --line:#E4E6EB;
+    --line-soft:#EEEFF2;
+    --rust:#C2410C;
+    --rust-soft:#FBEBE0;
+    --teal:#0F6E66;
+    --teal-soft:#E7F3F1;
+    --ok:#1F7A4D;
+    --err:#C0392B;
+    --radius:3px;
+    --shadow:0 1px 2px rgba(14,21,32,.04), 0 12px 32px -16px rgba(14,21,32,.18);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse 800px 400px at 15% -10%, rgba(194,65,12,.06), transparent),
+      radial-gradient(ellipse 700px 500px at 100% 10%, rgba(15,110,102,.05), transparent),
+      var(--paper);
+    color:var(--ink);
+    font-family:'Helvetica Neue', Arial, sans-serif;
+    line-height:1.55;
+    padding:56px 16px 80px;
+    min-height:100vh;
+  }
+  .stage{max-width:720px; margin:0 auto;}
+
+  .eyebrow{
+    font-family:'Courier New', monospace;
+    font-size:11.5px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--rust); margin:0 0 14px; display:flex; align-items:center; gap:10px;
+  }
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--rust);display:inline-block;}
+  h1{
+    font-family:Georgia,'Times New Roman',serif; font-weight:600;
+    font-size:clamp(28px,4.2vw,40px); margin:0 0 12px; letter-spacing:-.01em; max-width:20ch;
+  }
+  .lede{color:var(--ink-soft); font-size:15.5px; max-width:54ch; margin:0 0 34px;}
+
+  .track{margin-bottom:26px;}
+  .track-bar{height:3px; background:var(--line); border-radius:99px; overflow:hidden; margin-bottom:14px;}
+  .track-fill{height:100%; width:20%; background:linear-gradient(90deg, var(--rust), #E07840); transition:width .45s cubic-bezier(.65,0,.35,1);}
+  .steps-row{display:flex; gap:6px;}
+  .step-chip{
+    flex:1; display:flex; align-items:center; gap:8px; padding:9px 10px;
+    border:1px solid var(--line); background:var(--card); border-radius:var(--radius);
+    font-family:'Courier New', monospace; font-size:10.5px; letter-spacing:.04em; text-transform:uppercase;
+    color:#A7ADB8; transition:all .25s ease;
+  }
+  .step-chip .dot{width:16px;height:16px;border-radius:50%; border:1.5px solid currentColor; display:flex;align-items:center;justify-content:center; font-size:9px; flex-shrink:0;}
+  .step-chip.done{color:var(--teal); border-color:var(--teal-soft); background:var(--teal-soft);}
+  .step-chip.done .dot{background:var(--teal); border-color:var(--teal); color:#fff;}
+  .step-chip.active{color:var(--rust); border-color:var(--rust); background:var(--rust-soft); box-shadow:var(--shadow);}
+  .step-chip.active .dot{background:var(--rust); border-color:var(--rust); color:#fff;}
+  @media (max-width:640px){ .step-chip span.label{display:none;} }
+
+  form{
+    background:var(--card); border:1px solid var(--line); border-radius:6px; box-shadow:var(--shadow);
+    padding:38px clamp(20px,4vw,44px) 34px; position:relative; overflow:hidden;
+  }
+  .panel{display:none;}
+  .panel.active{display:block; animation:enter .38s cubic-bezier(.2,.7,.3,1);}
+  @keyframes enter{from{opacity:0; transform:translateX(14px);} to{opacity:1; transform:translateX(0);}}
+  .panel-head{margin-bottom:26px;}
+  .panel-num{font-family:'Courier New', monospace; font-size:11px; color:var(--rust); letter-spacing:.1em; text-transform:uppercase; margin:0 0 6px;}
+  .panel-title{font-family:Georgia, serif; font-size:22px; margin:0; font-weight:600;}
+  .panel-sub{color:var(--ink-soft); font-size:13.5px; margin:6px 0 0;}
+
+  label{display:block; font-size:14px; font-weight:600; margin-bottom:6px; color:var(--ink);}
+  .hint{font-size:12.5px; color:var(--ink-soft); font-weight:400; margin-top:-3px; margin-bottom:7px;}
+  .req{color:var(--rust); font-weight:600;}
+  input[type="text"], input[type="email"], select, textarea{
+    width:100%; padding:12px 14px; border:1px solid var(--line); border-radius:var(--radius);
+    font-size:15px; font-family:inherit; color:var(--ink); background:#FDFDFE;
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  select{cursor:pointer;}
+  input:focus, textarea:focus, select:focus{outline:none; border-color:var(--ink); box-shadow:0 0 0 3px rgba(14,21,32,.08);}
+  textarea{resize:vertical; min-height:78px;}
+  .field{margin-bottom:20px; position:relative;}
+  .field:last-child{margin-bottom:0;}
+  .field .check{
+    position:absolute; right:12px; top:38px; width:18px; height:18px; border-radius:50%;
+    background:var(--teal); color:#fff; display:none; align-items:center; justify-content:center; font-size:11px;
+  }
+  .field.valid .check{display:flex;}
+  .field.valid input{padding-right:38px;}
+
+  .grid-list{display:grid; gap:10px;}
+  .grid-list .row{display:grid; grid-template-columns:24px 1fr; align-items:center; gap:10px; position:relative;}
+  .grid-list .num{font-family:'Courier New', monospace; font-size:13px; color:var(--rust); text-align:right;}
+  .grid-list .row .check{right:12px; top:8px;}
+
+  .radio-group{display:flex; gap:10px; margin-top:4px;}
+  .radio-option{
+    flex:1; display:flex; align-items:center; justify-content:center; gap:8px;
+    border:1px solid var(--line); padding:12px 14px; border-radius:var(--radius);
+    cursor:pointer; font-size:14px; font-weight:600; transition:all .15s ease; text-align:center;
+  }
+  .radio-option:hover{border-color:#C7CBD3;}
+  .radio-option:has(input:checked){border-color:var(--teal); background:var(--teal-soft); color:var(--teal);}
+  .radio-option input{margin:0; accent-color:var(--teal);}
+  .error-msg{font-size:12.5px; color:var(--err); margin-top:6px; display:none;}
+  .field.invalid input, .field.invalid textarea{border-color:var(--err);}
+  .field.invalid .error-msg{display:block;}
+  .field.invalid .check{display:none;}
+
+  /* ---- Access grant blocks ---- */
+  .grant-card{
+    border:1px solid var(--line); border-radius:6px; padding:18px 18px 16px; margin-bottom:16px; background:#FDFDFE;
+  }
+  .grant-card:last-child{margin-bottom:0;}
+  .grant-title{font-size:14.5px; font-weight:700; margin:0 0 3px;}
+  .grant-plain{font-size:12.5px; color:var(--ink-soft); margin:0 0 12px;}
+  .email-row{
+    display:flex; align-items:center; gap:8px; background:var(--paper); border:1px dashed var(--line);
+    border-radius:var(--radius); padding:9px 12px; margin-bottom:12px; font-size:13px;
+  }
+  .email-row code{font-family:'Courier New', monospace; font-weight:700; color:var(--ink);}
+  .copy-btn{
+    margin-left:auto; border:1px solid var(--line); background:#fff; color:var(--ink-soft);
+    font-size:11.5px; font-weight:600; padding:5px 10px; border-radius:3px; cursor:pointer; transition:all .15s ease; white-space:nowrap;
+  }
+  .copy-btn:hover{border-color:var(--teal); color:var(--teal);}
+  .copy-btn.copied{border-color:var(--teal); color:var(--teal); background:var(--teal-soft);}
+  .howto{margin-bottom:12px;}
+  .howto summary{
+    font-size:12.5px; color:var(--rust); cursor:pointer; font-weight:600; list-style:none; display:inline-flex; align-items:center; gap:5px;
+  }
+  .howto summary::-webkit-details-marker{display:none;}
+  .howto summary::before{content:"+"; font-size:14px; line-height:1;}
+  .howto[open] summary::before{content:"–";}
+  .howto p{font-size:12.5px; color:var(--ink-soft); margin:8px 0 0; padding:10px 12px; background:var(--paper); border-radius:var(--radius);}
+  .role-select{
+    max-height:0; overflow:hidden; opacity:0; transition:max-height .3s ease, opacity .25s ease, margin .3s ease;
+  }
+  .role-select.open{max-height:120px; opacity:1; margin-top:12px;}
+  .badge-rec{font-size:10.5px; color:var(--teal); font-weight:700; text-transform:uppercase; letter-spacing:.03em;}
+
+  .conditional-box{max-height:0; overflow:hidden; opacity:0; transition:max-height .3s ease, opacity .25s ease, margin .3s ease;}
+  .conditional-box.open{max-height:160px; opacity:1; margin-top:14px;}
+
+  .nav-row{display:flex; justify-content:space-between; align-items:center; margin-top:32px; padding-top:24px; border-top:1px solid var(--line-soft);}
+  .btn{font-family:inherit; font-size:14.5px; font-weight:600; padding:13px 26px; border-radius:var(--radius); cursor:pointer; letter-spacing:.01em; transition:all .15s ease; border:1px solid transparent;}
+  .btn-primary{background:var(--ink); color:#fff;}
+  .btn-primary:hover{background:var(--rust); transform:translateY(-1px);}
+  .btn-primary:disabled{background:#C7CBD3; cursor:not-allowed; transform:none;}
+  .btn-ghost{background:transparent; color:var(--ink-soft); border-color:var(--line);}
+  .btn-ghost:hover{border-color:var(--ink); color:var(--ink);}
+  .btn-ghost:disabled{opacity:0; pointer-events:none;}
+  .status{font-size:13px; font-weight:600; margin-top:12px; text-align:right;}
+  .status.err{color:var(--err);}
+
+  .success-panel{display:none; background:var(--card); border:1px solid var(--line); border-radius:6px; box-shadow:var(--shadow); padding:44px 40px; text-align:left;}
+  .success-panel .tick{width:56px; height:56px; border-radius:50%; background:var(--teal); color:#fff; display:flex; align-items:center; justify-content:center; font-size:26px; margin:0 auto 20px; animation:pop .4s cubic-bezier(.2,.9,.3,1.4);}
+  @keyframes pop{from{transform:scale(0); opacity:0;} to{transform:scale(1); opacity:1;}}
+  .success-panel h2{font-family:Georgia, serif; margin:0 0 8px; font-size:24px; text-align:center;}
+  .success-panel > p{color:var(--ink-soft); margin:0 0 24px; font-size:14.5px; text-align:center;}
+  .summary-list{border-top:1px solid var(--line-soft);}
+  .summary-row{display:flex; justify-content:space-between; gap:16px; padding:11px 0; border-bottom:1px solid var(--line-soft); font-size:13.5px;}
+  .summary-row .k{color:var(--ink-soft);}
+  .summary-row .v{font-weight:600; text-align:right;}
+  .summary-row .v.pending{color:var(--rust);}
+  .summary-row .v.done{color:var(--teal);}
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <p class="eyebrow">Website &amp; SEO Audit Request</p>
+  <h1>Let's find out what's holding your site back.</h1>
+  <p class="lede">A few quick steps — nothing here needs technical know-how. Skip anything you're not sure about and we'll follow up.</p>
+
+  <div class="track">
+    <div class="track-bar"><div class="track-fill" id="trackFill"></div></div>
+    <div class="steps-row" id="stepsRow">
+      <div class="step-chip active" data-step="0"><span class="dot">1</span><span class="label">Basics</span></div>
+      <div class="step-chip" data-step="1"><span class="dot">2</span><span class="label">Competitors</span></div>
+      <div class="step-chip" data-step="2"><span class="dot">3</span><span class="label">Access</span></div>
+      <div class="step-chip" data-step="3"><span class="dot">4</span><span class="label">Local</span></div>
+      <div class="step-chip" data-step="4"><span class="dot">5</span><span class="label">Targeting</span></div>
+    </div>
+  </div>
+
+  <form id="auditForm" novalidate>
+
+    <!-- STEP 0 — Basics -->
+    <div class="panel active" data-panel="0">
+      <div class="panel-head">
+        <p class="panel-num">01 · Your details</p>
+        <h2 class="panel-title">Who are we auditing this for?</h2>
+      </div>
+      <div class="field">
+        <label for="fullName">Full Name <span class="req">*</span></label>
+        <input type="text" id="fullName" required><span class="check">✓</span>
+        <div class="error-msg">Please enter your full name.</div>
+      </div>
+      <div class="field">
+        <label for="email">Business/Work Email <span class="req">*</span></label>
+        <input type="email" id="email" required><span class="check">✓</span>
+        <div class="error-msg">Please enter a valid work email address.</div>
+      </div>
+      <div class="field">
+        <label for="company">Company Name <span class="req">*</span></label>
+        <input type="text" id="company" required><span class="check">✓</span>
+        <div class="error-msg">Please enter your company name.</div>
+      </div>
+      <div class="field">
+        <label for="websiteUrl">Website URL <span class="req">*</span></label>
+        <div class="hint">Just the domain is fine — e.g. company.com</div>
+        <input type="text" id="websiteUrl" placeholder="company.com" required><span class="check">✓</span>
+        <div class="error-msg">Please enter a domain, e.g. company.com</div>
+      </div>
+    </div>
+
+    <!-- STEP 1 — Competitors -->
+    <div class="panel" data-panel="1">
+      <div class="panel-head">
+        <p class="panel-num">02 · Competitors</p>
+        <h2 class="panel-title">Who are you up against?</h2>
+        <p class="panel-sub">At least one is required — add up to four. Just the domain, e.g. competitor.com</p>
+      </div>
+      <div class="field">
+        <label>Competitor websites <span class="req">*</span></label>
+        <div class="grid-list">
+          <div class="row"><span class="num">1)</span><input type="text" id="competitor1" placeholder="competitor1.com" required><span class="check">✓</span></div>
+          <div class="row"><span class="num">2)</span><input type="text" id="competitor2" placeholder="competitor2.com"></div>
+          <div class="row"><span class="num">3)</span><input type="text" id="competitor3" placeholder="competitor3.com"></div>
+          <div class="row"><span class="num">4)</span><input type="text" id="competitor4" placeholder="competitor4.com"></div>
+        </div>
+        <div class="error-msg">Please provide at least one valid competitor domain.</div>
+      </div>
+    </div>
+
+    <!-- STEP 2 — Google Access -->
+    <div class="panel" data-panel="2">
+      <div class="panel-head">
+        <p class="panel-num">03 · Google access</p>
+        <h2 class="panel-title">Can we see your numbers?</h2>
+        <p class="panel-sub">Answer what you can — anything you skip, we'll help you set up later.</p>
+      </div>
+
+      <div class="grant-card">
+        <p class="grant-title">Google Ads account access</p>
+        <p class="grant-plain">Lets us see and manage your ad campaigns.</p>
+        <div class="email-row"><span>Grant access to</span> <code>optimize.engine.schweiz@gmail.com</code> <button type="button" class="copy-btn" data-copy="optimize.engine.schweiz@gmail.com">Copy email</button></div>
+        <details class="howto"><summary>How do I do this?</summary><p>Google Ads → Admin (gear icon) → Access and security → Users → click + and paste the email above.</p></details>
+        <div class="radio-group" data-grant="ads">
+          <label class="radio-option"><input type="radio" name="adsGranted" value="Yes">Yes</label>
+          <label class="radio-option"><input type="radio" name="adsGranted" value="No">No</label>
+        </div>
+        <div class="role-select" id="adsRoleWrap">
+          <label for="adsRole">Role granted</label>
+          <select id="adsRole">
+            <option value="Full access">Full access</option>
+            <option value="Read-only / Analyst">Read-only / Analyst</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grant-card">
+        <p class="grant-title">Google Analytics (GA4) access</p>
+        <p class="grant-plain">Lets us see how visitors use your site.</p>
+        <div class="email-row"><span>Grant access to</span> <code>optimize.engine.schweiz@gmail.com</code> <button type="button" class="copy-btn" data-copy="optimize.engine.schweiz@gmail.com">Copy email</button></div>
+        <details class="howto"><summary>How do I do this?</summary><p>Google Analytics → Admin → Property Access Management → click + → Add users → paste the email above.</p></details>
+        <div class="radio-group" data-grant="ga4">
+          <label class="radio-option"><input type="radio" name="ga4Granted" value="Yes">Yes</label>
+          <label class="radio-option"><input type="radio" name="ga4Granted" value="No">No</label>
+        </div>
+        <div class="role-select" id="ga4RoleWrap">
+          <label for="ga4Role">Role granted</label>
+          <select id="ga4Role">
+            <option value="Full access (Administrator)">Full access (Administrator)</option>
+            <option value="Read-only (Viewer)">Read-only (Viewer)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grant-card">
+        <p class="grant-title">Google Search Console access</p>
+        <p class="grant-plain">Shows us how your site performs in Google Search.</p>
+        <div class="email-row"><span>Grant access to</span> <code>optimize.engine.schweiz@gmail.com</code> <button type="button" class="copy-btn" data-copy="optimize.engine.schweiz@gmail.com">Copy email</button></div>
+        <details class="howto"><summary>How do I do this?</summary><p>Search Console → Settings → Users and permissions → Add user → paste the email above.</p></details>
+        <div class="radio-group" data-grant="gsc">
+          <label class="radio-option"><input type="radio" name="gscGranted" value="Yes">Yes</label>
+          <label class="radio-option"><input type="radio" name="gscGranted" value="No">No</label>
+        </div>
+        <div class="role-select" id="gscRoleWrap">
+          <label for="gscRole">Role granted</label>
+          <select id="gscRole">
+            <option value="Full access (Owner)">Full access (Owner)</option>
+            <option value="Restricted user">Restricted user</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3 — Business Profile & Local -->
+    <div class="panel" data-panel="3">
+      <div class="panel-head">
+        <p class="panel-num">04 · Business profile &amp; local presence</p>
+        <h2 class="panel-title">Do you show up locally?</h2>
+      </div>
+
+      <div class="grant-card">
+        <p class="grant-title">Google Business Profile</p>
+        <p class="grant-plain">Do you have a Google Business Profile listing (the panel that shows on Google Maps/Search)?</p>
+        <div class="radio-group" id="gbpHasGroup">
+          <label class="radio-option"><input type="radio" name="gbpHas" value="Yes">Yes</label>
+          <label class="radio-option"><input type="radio" name="gbpHas" value="No">No</label>
+        </div>
+        <div class="conditional-box" id="gbpAccessWrap">
+          <div class="email-row"><span>Add as manager:</span> <code>optimize.engine.schweiz@gmail.com</code> <button type="button" class="copy-btn" data-copy="optimize.engine.schweiz@gmail.com">Copy email</button></div>
+          <details class="howto"><summary>How do I do this?</summary><p>Google Business Profile → Managers → Invite new managers → paste the email above → choose "Manager" role.</p></details>
+          <div class="radio-group">
+            <label class="radio-option"><input type="radio" name="gbpGranted" value="Yes, manager access given">Access given</label>
+            <label class="radio-option"><input type="radio" name="gbpGranted" value="Not yet">Not yet</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Do you target local search (a specific city/area)?</label>
+        <div class="radio-group" id="localHasGroup">
+          <label class="radio-option"><input type="radio" name="localHas" value="Yes">Yes</label>
+          <label class="radio-option"><input type="radio" name="localHas" value="No">No</label>
+        </div>
+        <div class="conditional-box" id="localAreaWrap">
+          <label for="localArea" style="margin-top:0;">Which city/area(s)?</label>
+          <input type="text" id="localArea" placeholder="e.g. Zurich, Basel">
+        </div>
+      </div>
+
+    </div>
+
+    <!-- STEP 4 — Targeting -->
+    <div class="panel" data-panel="4">
+      <div class="panel-head">
+        <p class="panel-num">05 · Targeting &amp; keywords</p>
+        <h2 class="panel-title">How should customers find you?</h2>
+      </div>
+
+      <div class="field">
+        <label>Top 5 keywords/phrases <span class="req">*</span></label>
+        <div class="hint">How you want customers to discover you online.</div>
+        <div class="grid-list">
+          <div class="row"><span class="num">1)</span><input type="text" id="keyword1" required><span class="check">✓</span></div>
+          <div class="row"><span class="num">2)</span><input type="text" id="keyword2"></div>
+          <div class="row"><span class="num">3)</span><input type="text" id="keyword3"></div>
+          <div class="row"><span class="num">4)</span><input type="text" id="keyword4"></div>
+          <div class="row"><span class="num">5)</span><input type="text" id="keyword5"></div>
+        </div>
+        <div class="error-msg">Please provide at least one keyword or phrase.</div>
+      </div>
+      <div class="field">
+        <label for="negativeKeywords">Are there any campaigns or keywords that are suspected of underperforming?</label>
+        <div class="hint">Optional — flag anything you already suspect isn't working.</div>
+        <textarea id="negativeKeywords"></textarea>
+      </div>
+      <div class="field">
+        <label for="otherInfo">Is there anything else we should know?</label>
+        <div class="hint">Optional</div>
+        <textarea id="otherInfo"></textarea>
+      </div>
+    </div>
+
+    <div class="nav-row">
+      <button type="button" class="btn btn-ghost" id="backBtn" disabled>Back</button>
+      <button type="button" class="btn btn-primary" id="nextBtn">Continue</button>
+      <button type="submit" class="btn btn-primary" id="submitBtn" style="display:none;">Submit Audit Request</button>
+    </div>
+    <div class="status" id="statusMsg" role="status" aria-live="polite"></div>
+  </form>
+
+  <div class="success-panel" id="successPanel">
+    <div class="tick">✓</div>
+    <h2>Request received.</h2>
+    <p>Here's a quick recap — we'll follow up on anything still pending.</p>
+    <div class="summary-list" id="summaryList"></div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  var form = document.getElementById('auditForm');
+  var panels = Array.prototype.slice.call(document.querySelectorAll('.panel'));
+  var chips = Array.prototype.slice.call(document.querySelectorAll('.step-chip'));
+  var backBtn = document.getElementById('backBtn');
+  var nextBtn = document.getElementById('nextBtn');
+  var submitBtn = document.getElementById('submitBtn');
+  var statusMsg = document.getElementById('statusMsg');
+  var trackFill = document.getElementById('trackFill');
+  var successPanel = document.getElementById('successPanel');
+  var current = 0;
+  var TOTAL_STEPS = 5;
+
+  // Paste your Google Apps Script "Web app URL" here after deploying it (see Code.gs).
+  var ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbyHvFKWKz2A2La-ayalWEUKPJOravq43LL9b7sTuDo8CIeG3PeDCDN0CkKxo7TBj8uh/exec";
+
+  function isValidDomain(v){
+    return /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+([\/?#].*)?$/.test(v.trim());
+  }
+
+  function fieldValid(el, extra){
+    var v = el.value.trim();
+    var wrap = el.closest('.field');
+    var ok = v.length > 0 && (extra === undefined ? true : extra(v));
+    wrap.classList.toggle('valid', ok);
+    return ok;
+  }
+
+  function liveCheck(){
+    fieldValid(document.getElementById('fullName'));
+    fieldValid(document.getElementById('email'), function(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); });
+    fieldValid(document.getElementById('company'));
+    fieldValid(document.getElementById('websiteUrl'), isValidDomain);
+    fieldValid(document.getElementById('competitor1'), isValidDomain);
+    fieldValid(document.getElementById('keyword1'));
+  }
+  form.addEventListener('input', liveCheck);
+  form.addEventListener('change', liveCheck);
+
+  // ---- copy-to-clipboard buttons ----
+  document.querySelectorAll('.copy-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var text = btn.getAttribute('data-copy');
+      navigator.clipboard.writeText(text).then(function(){
+        var original = btn.textContent;
+        btn.textContent = 'Copied ✓';
+        btn.classList.add('copied');
+        setTimeout(function(){ btn.textContent = original; btn.classList.remove('copied'); }, 1800);
+      });
+    });
+  });
+
+  // ---- conditional role dropdowns (Ads / GA4 / GSC) ----
+  function wireGrant(radioName, wrapId){
+    document.querySelectorAll('input[name="'+radioName+'"]').forEach(function(r){
+      r.addEventListener('change', function(){
+        document.getElementById(wrapId).classList.toggle('open', r.value === 'Yes' && r.checked);
+      });
+    });
+  }
+  wireGrant('adsGranted', 'adsRoleWrap');
+  wireGrant('ga4Granted', 'ga4RoleWrap');
+  wireGrant('gscGranted', 'gscRoleWrap');
+
+  // ---- Business Profile conditional ----
+  document.querySelectorAll('input[name="gbpHas"]').forEach(function(r){
+    r.addEventListener('change', function(){
+      document.getElementById('gbpAccessWrap').classList.toggle('open', r.value === 'Yes' && r.checked);
+    });
+  });
+
+  // ---- Local search conditional textbox ----
+  document.querySelectorAll('input[name="localHas"]').forEach(function(r){
+    r.addEventListener('change', function(){
+      document.getElementById('localAreaWrap').classList.toggle('open', r.value === 'Yes' && r.checked);
+    });
+  });
+
+  function validateStep(i){
+    var valid = true;
+    function mark(el, ok){ el.closest('.field').classList.toggle('invalid', !ok); if(!ok) valid = false; }
+    if(i===0){
+      mark(document.getElementById('fullName'), document.getElementById('fullName').value.trim().length>0);
+      mark(document.getElementById('email'), /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(document.getElementById('email').value.trim()));
+      mark(document.getElementById('company'), document.getElementById('company').value.trim().length>0);
+      mark(document.getElementById('websiteUrl'), isValidDomain(document.getElementById('websiteUrl').value.trim()));
+    }
+    if(i===1){
+      var comps = [1,2,3,4].map(function(k){return document.getElementById('competitor'+k).value.trim();});
+      var any = comps.some(function(v){return v.length>0;});
+      var allOk = comps.every(function(v){return v.length===0 || isValidDomain(v);});
+      mark(document.getElementById('competitor1'), any && allOk);
+    }
+    // Steps 2 (Access) and 3 (Local) are intentionally optional — no hard validation,
+    // so nothing blocks a customer who wants to skip and follow up later.
+    if(i===4){
+      mark(document.getElementById('keyword1'), document.getElementById('keyword1').value.trim().length>0);
+    }
+    return valid;
+  }
+
+  function goTo(i){
+    var goingForward = i > current;
+    panels[current].classList.remove('active');
+    chips[current].classList.toggle('done', goingForward);
+    current = i;
+    panels[current].classList.add('active');
+    chips.forEach(function(c, idx){
+      c.classList.toggle('active', idx === current);
+      c.classList.toggle('done', idx < current);
+    });
+    trackFill.style.width = (((current + 1) / TOTAL_STEPS) * 100) + '%';
+    backBtn.disabled = current === 0;
+    nextBtn.style.display = current === TOTAL_STEPS-1 ? 'none' : 'inline-block';
+    submitBtn.style.display = current === TOTAL_STEPS-1 ? 'inline-block' : 'none';
+    statusMsg.textContent = '';
+    window.scrollTo({top: form.offsetTop - 40, behavior:'smooth'});
+  }
+
+  nextBtn.addEventListener('click', function(){
+    if(!validateStep(current)){
+      statusMsg.textContent = 'Please fix the highlighted fields.';
+      statusMsg.classList.add('err');
+      return;
+    }
+    if(current < TOTAL_STEPS-1) goTo(current+1);
+  });
+  backBtn.addEventListener('click', function(){ if(current>0) goTo(current-1); });
+
+  function radioVal(name){ var r = form.querySelector('input[name="'+name+'"]:checked'); return r ? r.value : ''; }
+
+  function buildSummary(data){
+    var rows = [
+      ['Website', data.websiteUrl],
+      ['Competitors provided', data.competitors.length + ' of 4'],
+      ['Google Ads access', data.adsGranted === 'Yes' ? ('Granted — '+data.adsRole) : 'Not granted yet'],
+      ['GA4 access', data.ga4Granted === 'Yes' ? ('Granted — '+data.ga4Role) : 'Not granted yet'],
+      ['Search Console access', data.gscGranted === 'Yes' ? ('Granted — '+data.gscRole) : 'Not granted yet'],
+      ['Business Profile', data.gbpHas === 'Yes' ? (data.gbpGranted === 'Yes, manager access given' ? 'Access given' : 'Listed — access pending') : 'No listing'],
+      ['Local search targeting', data.localHas === 'Yes' ? (data.localArea || 'Yes') : 'Not targeted'],
+      ['Keywords provided', data.keywords.length + ' of 5']
+    ];
+    var list = document.getElementById('summaryList');
+    list.innerHTML = '';
+    rows.forEach(function(r){
+      var pending = /not granted|no listing|pending|not targeted/i.test(r[1]);
+      var div = document.createElement('div');
+      div.className = 'summary-row';
+      div.innerHTML = '<span class="k">'+r[0]+'</span><span class="v '+(pending?'pending':'done')+'">'+r[1]+'</span>';
+      list.appendChild(div);
+    });
+  }
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    if(!validateStep(4)){
+      statusMsg.textContent = 'Please fix the highlighted fields.';
+      statusMsg.classList.add('err');
+      return;
+    }
+
+    var data = {
+      fullName: document.getElementById('fullName').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      company: document.getElementById('company').value.trim(),
+      websiteUrl: document.getElementById('websiteUrl').value.trim(),
+      competitors: [1,2,3,4].map(function(i){return document.getElementById('competitor'+i).value.trim();}).filter(Boolean),
+
+      adsGranted: radioVal('adsGranted'),
+      adsRole: document.getElementById('adsRole').value,
+      ga4Granted: radioVal('ga4Granted'),
+      ga4Role: document.getElementById('ga4Role').value,
+      gscGranted: radioVal('gscGranted'),
+      gscRole: document.getElementById('gscRole').value,
+
+      gbpHas: radioVal('gbpHas'),
+      gbpGranted: radioVal('gbpGranted'),
+      localHas: radioVal('localHas'),
+      localArea: document.getElementById('localArea').value.trim(),
+
+      keywords: [1,2,3,4,5].map(function(i){return document.getElementById('keyword'+i).value.trim();}).filter(Boolean),
+      negativeKeywords: document.getElementById('negativeKeywords').value.trim(),
+      otherInfo: document.getElementById('otherInfo').value.trim(),
+      submittedAt: new Date().toISOString()
+    };
+
+    if(ENDPOINT_URL === ""){
+      console.log('Audit form data (no endpoint configured):', data);
+      statusMsg.textContent = 'Form endpoint not configured yet — see console output.';
+      statusMsg.classList.add('err');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    statusMsg.classList.remove('err');
+    statusMsg.textContent = 'Sending…';
+
+    fetch(ENDPOINT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {'Content-Type': 'text/plain;charset=utf-8'},
+      body: JSON.stringify(data)
+    }).then(function(){
+      buildSummary(data);
+      form.style.display = 'none';
+      document.querySelector('.track').style.display = 'none';
+      successPanel.style.display = 'block';
+    }).catch(function(){
+      statusMsg.textContent = 'Something went wrong — please try again.';
+      statusMsg.classList.add('err');
+      submitBtn.disabled = false;
+    });
+  });
+})();
+</script>
+</body>
+</html>

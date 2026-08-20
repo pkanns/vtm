@@ -30,6 +30,7 @@
     }
     .filter-select.scope-select { background-color: var(--black); color: var(--white); border-color: var(--black);
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23f0ead8'/%3E%3C/svg%3E"); }
+    .filter-select:disabled { opacity: 0.4; cursor: not-allowed; }
 
     .week-nav { display: flex; align-items: center; gap: 8px; }
     .week-nav-btn { background: none; border: none; color: var(--charcoal); font-size: 14px; cursor: pointer; padding: 2px 4px; }
@@ -44,10 +45,23 @@
     }
     .filter-chip.active { background: var(--charcoal); color: var(--white); }
 
+    /* ── VIEW TABS — same collapsible pattern as weekly_report.html.
+       Nothing in .results-card renders until one of these is clicked;
+       clicking the active tab again collapses the panel. ── */
+    .view-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+    .view-tab {
+      background: var(--white); border: 1px solid #d8d0ba; border-radius: 20px;
+      padding: 7px 18px; font-family: var(--font-body); font-size: 12px;
+      color: var(--charcoal); cursor: pointer; transition: all 0.15s;
+    }
+    .view-tab:hover { border-color: var(--charcoal); }
+    .view-tab.active { background: var(--black); color: var(--white); border-color: var(--black); }
+
     /* ── RESULTS ────────────────────────────────────────────────────────── */
     .results-card { border: 2px solid var(--black); background: var(--white); }
     .results-header { background: var(--black); color: var(--white); padding: 12px 20px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
     .results-body { padding: 20px 24px 24px; }
+    .results-body:empty { padding: 0; }
 
     .summary-table { width: 100%; border-collapse: collapse; font-size: 13px; }
     .summary-table th { text-align: left; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--stone); padding: 8px 10px; border-bottom: 2px solid var(--black); }
@@ -65,6 +79,14 @@
     .gig-row-due.overdue { color: var(--red); font-weight: 700; }
     .gig-row-hours { font-family: var(--font-body); font-weight: 700; font-size: 12px; color: var(--black); }
 
+    .status-pill { display: inline-block; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; font-weight: 600; }
+    .status-pill.placed      { background: #e8eef5; color: #2a5a8a; }
+    .status-pill.matched     { background: #f5eef8; color: #7b3fa0; }
+    .status-pill.aligned     { background: #fdf5e0; color: #8a6200; }
+    .status-pill.in_progress { background: #fceee8; color: var(--red); }
+    .status-pill.delivered   { background: #e8f5ee; color: var(--green); }
+    .status-pill.completed   { background: var(--light); color: var(--stone); }
+
     .text-readonly { background: var(--light); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
     .text-readonly label { display: block; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--stone); margin-bottom: 6px; }
 
@@ -72,6 +94,7 @@
 
     @media (max-width: 640px) {
       .gig-row { grid-template-columns: 1fr; gap: 4px; }
+      .view-tabs { flex-wrap: wrap; }
     }
   </style>
 </head>
@@ -109,11 +132,15 @@
     </div>
   </div>
 
+  <div class="view-tabs" id="viewTabs">
+    <button class="view-tab" data-view="time" onclick="setView('time')">Time View</button>
+    <button class="view-tab" data-view="task" onclick="setView('task')">Task View</button>
+    <button class="view-tab" data-view="gig"  onclick="setView('gig')">Gig View</button>
+  </div>
+
   <div class="results-card">
-    <div class="results-header" id="resultsHeader">Loading&hellip;</div>
-    <div class="results-body" id="resultsBody">
-      <div class="empty-state">Loading&hellip;</div>
-    </div>
+    <div class="results-header" id="resultsHeader">Select a view above</div>
+    <div class="results-body" id="resultsBody"></div>
   </div>
 
 </div>

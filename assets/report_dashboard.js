@@ -142,7 +142,7 @@ async function refresh() {
 // ── TIME VIEW ──────────────────────────────────────────────────────────
 
 async function renderOnePersonTime(userId) {
-  const [{ gigs, closedLine }, text] = await Promise.all([
+  const [{ gigs, closedLine, timeSlices }, text] = await Promise.all([
     computeWeekData(db, userId, currentMonday, currentSunday),
     fetchReportText(db, userId, toISODate(currentMonday)),
   ])
@@ -150,6 +150,7 @@ async function renderOnePersonTime(userId) {
   const filtered = applyGigFilters(gigs)
 
   bodyEl.innerHTML = `
+    ${buildBarsHTML(timeSlices)}
     ${buildGigsListHTML(filtered)}
     ${closedLine ? `<div style="font-family:var(--font-mono);font-size:10px;color:var(--stone);margin-top:8px;">${closedLine}</div>` : ''}
     <div style="margin-top:20px">
@@ -195,6 +196,18 @@ async function renderAllUsersTime() {
       </tbody>
     </table>
   `
+}
+
+function buildBarsHTML(slices) {
+  const total = (slices || []).reduce((s, x) => s + x.minutes, 0)
+  if (!total) return '<div class="bars-empty">No time logged yet this week.</div>'
+  const rows = slices.map(s => `
+    <div class="bar-row">
+      <span>${s.label}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100, (s.minutes / (40*60)) * 100)}%;background:${s.color}"></div></div>
+      <span class="bar-row-value">${fmtHours(s.minutes)}</span>
+    </div>`).join('')
+  return `<div class="filter-label">Time this week &middot; of 40h</div><div class="bars-section">${rows}</div>`
 }
 
 function applyGigFilters(gigs) {

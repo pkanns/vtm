@@ -4,19 +4,30 @@
  * built so month/role/project become additional filters on the same
  * computeWeekData() shape later, not a rewrite.
  *
+ * Two views, toggled at the top — Time View (default, unchanged) and
+ * Task View (tasks changed this week for the selected person, or a
+ * per-person changed-count table when "All users" is selected). The
+ * Status/Overdue/effort-bucket filters only apply to Time View, so
+ * they're dimmed and disabled while Task View is active.
+ *
  * Access model:
  *   admin  → any single user, or "All" (aggregate summary table)
  *   pacer  → self, or exactly one Doer assigned to them — one at a time
  *   rover  → self only, no picker shown
+ *
+ * Week window is Saturday → Friday (see report_data.js's saturdayOf).
  */
 
 import { db } from './vtm_db.js'
 import {
-  mondayOf, addDays, toISODate, fmtWeekLabel, fmtHours,
+  saturdayOf, addDays, toISODate, fmtWeekLabel, fmtHours, fmtDateTimeShort,
   computeWeekData, fetchReportText, resolveViewableUsers,
+  fetchTasksChangedForUser,
   EFFORT_BUCKETS, effortBucketId,
 } from './report_data.js'
 import { SCOPE_OPTIONS } from './gig_filters.js'
+import { canToggleTask } from './gig_tasks.js'
+import { toggleTaskDone } from './vtm_api.js'
 
 const session = vtmGetSession()
 if (!session) { window.location.replace('login.html'); throw new Error() }
@@ -27,6 +38,8 @@ let scopeId = 'open'
 let overdueOnly = false
 let activeBuckets = new Set()
 let viewable = { canViewAll: false, users: [] }
+let currentView = 'time'      // 'time' | 'task'
+let lastPersonTasks = []      // tasks currently shown for a single selected person
 
 const weekLabelEl   = document.getElementById('weekLabel')
 const nextBtn        = document.getElementById('nextWeekBtn')
@@ -47,11 +60,12 @@ async function init() {
   userSelect.addEventListener('change', () => { selectedUserId = userSelect.value; render() })
   scopeSelect.addEventListener('change', () => { scopeId = scopeSelect.value; render() })
 
+  applyViewControlState()
   render()
 }
 
 async function render() {
-  const monday = addDays(mondayOf(new Date()), weekOffset * 7)
+  const monday = addDays(saturdayOf(new Date()), weekOffset * 7)
   const sunday = addDays(monday, 6)
   weekLabelEl.textContent = fmtWeekLabel(monday)
   nextBtn.disabled = weekOffset >= 0
@@ -60,13 +74,17 @@ async function render() {
 
   if (selectedUserId === 'all') {
     headerEl.textContent = 'All users \u00b7 ' + fmtWeekLabel(monday)
-    await renderAllUsers(monday, sunday)
+    if (currentView === 'task') await renderAllUsersTasks(monday, sunday)
+    else await renderAllUsers(monday, sunday)
   } else {
     const person = viewable.users.find(u => u.user_id === selectedUserId)
     headerEl.textContent = (person?.name || 'Report') + ' \u00b7 ' + fmtWeekLabel(monday)
-    await renderOnePerson(selectedUserId, monday, sunday)
+    if (currentView === 'task') await renderOnePersonTasks(selectedUserId, monday, sunday)
+    else await renderOnePerson(selectedUserId, monday, sunday)
   }
 }
+
+// ── TIME VIEW (unchanged behavior) ────────────────────────────────────
 
 async function renderOnePerson(userId, monday, sunday) {
   const [{ gigs, closedLine }, text] = await Promise.all([
@@ -147,6 +165,97 @@ function buildGigsListHTML(gigs) {
 function textReadonlyHTML(label, value) {
   return `<div class="text-readonly"><label>${label}</label><div style="font-size:13px;color:var(--black);white-space:pre-wrap;">${value || '\u2014'}</div></div>`
 }
+
+// ── TASK VIEW ─────────────────────────────────────────────────────────
+
+async function renderOnePersonTasks(userId, monday, sunday) {
+  lastPersonTasks = await fetchTasksChangedForUser(db, userId, monday, sunday)
+  bodyEl.innerHTML = buildTaskChangesHTML(lastPersonTasks)
+}
+
+async function renderAllUsersTasks(monday, sunday) {
+  const rows = await Promise.all(viewable.users.map(async u => {
+    const tasks = await fetchTasksChangedForUser(db, u.user_id, monday, sunday)
+    return { user: u, count: tasks.length }
+  }))
+
+  if (!rows.length) {
+    bodyEl.innerHTML = '<div class="empty-state">No users match these filters.</div>'
+    return
+  }
+
+  bodyEl.innerHTML = `
+    <table class="summary-table">
+      <thead><tr><th>Name</th><th>Tasks Changed</th></tr></thead>
+      <tbody>
+        ${rows.map(r => `
+          <tr onclick="window.jumpToUser('${r.user.user_id}')">
+            <td>${r.user.name}</td>
+            <td>${r.count}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  `
+}
+
+function buildTaskChangesHTML(tasks) {
+  if (!tasks.length) return '<div class="empty-state">No tasks changed this week.</div>'
+
+  const rows = tasks.map(t => {
+    const g = t.gigs
+    const toggle = canToggleTask(t, session, g)
+    const checkAttr = toggle
+      ? `onchange="toggleDashTask('${t.task_id}', this.checked)"`
+      : 'disabled'
+
+    return `
+      <div class="gig-row">
+        <div${t.done ? ' style="color:var(--stone);text-decoration:line-through;"' : ''}><span class="gig-row-code">${g.gig_code}</span> ${t.title}</div>
+        <span class="status-pill ${g.status || 'placed'}">${(g.status || 'placed').replace('_',' ').replace(/\b\w/g,c=>c.toUpperCase())}</span>
+        <span class="gig-row-due">${fmtDateTimeShort(t.updated_at)}</span>
+        <input type="checkbox" ${t.done ? 'checked' : ''} ${checkAttr}>
+      </div>`
+  }).join('')
+
+  return `<div class="gigs-list">${rows}</div>`
+}
+
+window.toggleDashTask = async function(taskId, done) {
+  const { error } = await toggleTaskDone(db, taskId, done)
+  if (error) { showToast('Could not update task', 'err'); return }
+
+  const t = lastPersonTasks.find(x => x.task_id === taskId)
+  if (t) t.done = done
+
+  bodyEl.innerHTML = buildTaskChangesHTML(lastPersonTasks)
+  showToast(done ? 'Marked done' : 'Marked not done', 'ok')
+}
+
+// ── VIEW TOGGLE ────────────────────────────────────────────────────────
+
+window.setView = function(view) {
+  if (view === currentView) return
+  currentView = view
+  document.querySelectorAll('.view-tab').forEach(b => b.classList.toggle('active', b.dataset.view === view))
+  applyViewControlState()
+  render()
+}
+
+// Status scope / overdue / effort-bucket filters only mean anything in
+// Time View — dim and disable them while Task View is active rather than
+// leave controls on screen that silently do nothing.
+function applyViewControlState() {
+  const disable = currentView === 'task'
+  scopeSelect.disabled = disable
+  ;['chipOverdue', 'chipUnder20', 'chip20to40', 'chipOver40'].forEach(id => {
+    const el = document.getElementById(id)
+    if (!el) return
+    el.style.pointerEvents = disable ? 'none' : ''
+    el.style.opacity       = disable ? '0.35' : ''
+  })
+}
+
+// ── CHIPS / NAV ──────────────────────────────────────────────────────────
 
 window.toggleChip = function(name) {
   if (name === 'overdue') {

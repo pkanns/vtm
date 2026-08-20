@@ -1,25 +1,34 @@
 /**
  * report_data.js — Vidai to Mulai · Weekly Report data layer
- * Pure fetch/compute — no DOM, no rendering. Both weekly_report.js and
- * report_dashboard.js import from here so the underlying gigs/hours/effort
- * computation only exists in one place.
+ * Pure fetch/compute — no DOM, no rendering. weekly_report.js and
+ * report_dashboard.js import from here so the underlying gigs/hours/effort/
+ * task-changes computation only exists in one place.
  *
  * Nothing here is snapshotted or stored — every function computes live
- * from gigs/time_entries/evaluations for whichever user+week is asked for.
- * The only persisted data in this whole feature is the free-text reflection
- * in weekly_reports (accomplishment/next_steps/support_needed).
+ * from gigs/time_entries/gig_tasks/evaluations for whichever user+week is
+ * asked for. The only persisted data in this whole feature is the
+ * free-text reflection in weekly_reports (accomplishment/next_steps/
+ * support_needed).
+ *
+ * WEEK WINDOW: Saturday → Friday (not Monday → Sunday). saturdayOf()
+ * returns the most recent Saturday on/before the given date; the weekend
+ * (Sat/Sun) therefore opens a week rather than closing one.
  */
 
-import { fetchGigs, esc } from './vtm_api.js'
+import { fetchGigs, fetchAllTasksWithGigContext, esc } from './vtm_api.js'
 import { enrichGig }      from './gig_filters.js'
 
 // ── WEEK MATH ────────────────────────────────────────────────────────────
 
-export function mondayOf(date) {
+/**
+ * Start of the Saturday-anchored week containing `date` — the most
+ * recent Saturday on or before `date`.
+ */
+export function saturdayOf(date) {
   const d = new Date(date)
   d.setHours(0, 0, 0, 0)
-  const day = d.getDay()
-  const diff = day === 0 ? -6 : 1 - day
+  const day = d.getDay()              // 0=Sun ... 6=Sat
+  const diff = -((day + 1) % 7)       // Sat->0, Sun->-1, Mon->-2 ... Fri->-6
   d.setDate(d.getDate() + diff)
   return d
 }
@@ -32,12 +41,12 @@ export function addDays(date, n) {
 
 export function toISODate(d) { return d.toISOString().split('T')[0] }
 
-export function fmtWeekLabel(monday) {
-  const sunday = addDays(monday, 6)
+export function fmtWeekLabel(weekStart) {
+  const weekEnd = addDays(weekStart, 6)
   const opts = { month: 'short', day: 'numeric' }
-  const startStr = monday.toLocaleDateString(undefined, opts)
-  const endStr   = sunday.toLocaleDateString(undefined,
-    monday.getMonth() === sunday.getMonth() ? { day: 'numeric' } : opts)
+  const startStr = weekStart.toLocaleDateString(undefined, opts)
+  const endStr   = weekEnd.toLocaleDateString(undefined,
+    weekStart.getMonth() === weekEnd.getMonth() ? { day: 'numeric' } : opts)
   return `Week of ${startStr} \u2013 ${endStr}`
 }
 
@@ -47,6 +56,14 @@ export function fmtHours(mins) {
   if (h === 0) return `${m}m`
   if (m === 0) return `${h}h`
   return `${h}h ${m}m`
+}
+
+export function fmtDateTimeShort(iso) {
+  if (!iso) return '\u2014'
+  const d = new Date(iso)
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  const time = d.toTimeString().slice(0, 5)
+  return `${d.getDate()} ${months[d.getMonth()]} \u00b7 ${time}`
 }
 
 // ── ACCESS MODEL ─────────────────────────────────────────────────────────
@@ -82,14 +99,19 @@ export async function resolveViewableUsers(db, session) {
 }
 
 // ── GIGS + HOURS FOR ONE PERSON, ONE WEEK ───────────────────────────────
+// Deliberately NOT filtered by "is this gig currently mine" or "is this
+// gig still open" — a time entry is a fact that already happened. If the
+// gig was later reassigned, completed, or otherwise changed, the hours
+// this person logged against it still belong in their weekly report.
+// Any restriction on what counts as loggable time belongs upstream (the
+// timesheet gig-picker, gig status rules) — not in the report itself.
 
 export async function computeWeekData(db, userId, monday, sunday) {
   const { data: allGigs, error } = await fetchGigs(db)
   if (error) return { gigs: [], closedLine: '', totalMinutes: 0, timeSlices: [] }
 
-  const myGigs = (allGigs || [])
-    .filter(g => g.rover_id === userId || g.pacer_id === userId)
-    .map(enrichGig)
+  const gigById = {}
+  ;(allGigs || []).forEach(g => { gigById[g.gig_id] = enrichGig(g) })
 
   const { data: entries } = await db
     .from('time_entries')
@@ -103,13 +125,21 @@ export async function computeWeekData(db, userId, monday, sunday) {
     minsByGig[e.gig_id] = (minsByGig[e.gig_id] || 0) + (e.duration_mins || 0)
   })
 
-  const activeGigs = myGigs.filter(g => g.status !== 'completed')
-  const gigs = activeGigs.map(g => ({
-    gig_id: g.gig_id, gig_code: g.gig_code, title: g.title,
-    project_code: g.projects?.project_code || null,
-    status: g.status, date_due: g.date_due, isOverdue: g.isOverdue,
-    minutes: minsByGig[g.gig_id] || 0,
-  }))
+  // Every gig with logged time this week — regardless of current
+  // ownership or status. A gig that's been deleted since the entry was
+  // logged has no row to join to; skip it rather than show a blank line.
+  const gigs = Object.keys(minsByGig)
+    .map(gigId => {
+      const g = gigById[gigId]
+      if (!g) return null
+      return {
+        gig_id: g.gig_id, gig_code: g.gig_code, title: g.title,
+        project_code: g.projects?.project_code || null,
+        status: g.status, date_due: g.date_due, isOverdue: g.isOverdue,
+        minutes: minsByGig[gigId] || 0,
+      }
+    })
+    .filter(Boolean)
 
   const totalMinutes = Object.values(minsByGig).reduce((s, m) => s + m, 0)
   const closedLine    = await buildClosedLine(db, userId, monday, sunday)
@@ -135,6 +165,34 @@ async function buildClosedLine(db, userId, monday, sunday) {
   if (!mine.length) return ''
 
   return `Closed this week \u00b7 ` + mine.map(e => `<strong>${esc(e.gigs.gig_code)}</strong>`).join(', ')
+}
+
+// ── TASKS CHANGED THIS WEEK ───────────────────────────────────────────
+// "Changed" = gig_tasks.updated_at falls inside the week — stamped by
+// vtm_api.js on creation, toggling done, and reassignment. Visibility
+// mirrors task_index.js's rule for a single user: tasks on gigs where
+// they're the Lead or Doer, plus tasks assigned to them even on a gig
+// they don't own.
+
+export async function fetchTasksChangedForUser(db, userId, monday, sunday) {
+  const { data, error } = await fetchAllTasksWithGigContext(db)
+  if (error || !data) return []
+
+  const windowStart = monday
+  const windowEnd   = addDays(sunday, 1)   // exclusive
+
+  return data
+    .filter(t => t.gigs && t.updated_at)
+    .filter(t => {
+      const u = new Date(t.updated_at)
+      return u >= windowStart && u < windowEnd
+    })
+    .filter(t =>
+      t.gigs.pacer_id === userId ||
+      t.gigs.rover_id === userId ||
+      t.assigned_to === userId
+    )
+    .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
 }
 
 // ── TIME SLICES (project-consolidated, for bars/charts) ────────────────

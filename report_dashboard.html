@@ -72,6 +72,13 @@
     .bucket-tag.\32 0to40 { background: #e8f5ee; color: var(--green); }
     .bucket-tag.over40   { background: #fceee8; color: var(--red); }
 
+    .bars-section { padding: 4px 0 16px; }
+    .bar-row { display: grid; grid-template-columns: 110px 1fr 60px; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .bar-track { background: var(--light); border-radius: 3px; height: 14px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 3px; }
+    .bar-row-value { font-family: var(--font-mono); font-size: 11px; color: var(--charcoal); text-align: right; }
+    .bars-empty { text-align: center; color: var(--stone); font-size: 12px; padding: 12px 0; }
+
     .gigs-list { border-top: 2px solid var(--black); margin-bottom: 8px; }
     .gig-row { display: grid; grid-template-columns: 1fr auto auto auto; gap: 14px; align-items: center; padding: 10px 4px; border-bottom: 1px solid var(--light); }
     .gig-row-code { font-family: var(--font-mono); font-size: 10px; color: var(--red); font-weight: 600; }

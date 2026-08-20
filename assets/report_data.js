@@ -234,6 +234,45 @@ export function effortBucketId(totalMinutes) {
   return (EFFORT_BUCKETS.find(b => b.test(totalMinutes)) || EFFORT_BUCKETS[0]).id
 }
 
+// ── GIG CHANGES THIS WEEK (rough view — no schema change) ────────────
+// True gig-level status-change history isn't tracked yet, so this is a
+// deliberately rough substitute using fields we already have:
+//   - gigs newly placed this week (date_placed falls in the week)
+//   - gigs completed/evaluated this week (evaluations.created_at in week)
+// Master/template gigs (recurring, no parent) are excluded — they're
+// structural, never real placed work.
+
+export async function fetchGigChangesForUser(db, userId, monday, sunday) {
+  const { data: allGigs, error } = await fetchGigs(db)
+  if (error) return { created: [], completed: [] }
+
+  const mine = (allGigs || []).filter(g =>
+    (g.rover_id === userId || g.pacer_id === userId) &&
+    !(g.cadence === 'recurring' && !g.parent_gig_id)
+  )
+
+  const startISO = toISODate(monday)
+  const endISO   = toISODate(sunday)
+  const inWeek = iso => !!iso && iso >= startISO && iso <= endISO
+
+  const created = mine
+    .filter(g => inWeek(g.date_placed))
+    .map(g => ({ gig_id: g.gig_id, gig_code: g.gig_code, title: g.title, status: g.status, date: g.date_placed }))
+
+  const nextDay = toISODate(addDays(sunday, 1))
+  const { data: evalRows } = await db
+    .from('evaluations')
+    .select('gig_id, created_at, gigs(gig_code, title, status, rover_id, pacer_id)')
+    .gte('created_at', startISO)
+    .lt('created_at', nextDay)
+
+  const completed = (evalRows || [])
+    .filter(e => e.gigs?.status === 'completed' && (e.gigs.rover_id === userId || e.gigs.pacer_id === userId))
+    .map(e => ({ gig_id: e.gig_id, gig_code: e.gigs.gig_code, title: e.gigs.title, date: e.created_at }))
+
+  return { created, completed }
+}
+
 // ── SAVED TEXT (the only persisted part) ────────────────────────────────
 
 export async function fetchReportText(db, userId, weekStartISO) {

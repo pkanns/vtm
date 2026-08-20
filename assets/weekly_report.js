@@ -2,14 +2,20 @@
  * weekly_report.js — Vidai to Mulai · Weekly Report (personal editor)
  * No lock, no draft/submitted lifecycle — any week is navigable and
  * editable, always live. Only the free text persists (weekly_reports);
- * gigs/hours/bars/tasks are computed fresh every time via report_data.js.
+ * everything else is computed fresh, and — deliberately — NOT fetched
+ * until asked for.
  *
- * Two views, toggled at the top — Time View (default, unchanged bars +
- * gigs-with-hours) and Task View (tasks whose status/assignment changed
- * this week, with a toggle-complete action). The free-text reflection
- * fields always stay visible below whichever view is active, in their
- * own #reportBody sub-container so switching views or toggling a task
- * never clobbers an unsaved draft in those fields.
+ * Page opens straight to the text fields (Accomplishment / Next steps /
+ * Support needed) with nothing else on screen. Time View / Task View /
+ * Gig View are optional reference panels: clicking a tab fetches and
+ * opens that panel; clicking the same tab again collapses it. Only one
+ * panel is open at a time. Nothing is fetched for a panel that was never
+ * opened — the common case (just write the report) stays fast and quiet.
+ *
+ * Gig View is a rough approximation, not a true change-log — there's no
+ * gig-level status-change history in the schema (deliberately, per
+ * scope) — so it shows gigs placed this week (date_placed) and gigs
+ * completed/evaluated this week (existing evaluations join).
  *
  * Week window is Saturday → Friday (see report_data.js's saturdayOf) —
  * the weekend opens a week rather than closing one.
@@ -18,7 +24,8 @@
 import { db } from './vtm_db.js'
 import {
   saturdayOf, addDays, toISODate, fmtWeekLabel, fmtHours, fmtDateTimeShort,
-  computeWeekData, fetchReportText, saveReportText, fetchTasksChangedForUser,
+  computeWeekData, fetchReportText, saveReportText,
+  fetchTasksChangedForUser, fetchGigChangesForUser,
 } from './report_data.js'
 import { canToggleTask }  from './gig_tasks.js'
 import { toggleTaskDone } from './vtm_api.js'
@@ -27,29 +34,29 @@ const session = vtmGetSession()
 if (!session) { window.location.replace('login.html'); throw new Error() }
 const myUserId = session.user_id
 
-let weekOffset = 0   // 0 = this week; negative = past weeks; forward capped at 0
-let fields = { accomplishment: '', next_steps: '', support_needed: '' }
+let weekOffset    = 0        // 0 = this week; negative = past weeks; forward capped at 0
+let fields        = { accomplishment: '', next_steps: '', support_needed: '' }
 let hasExistingRow = false
-let currentView = 'time'   // 'time' | 'task'
-let lastTasks = []         // tasks currently shown in Task View — kept for in-place toggle updates
+let currentView    = null    // null | 'time' | 'task' | 'gig' — null means no panel open
+let currentMonday  = null
+let currentSunday  = null
+let lastTasks       = []     // tasks currently shown in Task View — kept for in-place toggle updates
 
 const weekLabelEl = document.getElementById('weekLabel')
 const bodyEl       = document.getElementById('reportBody')
 const nextBtn       = document.getElementById('nextWeekBtn')
 
 async function loadWeek() {
-  const monday = addDays(saturdayOf(new Date()), weekOffset * 7)
-  const sunday = addDays(monday, 6)
-  const weekISO = toISODate(monday)
+  currentMonday = addDays(saturdayOf(new Date()), weekOffset * 7)
+  currentSunday = addDays(currentMonday, 6)
+  const weekISO = toISODate(currentMonday)
 
-  weekLabelEl.textContent = fmtWeekLabel(monday)
+  weekLabelEl.textContent = fmtWeekLabel(currentMonday)
   nextBtn.disabled = weekOffset >= 0
-  bodyEl.innerHTML = '<div class="empty-week">Loading&hellip;</div>'
 
-  const [existing, viewSectionHTML] = await Promise.all([
-    fetchReportText(db, myUserId, weekISO),
-    buildViewSection(monday, sunday),
-  ])
+  // Only fetch what's needed to write the report — nothing view-related
+  // happens here unless a view was already open before navigating weeks.
+  const existing = await fetchReportText(db, myUserId, weekISO)
 
   hasExistingRow = !!existing
   fields = {
@@ -59,7 +66,7 @@ async function loadWeek() {
   }
 
   bodyEl.innerHTML = `
-    <div id="viewSection">${viewSectionHTML}</div>
+    <div id="viewPanel"></div>
     <div class="text-block">
       <div class="section-label">This week</div>
       ${textBlockHTML('Accomplishment', fields.accomplishment, 'accomplishment', 'What moved forward this week\u2026')}
@@ -71,30 +78,58 @@ async function loadWeek() {
       </div>
     </div>
   `
+
+  syncTabState()
+  // A view left open before paging to a different week stays open,
+  // refreshed for the new week — anything else stays collapsed/unfetched.
+  if (currentView) await renderViewPanel(currentView)
 }
 
-// ── VIEW SECTION ─────────────────────────────────────────────────────────
+// ── VIEW TOGGLE ──────────────────────────────────────────────────────────
 
-async function buildViewSection(monday, sunday) {
-  if (currentView === 'task') {
-    lastTasks = await fetchTasksChangedForUser(db, myUserId, monday, sunday)
-    return buildTaskChangesHTML(lastTasks)
+window.setView = async function(view) {
+  const panel = document.getElementById('viewPanel')
+
+  if (currentView === view) {
+    currentView = null
+    if (panel) panel.innerHTML = ''
+    syncTabState()
+    return
   }
 
-  const { gigs, closedLine, timeSlices } = await computeWeekData(db, myUserId, monday, sunday)
-  return `
-    ${buildBarsHTML(timeSlices)}
-    ${buildGigsListHTML(gigs.filter(g => g.minutes > 0))}
-    ${closedLine ? `<div class="closed-line">${closedLine}</div>` : ''}
-  `
+  currentView = view
+  syncTabState()
+  if (panel) panel.innerHTML = '<div class="empty-week">Loading\u2026</div>'
+  await renderViewPanel(view)
 }
 
-window.setView = function(view) {
-  if (view === currentView) return
-  currentView = view
-  document.querySelectorAll('.view-tab').forEach(b => b.classList.toggle('active', b.dataset.view === view))
-  loadWeek()
+function syncTabState() {
+  document.querySelectorAll('.view-tab').forEach(b => {
+    b.classList.toggle('active', b.dataset.view === currentView)
+  })
 }
+
+async function renderViewPanel(view) {
+  const panel = document.getElementById('viewPanel')
+  if (!panel) return
+
+  if (view === 'time') {
+    const { gigs, closedLine, timeSlices } = await computeWeekData(db, myUserId, currentMonday, currentSunday)
+    panel.innerHTML = `
+      ${buildBarsHTML(timeSlices)}
+      ${buildGigsListHTML(gigs.filter(g => g.minutes > 0))}
+      ${closedLine ? `<div class="closed-line">${closedLine}</div>` : ''}
+    `
+  } else if (view === 'task') {
+    lastTasks = await fetchTasksChangedForUser(db, myUserId, currentMonday, currentSunday)
+    panel.innerHTML = buildTaskChangesHTML(lastTasks)
+  } else if (view === 'gig') {
+    const { created, completed } = await fetchGigChangesForUser(db, myUserId, currentMonday, currentSunday)
+    panel.innerHTML = buildGigChangesHTML(created, completed)
+  }
+}
+
+// ── TIME VIEW ──────────────────────────────────────────────────────────
 
 function buildBarsHTML(slices) {
   const total = slices.reduce((s, x) => s + x.minutes, 0)
@@ -151,10 +186,35 @@ window.toggleReportTask = async function(taskId, done) {
   const t = lastTasks.find(x => x.task_id === taskId)
   if (t) t.done = done
 
-  const el = document.getElementById('viewSection')
-  if (el) el.innerHTML = buildTaskChangesHTML(lastTasks)
+  const panel = document.getElementById('viewPanel')
+  if (panel) panel.innerHTML = buildTaskChangesHTML(lastTasks)
 
   showToast(done ? 'Marked done' : 'Marked not done', 'ok')
+}
+
+// ── GIG VIEW (rough — placed/completed this week) ───────────────────────
+
+function buildGigChangesHTML(created, completed) {
+  if (!created.length && !completed.length) {
+    return '<div class="gigs-list"><div class="empty-week">No gigs placed or completed this week.</div></div>'
+  }
+
+  const section = (label, items, kind) => {
+    if (!items.length) return ''
+    const rows = items.map(g => `
+      <div class="gig-row">
+        <div class="gig-row-title"><span class="gig-row-code">${g.gig_code}</span> ${g.title}</div>
+        <span class="status-pill ${kind === 'completed' ? 'completed' : 'placed'}">${kind === 'completed' ? 'Completed' : 'Placed'}</span>
+        <span class="gig-row-due">${g.date || '\u2014'}</span>
+        <span></span>
+      </div>`).join('')
+    return `<div class="section-label">${label}</div><div class="gigs-list">${rows}</div>`
+  }
+
+  return `
+    ${section('Gigs placed this week', created, 'placed')}
+    ${section('Gigs completed this week', completed, 'completed')}
+  `
 }
 
 function fmtStatus(s) {
@@ -178,8 +238,7 @@ window.saveReport = async function() {
 
   if (hasExistingRow && !confirm('You already have a saved report for this week \u2014 overwrite it?')) return
 
-  const monday = addDays(saturdayOf(new Date()), weekOffset * 7)
-  const { error } = await saveReportText(db, myUserId, toISODate(monday), fields)
+  const { error } = await saveReportText(db, myUserId, toISODate(currentMonday), fields)
 
   if (error) { showToast('Save failed \u2014 ' + error.message, 'err'); return }
   showToast('Saved', 'ok')

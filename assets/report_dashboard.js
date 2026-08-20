@@ -1,14 +1,20 @@
 /**
  * report_dashboard.js — Vidai to Mulai · Data View
- * Filterable browsing across weeks. "By week" is the only axis today;
- * built so month/role/project become additional filters on the same
- * computeWeekData() shape later, not a rewrite.
+ * Filterable browsing across weeks/people. Cloned from weekly_report.js's
+ * view pattern: nothing renders until a view tab is clicked. Time View /
+ * Task View / Gig View are optional panels — clicking a tab fetches and
+ * opens it; clicking the same tab again collapses it; only one is open
+ * at a time. Changing the user/week/filters while a panel is open
+ * refreshes that panel; if nothing is open, changing filters is a no-op
+ * until a view is picked.
  *
- * Two views, toggled at the top — Time View (default, unchanged) and
- * Task View (tasks changed this week for the selected person, or a
- * per-person changed-count table when "All users" is selected). The
- * Status/Overdue/effort-bucket filters only apply to Time View, so
- * they're dimmed and disabled while Task View is active.
+ * Status scope / overdue / effort-bucket filters only apply to Time
+ * View — they're dimmed and disabled whenever a different view (or no
+ * view) is open, same as the personal Weekly Report.
+ *
+ * Gig View is the same rough approximation as weekly_report.js — gigs
+ * placed this week (date_placed) and gigs completed/evaluated this week
+ * (evaluations join) — not a true change-log.
  *
  * Access model:
  *   admin  → any single user, or "All" (aggregate summary table)
@@ -22,7 +28,7 @@ import { db } from './vtm_db.js'
 import {
   saturdayOf, addDays, toISODate, fmtWeekLabel, fmtHours, fmtDateTimeShort,
   computeWeekData, fetchReportText, resolveViewableUsers,
-  fetchTasksChangedForUser,
+  fetchTasksChangedForUser, fetchGigChangesForUser,
   EFFORT_BUCKETS, effortBucketId,
 } from './report_data.js'
 import { SCOPE_OPTIONS } from './gig_filters.js'
@@ -32,14 +38,16 @@ import { toggleTaskDone } from './vtm_api.js'
 const session = vtmGetSession()
 if (!session) { window.location.replace('login.html'); throw new Error() }
 
-let weekOffset = 0
-let selectedUserId = 'self'   // 'self' | 'all' | a user_id
-let scopeId = 'open'
-let overdueOnly = false
-let activeBuckets = new Set()
-let viewable = { canViewAll: false, users: [] }
-let currentView = 'time'      // 'time' | 'task'
-let lastPersonTasks = []      // tasks currently shown for a single selected person
+let weekOffset      = 0
+let selectedUserId  = 'self'   // 'self' | 'all' | a user_id
+let scopeId          = 'open'
+let overdueOnly      = false
+let activeBuckets    = new Set()
+let viewable          = { canViewAll: false, users: [] }
+let currentView       = null   // null | 'time' | 'task' | 'gig'
+let currentMonday     = null
+let currentSunday     = null
+let lastPersonTasks   = []     // tasks currently shown for a single selected person — for in-place toggle
 
 const weekLabelEl   = document.getElementById('weekLabel')
 const nextBtn        = document.getElementById('nextWeekBtn')
@@ -57,39 +65,86 @@ async function init() {
   userSelect.innerHTML = (viewable.canViewAll ? '<option value="all">All users</option>' : '') + opts
   selectedUserId = session.user_id
 
-  userSelect.addEventListener('change', () => { selectedUserId = userSelect.value; render() })
-  scopeSelect.addEventListener('change', () => { scopeId = scopeSelect.value; render() })
+  userSelect.addEventListener('change', () => { selectedUserId = userSelect.value; refresh() })
+  scopeSelect.addEventListener('change', () => { scopeId = scopeSelect.value; refresh() })
 
   applyViewControlState()
-  render()
+  setWeekLabel()
 }
 
-async function render() {
-  const monday = addDays(saturdayOf(new Date()), weekOffset * 7)
-  const sunday = addDays(monday, 6)
-  weekLabelEl.textContent = fmtWeekLabel(monday)
+function setWeekLabel() {
+  currentMonday = addDays(saturdayOf(new Date()), weekOffset * 7)
+  currentSunday = addDays(currentMonday, 6)
+  weekLabelEl.textContent = fmtWeekLabel(currentMonday)
   nextBtn.disabled = weekOffset >= 0
+}
 
+// ── VIEW TOGGLE ────────────────────────────────────────────────────────
+
+window.setView = async function(view) {
+  if (currentView === view) {
+    currentView = null
+    headerEl.textContent = 'Select a view above'
+    bodyEl.innerHTML = ''
+    syncTabState()
+    applyViewControlState()
+    return
+  }
+
+  currentView = view
+  syncTabState()
+  applyViewControlState()
+  await refresh()
+}
+
+function syncTabState() {
+  document.querySelectorAll('.view-tab').forEach(b => {
+    b.classList.toggle('active', b.dataset.view === currentView)
+  })
+}
+
+// Status scope / overdue / effort-bucket filters only mean anything in
+// Time View — dim and disable them otherwise rather than leave controls
+// on screen that silently do nothing.
+function applyViewControlState() {
+  const disable = currentView !== 'time'
+  scopeSelect.disabled = disable
+  ;['chipOverdue', 'chipUnder20', 'chip20to40', 'chipOver40'].forEach(id => {
+    const el = document.getElementById(id)
+    if (!el) return
+    el.style.pointerEvents = disable ? 'none' : ''
+    el.style.opacity       = disable ? '0.35' : ''
+  })
+}
+
+// ── REFRESH — re-fetch and re-render whatever panel is currently open ──
+
+async function refresh() {
+  if (!currentView) return   // nothing open — filters just update state, no fetch
+
+  setWeekLabel()
   bodyEl.innerHTML = '<div class="empty-state">Loading&hellip;</div>'
 
   if (selectedUserId === 'all') {
-    headerEl.textContent = 'All users \u00b7 ' + fmtWeekLabel(monday)
-    if (currentView === 'task') await renderAllUsersTasks(monday, sunday)
-    else await renderAllUsers(monday, sunday)
+    headerEl.textContent = 'All users \u00b7 ' + fmtWeekLabel(currentMonday)
+    if (currentView === 'time') await renderAllUsersTime()
+    else if (currentView === 'task') await renderAllUsersTasks()
+    else if (currentView === 'gig') await renderAllUsersGigs()
   } else {
     const person = viewable.users.find(u => u.user_id === selectedUserId)
-    headerEl.textContent = (person?.name || 'Report') + ' \u00b7 ' + fmtWeekLabel(monday)
-    if (currentView === 'task') await renderOnePersonTasks(selectedUserId, monday, sunday)
-    else await renderOnePerson(selectedUserId, monday, sunday)
+    headerEl.textContent = (person?.name || 'Report') + ' \u00b7 ' + fmtWeekLabel(currentMonday)
+    if (currentView === 'time') await renderOnePersonTime(selectedUserId)
+    else if (currentView === 'task') await renderOnePersonTasks(selectedUserId)
+    else if (currentView === 'gig') await renderOnePersonGigs(selectedUserId)
   }
 }
 
-// ── TIME VIEW (unchanged behavior) ────────────────────────────────────
+// ── TIME VIEW ──────────────────────────────────────────────────────────
 
-async function renderOnePerson(userId, monday, sunday) {
+async function renderOnePersonTime(userId) {
   const [{ gigs, closedLine }, text] = await Promise.all([
-    computeWeekData(db, userId, monday, sunday),
-    fetchReportText(db, userId, toISODate(monday)),
+    computeWeekData(db, userId, currentMonday, currentSunday),
+    fetchReportText(db, userId, toISODate(currentMonday)),
   ])
 
   const filtered = applyGigFilters(gigs)
@@ -106,9 +161,9 @@ async function renderOnePerson(userId, monday, sunday) {
   `
 }
 
-async function renderAllUsers(monday, sunday) {
+async function renderAllUsersTime() {
   const rows = await Promise.all(viewable.users.map(async u => {
-    const { gigs, totalMinutes } = await computeWeekData(db, u.user_id, monday, sunday)
+    const { gigs, totalMinutes } = await computeWeekData(db, u.user_id, currentMonday, currentSunday)
     return { user: u, gigs: applyGigFilters(gigs), totalMinutes, bucket: effortBucketId(totalMinutes) }
   }))
 
@@ -155,7 +210,7 @@ function buildGigsListHTML(gigs) {
   const rows = gigs.map(g => `
     <div class="gig-row">
       <div><span class="gig-row-code">${g.gig_code}</span> ${g.title}</div>
-      <span class="status-pill ${g.status || 'placed'}">${(g.status || 'placed').replace('_',' ').replace(/\b\w/g,c=>c.toUpperCase())}</span>
+      <span class="status-pill ${g.status || 'placed'}">${fmtStatus(g.status)}</span>
       <span class="gig-row-due${g.isOverdue ? ' overdue' : ''}">${g.date_due || '\u2014'}</span>
       <span class="gig-row-hours">${fmtHours(g.minutes)}</span>
     </div>`).join('')
@@ -168,14 +223,14 @@ function textReadonlyHTML(label, value) {
 
 // ── TASK VIEW ─────────────────────────────────────────────────────────
 
-async function renderOnePersonTasks(userId, monday, sunday) {
-  lastPersonTasks = await fetchTasksChangedForUser(db, userId, monday, sunday)
+async function renderOnePersonTasks(userId) {
+  lastPersonTasks = await fetchTasksChangedForUser(db, userId, currentMonday, currentSunday)
   bodyEl.innerHTML = buildTaskChangesHTML(lastPersonTasks)
 }
 
-async function renderAllUsersTasks(monday, sunday) {
+async function renderAllUsersTasks() {
   const rows = await Promise.all(viewable.users.map(async u => {
-    const tasks = await fetchTasksChangedForUser(db, u.user_id, monday, sunday)
+    const tasks = await fetchTasksChangedForUser(db, u.user_id, currentMonday, currentSunday)
     return { user: u, count: tasks.length }
   }))
 
@@ -211,7 +266,7 @@ function buildTaskChangesHTML(tasks) {
     return `
       <div class="gig-row">
         <div${t.done ? ' style="color:var(--stone);text-decoration:line-through;"' : ''}><span class="gig-row-code">${g.gig_code}</span> ${t.title}</div>
-        <span class="status-pill ${g.status || 'placed'}">${(g.status || 'placed').replace('_',' ').replace(/\b\w/g,c=>c.toUpperCase())}</span>
+        <span class="status-pill ${g.status || 'placed'}">${fmtStatus(g.status)}</span>
         <span class="gig-row-due">${fmtDateTimeShort(t.updated_at)}</span>
         <input type="checkbox" ${t.done ? 'checked' : ''} ${checkAttr}>
       </div>`
@@ -231,28 +286,61 @@ window.toggleDashTask = async function(taskId, done) {
   showToast(done ? 'Marked done' : 'Marked not done', 'ok')
 }
 
-// ── VIEW TOGGLE ────────────────────────────────────────────────────────
+// ── GIG VIEW (rough — placed/completed this week) ───────────────────────
 
-window.setView = function(view) {
-  if (view === currentView) return
-  currentView = view
-  document.querySelectorAll('.view-tab').forEach(b => b.classList.toggle('active', b.dataset.view === view))
-  applyViewControlState()
-  render()
+async function renderOnePersonGigs(userId) {
+  const { created, completed } = await fetchGigChangesForUser(db, userId, currentMonday, currentSunday)
+  bodyEl.innerHTML = buildGigChangesHTML(created, completed)
 }
 
-// Status scope / overdue / effort-bucket filters only mean anything in
-// Time View — dim and disable them while Task View is active rather than
-// leave controls on screen that silently do nothing.
-function applyViewControlState() {
-  const disable = currentView === 'task'
-  scopeSelect.disabled = disable
-  ;['chipOverdue', 'chipUnder20', 'chip20to40', 'chipOver40'].forEach(id => {
-    const el = document.getElementById(id)
-    if (!el) return
-    el.style.pointerEvents = disable ? 'none' : ''
-    el.style.opacity       = disable ? '0.35' : ''
-  })
+async function renderAllUsersGigs() {
+  const rows = await Promise.all(viewable.users.map(async u => {
+    const { created, completed } = await fetchGigChangesForUser(db, u.user_id, currentMonday, currentSunday)
+    return { user: u, placed: created.length, completed: completed.length }
+  }))
+
+  if (!rows.length) {
+    bodyEl.innerHTML = '<div class="empty-state">No users match these filters.</div>'
+    return
+  }
+
+  bodyEl.innerHTML = `
+    <table class="summary-table">
+      <thead><tr><th>Name</th><th>Placed</th><th>Completed</th></tr></thead>
+      <tbody>
+        ${rows.map(r => `
+          <tr onclick="window.jumpToUser('${r.user.user_id}')">
+            <td>${r.user.name}</td>
+            <td>${r.placed}</td>
+            <td>${r.completed}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  `
+}
+
+function buildGigChangesHTML(created, completed) {
+  if (!created.length && !completed.length) {
+    return '<div class="empty-state">No gigs placed or completed this week.</div>'
+  }
+
+  const section = (label, items, kind) => {
+    if (!items.length) return ''
+    const rows = items.map(g => `
+      <div class="gig-row">
+        <div><span class="gig-row-code">${g.gig_code}</span> ${g.title}</div>
+        <span class="status-pill ${kind === 'completed' ? 'completed' : 'placed'}">${kind === 'completed' ? 'Completed' : 'Placed'}</span>
+        <span class="gig-row-due">${g.date || '\u2014'}</span>
+        <span></span>
+      </div>`).join('')
+    return `<div class="filter-label" style="margin-top:14px">${label}</div><div class="gigs-list">${rows}</div>`
+  }
+
+  return `${section('Gigs placed this week', created, 'placed')}${section('Gigs completed this week', completed, 'completed')}`
+}
+
+function fmtStatus(s) {
+  return (s || 'placed').replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
 // ── CHIPS / NAV ──────────────────────────────────────────────────────────
@@ -262,27 +350,27 @@ window.toggleChip = function(name) {
     overdueOnly = !overdueOnly
     document.getElementById('chipOverdue').classList.toggle('active', overdueOnly)
   }
-  render()
+  refresh()
 }
 
 window.toggleBucket = function(id) {
   if (activeBuckets.has(id)) activeBuckets.delete(id); else activeBuckets.add(id)
   document.getElementById('chip' + (id === '20to40' ? '20to40' : id[0].toUpperCase() + id.slice(1)))
     ?.classList.toggle('active', activeBuckets.has(id))
-  render()
+  refresh()
 }
 
 window.jumpToUser = function(userId) {
   selectedUserId = userId
   userSelect.value = userId
-  render()
+  refresh()
 }
 
 window.goWeek = function(delta) {
   const next = weekOffset + delta
   if (next > 0) return
   weekOffset = next
-  render()
+  refresh()
 }
 
 init()

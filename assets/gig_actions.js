@@ -21,6 +21,16 @@
  *   - advanceGigStage() stays on the page, so it fires a
  *     'vtm:gig-status-changed' window event; each page listens for that
  *     and re-runs its own load function.
+ *
+ * MASTER GIGS: a "master" gig is any recurring gig with no parent
+ * (cadence:'recurring' && !parent_gig_id) — covers both true adhoc
+ * templates and normal scheduled (weekly/fortnightly/monthly) recurring
+ * parents. Masters are never worked directly, only their spawned
+ * instances are, so they never get a stage-advance or Evaluate action —
+ * they stay pinned at Placed everywhere in the app. Only true adhoc
+ * templates (a further subset of masters) get the manual "Create
+ * Instance" action; scheduled recurring parents spawn their instances
+ * automatically via the daily cron instead.
  */
 
 import { db }                                    from './vtm_db.js'
@@ -51,9 +61,8 @@ function fmtStatusLabel(s) {
 
 export function renderActionsMenu(gig, session, { variant = 'row' } = {}) {
   const role       = session?.role || null
-  const isTemplate = gig.cadence === 'recurring'
-    && gig.recurrence_frequency === 'adhoc'
-    && !gig.parent_gig_id
+  const isMaster   = gig.cadence === 'recurring' && !gig.parent_gig_id
+  const isTemplate = isMaster && gig.recurrence_frequency === 'adhoc'
 
   const items = []
 
@@ -61,12 +70,13 @@ export function renderActionsMenu(gig, session, { variant = 'row' } = {}) {
     items.push(`<button type="button" class="gaction-item" onclick="editGig('${gig.gig_id}')">Edit</button>`)
   }
 
+  // Master gigs never advance through the pipeline — they stay Placed.
   const advance = NEXT_STAGE[gig.status]
-  if (advance && role !== 'rover') {
+  if (advance && role !== 'rover' && !isMaster) {
     items.push(`<button type="button" class="gaction-item" onclick="advanceGigStage('${gig.gig_id}','${gig.status}')">${advance.label} →</button>`)
   }
 
-  if (['in_progress', 'delivered'].includes(gig.status)) {
+  if (!isMaster && ['in_progress', 'delivered'].includes(gig.status)) {
     items.push(`<button type="button" class="gaction-item" onclick="goToEval('${gig.gig_id}')">Evaluate →</button>`)
   }
 

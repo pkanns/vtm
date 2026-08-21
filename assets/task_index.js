@@ -2,31 +2,34 @@
  * task_index.js — Vidai to Mulai · Task Register
  * Cross-gig view of gig_tasks — the "low visibility into status changes"
  * problem is solved by putting the parent gig's pipeline stage directly
- * on every row.
+ * on every row, plus a Stale filter (gig is Delivered/Completed but the
+ * task is still open) that has no equivalent anywhere else in the app.
  *
  * Modelled directly on gig_index.js's filter-bar pattern (Scope / Stage /
- * Project / Lead / Doer selects), with one task-specific addition:
+ * Project / Lead / Doer selects), with two task-specific additions:
  * "Assigned To" (Lead vs Doer, per-task — distinct from the gig's own
- * Lead/Doer).
+ * Lead/Doer) and "Show" (All / Overdue / Stale / Assigned to me).
  *
  * Table only for now, no card view — gig_index's table→card switch isn't
  * carried over here; a task list reads fine as a dense table on its own.
  *
- * Lead/Doer filter options are scoped to whoever actually appears on
- * tasks this person can see — never the full org roster — for
- * pacer/rover. Admins still get the full roster, since they see every
- * task anyway. Same fix as gig_index.js's populateLeadDoerOptions().
- *
  * Permission rules (who can toggle/reassign/delete a given task) are not
  * reimplemented here — canManageTask()/canToggleTask() are imported
  * straight from gig_tasks.js, same source of truth create_gig.html uses.
+ *
+ * MASTER GIGS: a "master" gig (cadence:'recurring' with no parent_gig_id
+ * — covers both true adhoc templates and scheduled recurring parents)
+ * has a checklist that's really just the template copied onto every
+ * spawned instance, not real live work. Those tasks are excluded from
+ * this register entirely, same as masters are excluded from every other
+ * "real gig" surface (Timesheet, Weekly Report, Gig Index's default
+ * scopes).
  */
 
 import { db }                                        from './vtm_db.js'
 import { fetchAllTasksWithGigContext, toggleTaskDone,
          updateTask, deleteTask, fetchActiveLeads,
-         fetchActiveDoers, fetchUsersByIds,
-         fmtDate, esc }                               from './vtm_api.js'
+         fetchActiveDoers, fmtDate, esc }             from './vtm_api.js'
 import { canManageTask, canToggleTask }               from './gig_tasks.js'
 
 // ── SESSION ───────────────────────────────────────────────────────────────
@@ -47,6 +50,7 @@ let projectId    = ''
 let leadId       = ''
 let doerId       = ''
 let assignedRole = ''       // '' | 'pacer' (Lead) | 'rover' (Doer)
+let showId       = 'all'    // 'all' | 'overdue' | 'stale' | 'mine'
 
 const statusEl   = document.getElementById('dbStatus')
 const subtitleEl = document.getElementById('registerSubtitle')
@@ -59,6 +63,7 @@ const projectSelect  = document.getElementById('projectSelect')
 const leadSelect     = document.getElementById('leadSelect')
 const doerSelect     = document.getElementById('doerSelect')
 const assignedSelect = document.getElementById('assignedSelect')
+const showSelect     = document.getElementById('showSelect')
 
 subtitleEl.textContent = role === 'admin' ? 'All tasks' : `Your tasks · ${session.name}`
 
@@ -77,8 +82,13 @@ async function loadTasks() {
   // (Lead on gig.pacer_id, Doer on gig.rover_id), OR — for Doers only —
   // the task itself is assigned to them even on a gig they don't own,
   // per the "full view on tasks assigned to them" rule.
+  //
+  // Master gigs (cadence:'recurring', no parent_gig_id) are excluded —
+  // their checklist is a template copied onto every spawned instance,
+  // not real live work.
   let visible = data || []
   visible = visible.filter(t => t.gigs) // orphaned tasks (gig deleted) shouldn't appear
+  visible = visible.filter(t => !(t.gigs.cadence === 'recurring' && !t.gigs.parent_gig_id))
 
   if (role === 'pacer') {
     visible = visible.filter(t => t.gigs.pacer_id === myUserId)
@@ -89,42 +99,16 @@ async function loadTasks() {
   allTasks = visible.map(enrichTask)
 
   populateProjectOptions()
-  await populateLeadDoerOptions()
   render()
 }
 
-// Admins get the full org roster (they see every task anyway, so the
-// dropdown wouldn't hide anything by scoping it). Pacer/rover only see
-// the Leads/Doers that actually appear on tasks visible to them — a
-// Doer shouldn't be offered every Lead in the company as a filter, only
-// the ones whose gigs they actually work on.
 async function populateLeadDoerOptions() {
-  if (role === 'admin') {
-    const [leadsRes, doersRes] = await Promise.all([fetchActiveLeads(db), fetchActiveDoers(db)])
-    leadSelect.innerHTML = '<option value="">Lead</option>' +
-      (leadsRes.data || []).map(u => `<option value="${u.user_id}">${esc(u.name)}</option>`).join('')
-    doerSelect.innerHTML = '<option value="">Doer</option>' +
-      (doersRes.data || []).map(u => `<option value="${u.user_id}">${esc(u.name)}</option>`).join('')
-  } else {
-    const leadIds = new Set()
-    const doerIds = new Set()
-    allTasks.forEach(t => {
-      if (t.gigs?.pacer_id) leadIds.add(t.gigs.pacer_id)
-      if (t.gigs?.rover_id) doerIds.add(t.gigs.rover_id)
-    })
+  const [leadsRes, doersRes] = await Promise.all([fetchActiveLeads(db), fetchActiveDoers(db)])
 
-    const { data: users } = await fetchUsersByIds(db, [...leadIds, ...doerIds])
-    const nameById = {}
-    ;(users || []).forEach(u => { nameById[u.user_id] = u.name })
-
-    leadSelect.innerHTML = '<option value="">Lead</option>' +
-      Array.from(leadIds).map(id => `<option value="${id}">${esc(nameById[id] || '—')}</option>`).join('')
-    doerSelect.innerHTML = '<option value="">Doer</option>' +
-      Array.from(doerIds).map(id => `<option value="${id}">${esc(nameById[id] || '—')}</option>`).join('')
-  }
-
-  leadSelect.value = leadId
-  doerSelect.value = doerId
+  leadSelect.innerHTML = '<option value="">Lead</option>' +
+    (leadsRes.data || []).map(u => `<option value="${u.user_id}">${esc(u.name)}</option>`).join('')
+  doerSelect.innerHTML = '<option value="">Doer</option>' +
+    (doersRes.data || []).map(u => `<option value="${u.user_id}">${esc(u.name)}</option>`).join('')
 
   // Already self-scoped by role filter above — the dropdown would just
   // be a one-item no-op, so disable it rather than leave it misleading.
@@ -159,8 +143,9 @@ function enrichTask(t) {
   if (due) due.setHours(0, 0, 0, 0)
 
   const isOverdue = !!due && due < today && !t.done && g.status !== 'completed'
+  const isStale   = ['delivered', 'completed'].includes(g.status) && !t.done
 
-  return { ...t, _isOverdue: isOverdue }
+  return { ...t, _isOverdue: isOverdue, _isStale: isStale }
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────
@@ -178,6 +163,10 @@ function render() {
 
   if (assignedRole === 'pacer') visible = visible.filter(t => t.assigned_to === t.gigs.pacer_id)
   if (assignedRole === 'rover') visible = visible.filter(t => t.assigned_to === t.gigs.rover_id)
+
+  if (showId === 'overdue') visible = visible.filter(t => t._isOverdue)
+  if (showId === 'stale')   visible = visible.filter(t => t._isStale)
+  if (showId === 'mine')    visible = visible.filter(t => t.assigned_to === myUserId)
 
   visible = sortTasks(visible)
 
@@ -202,6 +191,10 @@ function renderSummary(count) {
   const parts = []
   if (scopeId !== 'open') parts.push(scopeId === 'done' ? 'Done' : 'All')
   if (stageId)   parts.push(fmtStatus(stageId))
+  if (showId !== 'all') {
+    const showLabel = { overdue: 'Overdue', stale: 'Stale', mine: 'Assigned to me' }[showId]
+    if (showLabel) parts.push(showLabel)
+  }
   if (assignedRole) parts.push(assignedRole === 'pacer' ? 'Assigned: Lead' : 'Assigned: Doer')
   if (projectId) {
     const opt = Array.from(projectSelect.options).find(o => o.value === projectId)
@@ -308,6 +301,7 @@ projectSelect.addEventListener('change',  () => { projectId    = projectSelect.v
 leadSelect.addEventListener('change',     () => { leadId       = leadSelect.value;     render() })
 doerSelect.addEventListener('change',     () => { doerId       = doerSelect.value;     render() })
 assignedSelect.addEventListener('change', () => { assignedRole = assignedSelect.value; render() })
+showSelect.addEventListener('change',     () => { showId       = showSelect.value;     render() })
 
 // ── HELPERS ───────────────────────────────────────────────────────────────
 
@@ -318,3 +312,4 @@ function fmtStatus(s) {
 // ── INIT ──────────────────────────────────────────────────────────────────
 
 loadTasks()
+populateLeadDoerOptions()

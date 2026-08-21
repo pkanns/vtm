@@ -11,6 +11,21 @@
  *   One-time fill only, on create mode load — fully editable afterward,
  *   no live recompute if the Lead changes Start Date later.
  *
+ * STATUS DEFAULTS (pipeline entry point):
+ *   A "master" gig is any recurring gig with no parent (cadence:'recurring'
+ *   && !parent_gig_id) — this covers BOTH true adhoc templates and normal
+ *   scheduled (weekly/fortnightly/monthly) recurring parents. Masters are
+ *   never "worked" directly, only their spawned instances are, so they
+ *   always enter — and stay — at 'placed'. The Status dropdown is locked
+ *   in edit mode for masters (see loadGigForEdit) so nobody can manually
+ *   advance one past Placed.
+ *
+ *   One-off gigs (cadence:'oneoff') already require both a Lead and a
+ *   Doer before they can be saved at all, so there's no reason for them
+ *   to sit in 'placed' — they default straight to 'matched' on create.
+ *   (Instances spawned from a template get the same treatment — see
+ *   spawnAdhocInstance() in vtm_api.js.)
+ *
  * ADHOC TEMPLATES:
  *   Frequency 'adhoc' skips recurrence_schedule entirely — nothing runs
  *   automatically, so the daily cron (create_recurrences.py) never sees
@@ -267,7 +282,7 @@ async function loadGigForEdit(gigId) {
     throw new Error('Rover blocked — not their gig')
   }
 
-// Set project dropdown then load its categories
+  // Set project dropdown then load its categories
   const projSel = document.getElementById('gigProject')
   if (data.project_id) {
     projSel.value = data.project_id
@@ -275,23 +290,11 @@ async function loadGigForEdit(gigId) {
   }
 
   // Set category
-  const catSel = document.getElementById('gigCategory')
   if (data.category_id) {
+    const catSel = document.getElementById('gigCategory')
     catSel.value = data.category_id
   }
 
-  // Project/Category are locked after creation, for every role including
-  // admin — gig_code is derived from them and frozen once generated, so
-  // changing either here would silently break the code without a proper
-  // migration/regeneration path. Reassigning a gig to a different
-  // project/category is a deliberately deferred future feature, not
-  // supported today.
-  projSel.disabled = true
-  projSel.title    = 'Project cannot be changed after creation — gig code is derived from it'
-  catSel.disabled  = true
-  catSel.title     = 'Category cannot be changed after creation — gig code is derived from it'
-
-         
   // Freeze the code display — show the existing code
   document.getElementById('gigCodeDisplay').textContent = data.gig_code || ''
   document.getElementById('gigCodeDisplay').className   = 'code-preview-value'
@@ -305,9 +308,19 @@ async function loadGigForEdit(gigId) {
   document.getElementById('gigDateDue').value    = data.date_due    || ''
   document.getElementById('gigNotes').value      = data.notes       || ''
 
-  // Status row — only in edit mode
-  document.getElementById('statusRow').style.display = 'block'
-  document.getElementById('gigStatus').value = data.status || 'placed'
+  // Status row — only in edit mode. A "master" gig (recurring, no
+  // parent — covers both adhoc templates and scheduled recurring
+  // parents) never moves past Placed, so its Status dropdown is locked
+  // rather than left open to a manual override that would bypass the
+  // rule everywhere else in the app.
+  const isMaster = data.cadence === 'recurring' && !data.parent_gig_id
+  const statusRow = document.getElementById('statusRow')
+  const statusSel = document.getElementById('gigStatus')
+  statusRow.style.display = 'block'
+  statusSel.value    = isMaster ? 'placed' : (data.status || 'placed')
+  statusSel.disabled = isMaster
+  statusSel.title    = isMaster ? 'Recurring templates stay in Placed' : ''
+  statusSel.style.opacity = isMaster ? '0.6' : ''
 
   // Toggles
   if (data.cadence)     setToggle('tog-cadence', data.cadence)
@@ -516,6 +529,13 @@ window.saveGigForm = async function() {
   btn.disabled    = true
   btn.textContent = 'Saving…'
 
+  // Status on create: a master gig (recurring, no parent — covers both
+  // adhoc templates and scheduled recurring parents) always enters at
+  // 'placed' and stays there. A one-off gig already has both Lead and
+  // Doer confirmed by the checks above, so there's nothing left to wait
+  // on — it enters straight at 'matched'. In edit mode, the Status
+  // dropdown is authoritative (and is itself locked to 'placed' for
+  // masters — see loadGigForEdit).
   const payload = {
     gig_code:               gigCode,
     project_id:             projSel.value,
@@ -530,7 +550,7 @@ window.saveGigForm = async function() {
     skill_level:            getToggle('tog-skill')   || 'unskilled',
     status:                 isEditMode
                               ? (document.getElementById('gigStatus').value || 'placed')
-                              : 'placed',
+                              : (cadence === 'recurring' ? 'placed' : 'matched'),
     date_placed:            document.getElementById('gigDatePlaced').value || null,
     date_start:             document.getElementById('gigDateStart').value  || null,
     date_due:               document.getElementById('gigDateDue').value    || null,

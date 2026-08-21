@@ -1,34 +1,35 @@
 /**
  * gig_index.js — Vidai to Mulai · Gig Index
  * Full pipeline view — all gigs, status filter strip, plus a filter bar
- * (Status scope incl. Templates, Project, Lead, Doer, Stage, plus On
+ * (Status scope incl. Masters, Project, Lead, Doer, Stage, plus On
  * track/Overdue chips) built on gig_filters.js. Filtering/sorting logic
  * lives there; this file owns fetching, DOM state, and rendering only.
  * Role-aware: rovers see only their gigs.
  *
- * Lead/Doer filter options are scoped to whoever actually appears on
- * gigs visible to this person — never the full org roster — for
- * pacer/rover. Admins still get the full roster, since they see every
- * gig anyway. Same fix applied to task_index.js's populateLeadDoerOptions().
- *
  * VIEW SWITCHING: the fully-unfiltered default (scope=Open, nothing else
  * selected) renders as a table, same as always. Any filter being active —
- * scope changed (Templates included), a Project/Lead/Doer picked, a chip
+ * scope changed (Masters included), a Project/Lead/Doer picked, a chip
  * on, or a pipeline stage selected — switches to a card grid instead,
  * using the same vtm-picker-card component gig_eval.html's picker uses.
  * A card's primary click varies by context (see renderGigCard): normally
  * opens the gig for editing, opens gig_eval.html directly when the
  * Evaluate stage is selected, and creates+opens a new instance when
- * browsing Templates.
+ * browsing Masters and the card is a true adhoc template (scheduled
+ * recurring parents aren't manually instanced — the cron handles those).
  *
  * Secondary actions (Edit / Move to next stage / Evaluate / Create
  * Instance / Delete) live in the shared "⋯" menu from gig_actions.js,
- * used identically in both the table and card views.
+ * used identically in both the table and card views. Master gigs never
+ * show a stage-advance or Evaluate action there — see gig_actions.js.
+ *
+ * "Masters" scope (id: 'masters') was previously "Templates" — renamed
+ * and broadened to include scheduled recurring parents alongside true
+ * adhoc templates, since neither is a real, workable gig.
  */
 
 import { db }                                 from './vtm_db.js'
 import { fetchGigs, deleteGig, fetchActiveLeads, fetchActiveDoers,
-         fetchUsersByIds, fmtDate, esc }       from './vtm_api.js'
+         fmtDate, esc }                       from './vtm_api.js'
 import { enrichGig, SCOPE_OPTIONS, FILTER_CHIPS, applyFilters, sortByDueDate } from './gig_filters.js'
 import { renderActionsMenu }                  from './gig_actions.js'
 
@@ -69,11 +70,11 @@ const cardWrap      = document.getElementById('gigCardWrap')
 scopeSelect.value   = scopeId
 projectSelect.value = projectId
 
-// Templates is a management action (creating instances) — keep it off a
+// Masters is a management action (creating instances) — keep it off a
 // Doer's filter bar entirely rather than relying on every downstream
 // click handler to re-check role.
 if (role === 'rover') {
-  scopeSelect.querySelector('option[value="templates"]')?.remove()
+  scopeSelect.querySelector('option[value="masters"]')?.remove()
 }
 
 // Hide New Gig for rovers
@@ -89,7 +90,7 @@ if (urlStatus) {
   titleEl.textContent    = fmtStatus(urlStatus) + ' Gigs'
   subtitleEl.textContent = `Filtered · ${urlStatus}`
   // A specific pipeline stage is a more specific ask than the coarse
-  // Open/Complete/All/Templates scope, and than re-picking the same
+  // Open/Complete/All/Masters scope, and than re-picking the same
   // stage from the Stage dropdown — both stop applying so the controls
   // don't contradict each other.
   scopeSelect.disabled = true
@@ -124,40 +125,17 @@ async function loadGigs() {
   allGigs = filtered.map(enrichGig)
 
   populateProjectOptions()
-  await populateLeadDoerOptions()
   applyChipUI()
   render()
 }
 
-// Admins get the full org roster (they see every gig anyway, so scoping
-// the dropdown wouldn't hide anything). Pacer/rover only see the
-// Leads/Doers that actually appear on gigs visible to them — a Doer
-// shouldn't be offered every Lead in the company as a filter option,
-// only the ones whose gigs they actually work on.
 async function populateLeadDoerOptions() {
-  if (role === 'admin') {
-    const [leadsRes, doersRes] = await Promise.all([fetchActiveLeads(db), fetchActiveDoers(db)])
-    leadSelect.innerHTML = '<option value="">Lead</option>' +
-      (leadsRes.data || []).map(u => `<option value="${u.user_id}">${esc(u.name)}</option>`).join('')
-    doerSelect.innerHTML = '<option value="">Doer</option>' +
-      (doersRes.data || []).map(u => `<option value="${u.user_id}">${esc(u.name)}</option>`).join('')
-  } else {
-    const leadIds = new Set()
-    const doerIds = new Set()
-    allGigs.forEach(g => {
-      if (g.pacer_id) leadIds.add(g.pacer_id)
-      if (g.rover_id) doerIds.add(g.rover_id)
-    })
+  const [leadsRes, doersRes] = await Promise.all([fetchActiveLeads(db), fetchActiveDoers(db)])
 
-    const { data: users } = await fetchUsersByIds(db, [...leadIds, ...doerIds])
-    const nameById = {}
-    ;(users || []).forEach(u => { nameById[u.user_id] = u.name })
-
-    leadSelect.innerHTML = '<option value="">Lead</option>' +
-      Array.from(leadIds).map(id => `<option value="${id}">${esc(nameById[id] || '—')}</option>`).join('')
-    doerSelect.innerHTML = '<option value="">Doer</option>' +
-      Array.from(doerIds).map(id => `<option value="${id}">${esc(nameById[id] || '—')}</option>`).join('')
-  }
+  leadSelect.innerHTML = '<option value="">Lead</option>' +
+    (leadsRes.data || []).map(u => `<option value="${u.user_id}">${esc(u.name)}</option>`).join('')
+  doerSelect.innerHTML = '<option value="">Doer</option>' +
+    (doersRes.data || []).map(u => `<option value="${u.user_id}">${esc(u.name)}</option>`).join('')
 
   leadSelect.value = leadId
   doerSelect.value = doerId
@@ -285,7 +263,7 @@ function renderGigCard(g) {
   const isTemplate = g.cadence === 'recurring' && g.recurrence_frequency === 'adhoc' && !g.parent_gig_id
 
   let primaryClick
-  if (scopeId === 'templates' && isTemplate) {
+  if (scopeId === 'masters' && isTemplate) {
     primaryClick = `createFromTemplate(this,'${g.gig_id}','${esc(g.gig_code)}')`
   } else if (urlStatus === 'delivered') {
     primaryClick = `goToEval('${g.gig_id}')`
@@ -388,3 +366,4 @@ function fmtStatus(s) {
 // ── INIT ──────────────────────────────────────────────────────────────────
 
 loadGigs()
+populateLeadDoerOptions()

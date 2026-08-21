@@ -6,7 +6,13 @@
 
 // ── ENRICHMENT ──────────────────────────────────────────────────────────
 // Adds derived fields once per gig, so downstream logic reads as plain
-// booleans instead of scattered date-math.
+// booleans instead of scattered date-math / cadence checks.
+//
+// isMaster: true for any "master" gig — cadence:'recurring' with no
+// parent_gig_id. Covers BOTH true adhoc templates and normal scheduled
+// (weekly/fortnightly/monthly) recurring parents. Masters are never
+// worked directly (only their spawned instances are), so every "real
+// gig" surface in the app excludes them.
 
 export function enrichGig(g) {
   const today = new Date(); today.setHours(0, 0, 0, 0)
@@ -14,27 +20,29 @@ export function enrichGig(g) {
   if (due) due.setHours(0, 0, 0, 0)
 
   const isOverdue = !!due && due < today && g.status !== 'completed'
+  const isMaster  = g.cadence === 'recurring' && !g.parent_gig_id
 
-  return { ...g, isOverdue }
+  return { ...g, isOverdue, isMaster }
 }
 
-// ── SCOPE (Status: Open / Complete / All / Templates) ──────────────────
+// ── SCOPE (Status: Open / Complete / All / Masters) ─────────────────────
 // Single-select. "Open" is the default — completed gigs stay out of the
 // way until asked for. Only applies when no specific pipeline stage is
 // picked from the flow strip — a stage selection is already a more
 // specific ask than this coarse scope, so it takes precedence instead of
 // fighting with it.
 //
-// "Templates" surfaces true adhoc-recurring templates only — never the
-// instances spawned from them (those are cadence:'oneoff' and simply
-// don't match this predicate).
+// Open/Complete/All exclude master gigs — they aren't real, workable
+// gigs, so they'd only clutter these operational views. "Masters" is the
+// one scope that surfaces them: every master (adhoc template AND
+// scheduled recurring parent), broadened from the old "Templates" scope
+// which only showed adhoc ones.
 
 export const SCOPE_OPTIONS = [
-  { id: 'open',      label: 'Open',      predicate: g => g.status !== 'completed' },
-  { id: 'complete',  label: 'Complete',  predicate: g => g.status === 'completed' },
-  { id: 'all',       label: 'All',       predicate: () => true },
-  { id: 'templates', label: 'Templates', predicate: g =>
-      g.cadence === 'recurring' && g.recurrence_frequency === 'adhoc' && !g.parent_gig_id },
+  { id: 'open',      label: 'Open',      predicate: g => g.status !== 'completed' && !g.isMaster },
+  { id: 'complete',  label: 'Complete',  predicate: g => g.status === 'completed' && !g.isMaster },
+  { id: 'all',       label: 'All',       predicate: g => !g.isMaster },
+  { id: 'masters',   label: 'Masters',   predicate: g => g.isMaster },
 ]
 
 // ── CHIPS (On track / Overdue) ──────────────────────────────────────────

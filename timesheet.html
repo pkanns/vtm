@@ -111,6 +111,20 @@
     .btn-clockout:hover { opacity: 0.85; transform: translateY(-1px); }
     .btn-clockout:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
+    /* ── TASK CHECKLIST + LOGGED HOURS (clock-out / manual save context) ─
+       No schema change — reads existing gig_tasks / time_entries only.
+       See assets/timesheet.js's loadTaskChecklist()/loadLoggedHours(). ── */
+    .ts-logged-line { font-family: var(--font-mono); font-size: 11px; color: var(--stone); margin-bottom: 10px; }
+    .active-timer-block .ts-logged-line { color: rgba(247,246,242,0.45); }
+    .ts-task-label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--stone); font-weight: 500; margin-bottom: 8px; }
+    .active-timer-block .ts-task-label { color: rgba(247,246,242,0.4); }
+    .ts-task-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; cursor: pointer; }
+    .ts-task-row input { width: 15px; height: 15px; accent-color: var(--green); cursor: pointer; flex-shrink: 0; }
+    .ts-task-row span { font-size: 13px; color: var(--black); }
+    .active-timer-block .ts-task-row span { color: var(--white); }
+    .ts-task-empty { font-size: 12px; color: var(--stone); font-style: italic; }
+    .active-timer-block .ts-task-empty { color: rgba(247,246,242,0.35); }
+
     /* ── ENTRY TOGGLE ───────────────────────────────────────────────────── */
     .entry-toggle-row {
       display: flex;
@@ -539,10 +553,14 @@
         <div class="pc-val red typed" id="timerClockIn">——:——</div>
       </div>
     </div>
-    <div class="punch-card-body" style="padding-top:18px;display:flex;gap:16px;align-items:center;flex-wrap:wrap">
-      <input type="text" id="activeNotes" placeholder="What are you working on?"
-             style="flex:1;min-width:180px;border:none;border-bottom:1px solid var(--stone);background:transparent;font-family:var(--font-body);font-size:13px;padding:6px 2px;outline:none;color:var(--black)">
-      <button class="btn-clockout" id="clockOutBtn" onclick="clockOut()">Clock Out →</button>
+    <div class="punch-card-body" style="padding-top:18px;">
+      <div class="ts-logged-line" id="timerLoggedHours"></div>
+      <div class="ts-task-checklist" id="timerTaskChecklist"></div>
+      <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:14px;">
+        <input type="text" id="activeNotes" placeholder="Anything worth noting from this session? Optional."
+               style="flex:1;min-width:180px;border:none;border-bottom:1px solid var(--stone);background:transparent;font-family:var(--font-body);font-size:13px;padding:6px 2px;outline:none;color:var(--black)">
+        <button class="btn-clockout" id="clockOutBtn" onclick="clockOut()">Clock Out →</button>
+      </div>
     </div>
   </div>
 
@@ -629,11 +647,14 @@
       </div>
       <div class="form-row">
         <label>Gig *</label>
-        <select id="manualGig" onchange="updateCardNo('manualGig','manualCardNo','manualCardStatus')">
+        <select id="manualGig" onchange="updateCardNo('manualGig','manualCardNo','manualCardStatus');onManualGigChange()">
           <option value="">— Select Gig —</option>
         </select>
       </div>
     </div>
+
+    <div class="ts-logged-line" id="manualLoggedHours"></div>
+    <div class="ts-task-checklist" id="manualTaskChecklist"></div>
 
     <div class="form-grid-3">
       <div class="form-row">
@@ -653,7 +674,7 @@
     <div class="form-bottom">
       <div class="form-row">
         <label>Notes <span class="optional-tag">optional</span></label>
-        <input type="text" id="manualNotes" placeholder="What did you work on?">
+        <input type="text" id="manualNotes" placeholder="Anything worth noting? Optional.">
       </div>
       <button class="btn-save" id="manualSaveBtn" onclick="saveManual()">Save →</button>
       <button class="btn-clear" id="manualClearBtn" onclick="resetManual()">Clear</button>

@@ -14,8 +14,9 @@
  *  6. DASHBOARD PAGES
  *  7. EVALUATIONS
  *  8. USERS
- *  9. COUNTS (dashboard)
- * 10. SHARED HELPERS
+ *  9. TIME ENTRY AGGREGATES
+ * 10. COUNTS (dashboard)
+ * 11. SHARED HELPERS
  */
 
 // ── 1. PROJECTS ───────────────────────────────────────────────────────────
@@ -497,7 +498,24 @@ export async function fetchUsersByIds(db, ids) {
   return db.from('vtm_users').select('user_id, name').in('user_id', clean)
 }
 
-// ── 9. COUNTS (dashboard) ─────────────────────────────────────────────────
+// ── 9. TIME ENTRY AGGREGATES ────────────────────────────────────────────
+// Read-only helpers over the existing time_entries table — no schema
+// changes. fetchLoggedMinutesForGig() sums completed (is_active:false)
+// entries for a gig, used to show a plain "hours logged so far" line at
+// clock-out / manual-save time — no target, no bar, just the number.
+
+export async function fetchLoggedMinutesForGig(db, gigId) {
+  const { data, error } = await db
+    .from('time_entries')
+    .select('duration_mins')
+    .eq('gig_id', gigId)
+    .eq('is_active', false)
+
+  if (error || !data) return 0
+  return data.reduce((sum, e) => sum + (e.duration_mins || 0), 0)
+}
+
+// ── 10. COUNTS (dashboard) ─────────────────────────────────────────────────
 
 export async function fetchCounts(db) {
   const [users, gigs, evals] = await Promise.all([
@@ -512,7 +530,7 @@ export async function fetchCounts(db) {
   }
 }
 
-// ── 10. SHARED HELPERS ─────────────────────────────────────────────────────
+// ── 11. SHARED HELPERS ─────────────────────────────────────────────────────
 
 export function fmtDate(iso) {
   if (!iso) return '—'

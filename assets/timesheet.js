@@ -7,9 +7,17 @@
  * Added: ?start=auto URL support — the dashboard's Clock block links here
  * with that flag when the person isn't clocked in yet, so this page drops
  * them straight into the Auto panel instead of the blank toggle state.
+ *
+ * Added: task checklist + plain logged-hours line at clock-out and manual
+ * save time (see loadTaskChecklist()/loadLoggedHours() below). No schema
+ * change — reads existing gig_tasks (via fetchTasksByGig) and time_entries
+ * (via fetchLoggedMinutesForGig) as they already exist. Ticking a task
+ * here calls the same toggleTaskDone() used everywhere else in the app;
+ * there's no separate "touched" state, just done/not done.
  */
 
 import { db } from './vtm_db.js'
+import { fetchTasksByGig, toggleTaskDone, fetchLoggedMinutesForGig, esc as apiEsc } from './vtm_api.js'
 
 // ── SESSION ───────────────────────────────────────────────────────────────
 
@@ -220,6 +228,66 @@ window.updateCardNo = function(gigSelectId, cardNoTargetId, statusTargetId) {
   if (status) status.textContent = gig ? '● Ready' : '○ Awaiting'
 }
 
+// ── TASK CHECKLIST + LOGGED HOURS (clock-out / manual save context) ───────
+// No schema changes here. loadTaskChecklist() reads the gig's existing
+// open tasks (fetchTasksByGig) so a Doer can check one off in the same
+// motion as logging time — ticking calls the same toggleTaskDone() used
+// on the gig edit page and Task Register, nothing new. loadLoggedHours()
+// sums existing time_entries for the gig — a plain number, no target, no
+// bar, just enough context to write an honest note by.
+
+async function loadTaskChecklist(gigId, containerId) {
+  const container = document.getElementById(containerId)
+  if (!container) return
+  if (!gigId) { container.innerHTML = ''; return }
+
+  const { data, error } = await fetchTasksByGig(db, gigId)
+  if (error) { container.innerHTML = ''; return }
+
+  const open = (data || []).filter(t => !t.done)
+  if (!open.length) {
+    container.innerHTML = '<div class="ts-task-empty">No open tasks on this gig.</div>'
+    return
+  }
+
+  container.innerHTML = `
+    <div class="ts-task-label">Tasks on this gig</div>
+    ${open.map(t => `
+      <label class="ts-task-row">
+        <input type="checkbox" onchange="checkOffTask('${t.task_id}', this)">
+        <span>${esc(t.title)}</span>
+      </label>`).join('')}`
+}
+
+window.checkOffTask = async function(taskId, checkbox) {
+  checkbox.disabled = true
+  const { error } = await toggleTaskDone(db, taskId, true)
+  if (error) {
+    showToast('Could not update task', 'err')
+    checkbox.disabled = false
+    checkbox.checked  = false
+    return
+  }
+  const row = checkbox.closest('.ts-task-row')
+  if (row) row.style.opacity = '0.5'
+  showToast('Task marked done', 'ok')
+}
+
+async function loadLoggedHours(gigId, elId) {
+  const el = document.getElementById(elId)
+  if (!el) return
+  if (!gigId) { el.textContent = ''; return }
+
+  const mins = await fetchLoggedMinutesForGig(db, gigId)
+  el.textContent = mins ? `${fmtDuration(mins)} logged on this gig so far` : 'No time logged on this gig yet'
+}
+
+window.onManualGigChange = function() {
+  const gigId = document.getElementById('manualGig').value
+  loadTaskChecklist(gigId, 'manualTaskChecklist')
+  loadLoggedHours(gigId, 'manualLoggedHours')
+}
+
 // ── CHECK ACTIVE TIMER ────────────────────────────────────────────────────
 
 async function checkActiveTimer() {
@@ -258,6 +326,9 @@ function showActiveTimer(entry) {
   const label = document.getElementById('headerTimerLabel')
   if (pill)  pill.classList.add('visible')
   if (label) label.textContent = `In · ${timeIn}`
+
+  loadTaskChecklist(entry.gig_id, 'timerTaskChecklist')
+  loadLoggedHours(entry.gig_id, 'timerLoggedHours')
 }
 
 function hideActiveTimer() {
@@ -689,6 +760,7 @@ window.editEntry = async function(entryId) {
   populateGigDropdown('manualGig', gig.project_id || null)
   document.getElementById('manualGig').value = entry.gig_id || ''
   updateCardNo('manualGig', 'manualCardNo', 'manualCardStatus')
+  onManualGigChange()
 
   document.getElementById('manualDate').value  = entry.entry_date || ''
   document.getElementById('manualStart').value = (entry.start_time || '').slice(0,5)
@@ -739,6 +811,8 @@ window.resetManual = function() {
   document.getElementById('manualEnd').value   = ''
   document.getElementById('manualNotes').value = ''
   updateCardNo('manualGig', 'manualCardNo', 'manualCardStatus')
+  document.getElementById('manualTaskChecklist').innerHTML = ''
+  document.getElementById('manualLoggedHours').textContent = ''
 
   editingEntryId = null
   document.getElementById('manualPanelAction').textContent   = 'Manual Entry'

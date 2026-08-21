@@ -8,6 +8,12 @@
  * with that flag when the person isn't clocked in yet, so this page drops
  * them straight into the Auto panel instead of the blank toggle state.
  *
+ * MASTER GIGS: a "master" gig (cadence:'recurring' with no parent_gig_id
+ * — covers both true adhoc templates and scheduled recurring parents) is
+ * never itself clockable — only the instances spawned from it are real,
+ * workable gigs. loadGigs() excludes masters from gigMap so they never
+ * appear in either the Auto or Manual gig dropdown.
+ *
  * Added: task checklist + plain logged-hours line at clock-out and manual
  * save time (see loadTaskChecklist()/loadLoggedHours() below). No schema
  * change — reads existing gig_tasks (via fetchTasksByGig) and time_entries
@@ -175,7 +181,7 @@ async function loadProjects() {
 
 async function loadGigs() {
   let query = db.from('gigs')
-    .select('gig_id, gig_code, title, project_id, status, pacer_id, rover_id')
+    .select('gig_id, gig_code, title, project_id, status, pacer_id, rover_id, cadence, parent_gig_id')
     .not('status', 'eq', 'completed')
     .order('gig_code')
 
@@ -185,10 +191,15 @@ async function loadGigs() {
   const { data, error } = await query
   if (error || !data?.length) return
 
+  // Master gigs (recurring, no parent — templates and scheduled recurring
+  // parents alike) are never clockable — exclude them from the map so
+  // they never populate either gig dropdown.
   gigMap = {}
-  data.forEach(g => {
-    gigMap[g.gig_id] = { code: g.gig_code, title: g.title, project_id: g.project_id }
-  })
+  data
+    .filter(g => !(g.cadence === 'recurring' && !g.parent_gig_id))
+    .forEach(g => {
+      gigMap[g.gig_id] = { code: g.gig_code, title: g.title, project_id: g.project_id }
+    })
 
   populateGigDropdown('autoGig',   null)
   populateGigDropdown('manualGig', null)
@@ -738,11 +749,12 @@ window.editEntry = async function(entryId) {
   if (manualRadio) manualRadio.checked = true
   showEntryPanel('manual')
 
-  // loadGigs() only loads gigs that aren't completed, to keep the "add new
-  // entry" dropdowns clean — but an existing entry can point at a gig that's
-  // since been marked complete. If that gig isn't in gigMap, fetch it and
-  // add it in just for this edit; otherwise the Gig field can't be
-  // pre-selected and Save silently blocks on "please select a gig".
+  // loadGigs() only loads gigs that aren't completed (and excludes master
+  // gigs) to keep the "add new entry" dropdowns clean — but an existing
+  // entry can point at a gig that's since been marked complete. If that
+  // gig isn't in gigMap, fetch it and add it in just for this edit;
+  // otherwise the Gig field can't be pre-selected and Save silently
+  // blocks on "please select a gig".
   let gig = gigMap[entry.gig_id]
   if (!gig) {
     const { data, error } = await db

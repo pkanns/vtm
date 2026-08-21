@@ -270,6 +270,11 @@ export async function deleteGig(db, id) {
 // Only the true template (recurring + adhoc + no parent_gig_id) ever
 // shows a "create from template" action anywhere in the UI.
 //
+// Status: an instance always has both Lead and Doer copied straight from
+// the template, so — same as a manually-created one-off gig, and same as
+// a cron-spawned scheduled recurring instance (see create_recurrences.py)
+// — there's nothing left to wait on. It enters at 'matched', not 'placed'.
+//
 // Note on task copies: this always writes fresh gig_tasks rows via
 // createTask() below (no task_id/created_at carried over from the
 // template), so each instance's tasks get their own honest creation
@@ -298,7 +303,7 @@ export async function spawnAdhocInstance(db, templateGigId) {
     scale:                  template.scale,
     setting:                template.setting,
     skill_level:            template.skill_level,
-    status:                 'placed',
+    status:                 'matched',
     date_placed:            today,
     date_start:             template.date_start,
     date_due:               template.date_due,
@@ -390,9 +395,13 @@ export async function fetchTasksByGig(db, gigId) {
 
 /**
  * Fetch every task across all gigs, with the parent gig's context joined
- * (status, due date, project, Lead/Doer) — the data source for
- * task_index.html's cross-gig register. No role filtering here, same
- * convention as fetchGigs(): the page applies role scoping after fetch.
+ * (status, due date, project, Lead/Doer, cadence/parent_gig_id) — the
+ * data source for task_index.html's cross-gig register. cadence and
+ * parent_gig_id are included specifically so the page can exclude tasks
+ * that belong to a "master" gig (a recurring gig with no parent — the
+ * checklist template copied onto each spawned instance, not real work
+ * itself). No role filtering here, same convention as fetchGigs(): the
+ * page applies role scoping after fetch.
  */
 export async function fetchAllTasksWithGigContext(db) {
   return db
@@ -400,7 +409,7 @@ export async function fetchAllTasksWithGigContext(db) {
     .select(`
       *,
       gigs (
-        gig_id, gig_code, title, status, date_due,
+        gig_id, gig_code, title, status, date_due, cadence, parent_gig_id,
         project_id, pacer_id, rover_id,
         projects ( project_code )
       )

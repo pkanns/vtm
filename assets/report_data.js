@@ -30,6 +30,18 @@ export function mondayOf(date) {
   return d
 }
 
+// Saturday → Friday week anchor. The weekend opens a week rather than
+// closing one — used by weekly_report.js / report_dashboard.js instead
+// of mondayOf().
+export function saturdayOf(date) {
+  const d = new Date(date)
+  d.setHours(0, 0, 0, 0)
+  const day = d.getDay()               // 0 = Sun ... 6 = Sat
+  const diff = day === 6 ? 0 : -(day + 1)
+  d.setDate(d.getDate() + diff)
+  return d
+}
+
 export function addDays(date, n) {
   const d = new Date(date)
   d.setDate(d.getDate() + n)
@@ -53,6 +65,17 @@ export function fmtHours(mins) {
   if (h === 0) return `${m}m`
   if (m === 0) return `${h}h`
   return `${h}h ${m}m`
+}
+
+// Short "date, time" label for a task's updated_at, e.g. "14 Aug, 3:05 PM"
+export function fmtDateTimeShort(iso) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  const h24 = d.getHours()
+  const h12 = h24 % 12 || 12
+  const m   = String(d.getMinutes()).padStart(2, '0')
+  return `${d.getDate()} ${months[d.getMonth()]}, ${h12}:${m} ${h24 < 12 ? 'AM' : 'PM'}`
 }
 
 // ── ACCESS MODEL ─────────────────────────────────────────────────────────
@@ -183,6 +206,72 @@ export const EFFORT_BUCKETS = [
 
 export function effortBucketId(totalMinutes) {
   return (EFFORT_BUCKETS.find(b => b.test(totalMinutes)) || EFFORT_BUCKETS[0]).id
+}
+
+// ── TASKS CHANGED THIS WEEK (Task View) ─────────────────────────────────
+// Any gig_task whose updated_at falls in the given week, relevant to this
+// user (assigned to them, or on a gig they lead/do). Master-gig tasks
+// (the template checklist copied onto every spawned instance) are
+// excluded, same rule as computeWeekData() above.
+
+export async function fetchTasksChangedForUser(db, userId, monday, sunday) {
+  const startISO = toISODate(monday)
+  const endISO   = toISODate(addDays(sunday, 1))   // updated_at is a timestamp — use "< next day"
+
+  const { data, error } = await db
+    .from('gig_tasks')
+    .select(`
+      *,
+      gigs ( gig_code, title, status, pacer_id, rover_id, cadence, parent_gig_id )
+    `)
+    .gte('updated_at', startISO)
+    .lt('updated_at', endISO)
+    .order('updated_at', { ascending: false })
+
+  if (error || !data) return []
+
+  return data.filter(t => {
+    const g = t.gigs
+    if (!g) return false
+    if (g.cadence === 'recurring' && !g.parent_gig_id) return false
+    return t.assigned_to === userId || g.pacer_id === userId || g.rover_id === userId
+  })
+}
+
+// ── GIGS PLACED / COMPLETED THIS WEEK (Gig View) ────────────────────────
+// Rough approximation, not a true change-log — no gig-level status
+// history in the schema (deliberately, per scope). "Placed" = date_placed
+// falls in the week; "Completed" = an evaluation was recorded in the
+// week, same join buildClosedLine() already uses above.
+
+export async function fetchGigChangesForUser(db, userId, monday, sunday) {
+  const { data: allGigs, error } = await fetchGigs(db)
+  if (error) return { created: [], completed: [] }
+
+  const startISO = toISODate(monday)
+  const endISO   = toISODate(sunday)
+
+  const myGigs = (allGigs || []).filter(g =>
+    (g.rover_id === userId || g.pacer_id === userId) &&
+    !(g.cadence === 'recurring' && !g.parent_gig_id)
+  )
+
+  const created = myGigs
+    .filter(g => g.date_placed && g.date_placed >= startISO && g.date_placed <= endISO)
+    .map(g => ({ gig_id: g.gig_id, gig_code: g.gig_code, title: g.title, date: g.date_placed }))
+
+  const nextDay = toISODate(addDays(sunday, 1))
+  const { data: evals } = await db
+    .from('evaluations')
+    .select('gig_id, created_at, gigs(gig_code, title, status, rover_id, pacer_id)')
+    .gte('created_at', startISO)
+    .lt('created_at', nextDay)
+
+  const completed = (evals || [])
+    .filter(e => e.gigs?.status === 'completed' && (e.gigs.rover_id === userId || e.gigs.pacer_id === userId))
+    .map(e => ({ gig_id: e.gig_id, gig_code: e.gigs.gig_code, title: e.gigs.title, date: (e.created_at || '').split('T')[0] }))
+
+  return { created, completed }
 }
 
 // ── SAVED TEXT (the only persisted part) ────────────────────────────────

@@ -115,14 +115,9 @@
   <a href="weekly_report.html" class="back-link">&larr; Back to my report</a>
 
   <div class="filter-bar">
-    <div class="filter-label">Week</div>
-    <div class="week-nav" style="margin-bottom:14px;">
-      <button class="week-nav-btn" id="prevWeekBtn" onclick="goWeek(-1)">&#8249;</button>
-      <div class="week-nav-label" id="weekLabel">Week of &mdash;</div>
-      <button class="week-nav-btn" id="nextWeekBtn" onclick="goWeek(1)">&#8250;</button>
-    </div>
+    <div class="week-nav-label" id="weekLabel">Week of &mdash;</div>
 
-    <div class="filter-label">Filter</div>
+    <div class="filter-label" style="margin-top:14px;">Filter</div>
     <div class="filter-group">
       <select class="filter-select" id="userSelect"></select>
       <select class="filter-select scope-select" id="scopeSelect">
@@ -132,10 +127,6 @@
       </select>
       <div class="filter-sep"></div>
       <div class="filter-chip" id="chipOverdue" onclick="toggleChip('overdue')">Overdue</div>
-      <div class="filter-sep"></div>
-      <div class="filter-chip" id="chipUnder20" onclick="toggleBucket('under20')">Under 20h</div>
-      <div class="filter-chip" id="chip20to40" onclick="toggleBucket('20to40')">20&ndash;40h</div>
-      <div class="filter-chip" id="chipOver40" onclick="toggleBucket('over40')">Over 40h</div>
     </div>
   </div>
 
@@ -143,6 +134,7 @@
     <button class="view-tab" data-view="time" onclick="setView('time')">Time View</button>
     <button class="view-tab" data-view="task" onclick="setView('task')">Task View</button>
     <button class="view-tab" data-view="gig"  onclick="setView('gig')">Gig View</button>
+    <button class="view-tab" data-view="lastweek" onclick="setView('lastweek')">Last Week</button>
   </div>
 
   <div class="results-card">

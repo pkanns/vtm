@@ -25,6 +25,7 @@ import {
   saturdayOf, addDays, toISODate, fmtWeekLabel, fmtHours, fmtDateTimeShort,
   computeWeekData, fetchReportText, saveReportText,
   fetchTasksChangedForUser, fetchGigChangesForUser,
+  fetchOpenTasksForUser, fetchOpenGigsForUser,
 } from './report_data.js'
 import { canToggleTask }  from './gig_tasks.js'
 import { toggleTaskDone } from './vtm_api.js'
@@ -114,11 +115,27 @@ async function renderViewPanel(view) {
       ${closedLine ? `<div class="closed-line">${closedLine}</div>` : ''}
     `
   } else if (view === 'task') {
-    lastTasks = await fetchTasksChangedForUser(db, myUserId, currentMonday, currentSunday)
-    panel.innerHTML = `<div class="section-label">Tasks changed this week</div>${buildTaskChangesHTML(lastTasks)}`
+    const [openTasks, changedTasks] = await Promise.all([
+      fetchOpenTasksForUser(db, myUserId),
+      fetchTasksChangedForUser(db, myUserId, currentMonday, currentSunday),
+    ])
+    lastTasks = changedTasks
+    panel.innerHTML = `
+      <div class="section-label">Open tasks</div>
+      ${buildTaskChangesHTML(openTasks)}
+      <div class="section-label" style="margin-top:16px">Tasks changed this week</div>
+      ${buildTaskChangesHTML(changedTasks, true)}
+    `
   } else if (view === 'gig') {
-    const { created, completed } = await fetchGigChangesForUser(db, myUserId, currentMonday, currentSunday)
-    panel.innerHTML = buildGigChangesHTML(created, completed)
+    const [openGigs, { created, completed }] = await Promise.all([
+      fetchOpenGigsForUser(db, myUserId),
+      fetchGigChangesForUser(db, myUserId, currentMonday, currentSunday),
+    ])
+    panel.innerHTML = `
+      <div class="section-label">Open gigs</div>
+      ${buildGigsListHTML(openGigs)}
+      ${buildGigChangesHTML(created, completed)}
+    `
   } else if (view === 'lastweek') {
     const text = await fetchReportText(db, myUserId, toISODate(lastWeekMonday))
     panel.innerHTML = buildLastWeekHTML(text)

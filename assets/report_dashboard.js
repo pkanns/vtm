@@ -29,6 +29,7 @@ import {
   saturdayOf, addDays, toISODate, fmtWeekLabel, fmtHours, fmtDateTimeShort,
   computeWeekData, fetchReportText, resolveViewableUsers,
   fetchTasksChangedForUser, fetchGigChangesForUser,
+  fetchOpenTasksForUser, fetchOpenGigsForUser,
 } from './report_data.js'
 import { SCOPE_OPTIONS } from './gig_filters.js'
 import { canToggleTask } from './gig_tasks.js'
@@ -222,24 +223,37 @@ function buildGigsListHTML(gigs) {
 // ── TASK VIEW ─────────────────────────────────────────────────────────
 
 async function renderOnePersonTasks(userId) {
-  lastPersonTasks = await fetchTasksChangedForUser(db, userId, currentMonday, currentSunday)
-  bodyEl.innerHTML = buildTaskChangesHTML(lastPersonTasks)
+  const [openTasks, changedTasks] = await Promise.all([
+    fetchOpenTasksForUser(db, userId),
+    fetchTasksChangedForUser(db, userId, currentMonday, currentSunday),
+  ])
+  lastPersonTasks = changedTasks
+  bodyEl.innerHTML = `
+    <div class="filter-label">Open tasks</div>
+    ${buildTaskChangesHTML(openTasks)}
+    <div class="filter-label" style="margin-top:16px">Tasks changed this week</div>
+    ${buildTaskChangesHTML(changedTasks, true)}
+  `
 }
 
 async function renderAllUsersTasks() {
   const rows = await Promise.all(viewable.users.map(async u => {
-    const tasks = await fetchTasksChangedForUser(db, u.user_id, currentMonday, currentSunday)
-    return { user: u, count: tasks.length }
+    const [openTasks, changedTasks] = await Promise.all([
+      fetchOpenTasksForUser(db, u.user_id),
+      fetchTasksChangedForUser(db, u.user_id, currentMonday, currentSunday),
+    ])
+    return { user: u, openCount: openTasks.length, changedCount: changedTasks.length }
   }))
 
   bodyEl.innerHTML = `
     <table class="summary-table">
-      <thead><tr><th>Name</th><th>Tasks Changed</th></tr></thead>
+      <thead><tr><th>Name</th><th>Open Tasks</th><th>Changed This Week</th></tr></thead>
       <tbody>
         ${rows.map(r => `
           <tr onclick="window.jumpToUser('${r.user.user_id}')">
             <td>${r.user.name}</td>
-            <td>${r.count}</td>
+            <td>${r.openCount}</td>
+            <td>${r.changedCount}</td>
           </tr>`).join('')}
       </tbody>
     </table>
@@ -282,23 +296,34 @@ window.toggleDashTask = async function(taskId, done) {
 // ── GIG VIEW (rough — placed/completed this week) ───────────────────────
 
 async function renderOnePersonGigs(userId) {
-  const { created, completed } = await fetchGigChangesForUser(db, userId, currentMonday, currentSunday)
-  bodyEl.innerHTML = buildGigChangesHTML(created, completed)
+  const [openGigs, { created, completed }] = await Promise.all([
+    fetchOpenGigsForUser(db, userId),
+    fetchGigChangesForUser(db, userId, currentMonday, currentSunday),
+  ])
+  bodyEl.innerHTML = `
+    <div class="filter-label">Open gigs</div>
+    ${buildGigsListHTML(openGigs)}
+    ${buildGigChangesHTML(created, completed)}
+  `
 }
 
 async function renderAllUsersGigs() {
   const rows = await Promise.all(viewable.users.map(async u => {
-    const { created, completed } = await fetchGigChangesForUser(db, u.user_id, currentMonday, currentSunday)
-    return { user: u, placed: created.length, completed: completed.length }
+    const [openGigs, { created, completed }] = await Promise.all([
+      fetchOpenGigsForUser(db, u.user_id),
+      fetchGigChangesForUser(db, u.user_id, currentMonday, currentSunday),
+    ])
+    return { user: u, openCount: openGigs.length, placed: created.length, completed: completed.length }
   }))
 
   bodyEl.innerHTML = `
     <table class="summary-table">
-      <thead><tr><th>Name</th><th>Placed</th><th>Completed</th></tr></thead>
+      <thead><tr><th>Name</th><th>Open Gigs</th><th>Placed</th><th>Completed</th></tr></thead>
       <tbody>
         ${rows.map(r => `
           <tr onclick="window.jumpToUser('${r.user.user_id}')">
             <td>${r.user.name}</td>
+            <td>${r.openCount}</td>
             <td>${r.placed}</td>
             <td>${r.completed}</td>
           </tr>`).join('')}

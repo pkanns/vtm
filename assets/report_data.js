@@ -21,6 +21,49 @@
  */
 
 import { fetchGigs, esc } from './vtm_api.js'
+import { enrichGig } from './gig_filters.js'
+
+// ── OPEN TASKS / GIGS ────────────────────────────────────────────────────
+// Not tied to any week at all — "what's open right now," full stop.
+// Separate from the weekly Task/Gig View sections below, which only ever
+// showed what *changed* in a given week — that's still useful as an
+// activity log, but it isn't the same question as "what's still on my
+// plate." Both are shown together in the UI.
+
+export async function fetchOpenTasksForUser(db, userId) {
+  const { data, error } = await db
+    .from('gig_tasks')
+    .select(`
+      *,
+      gigs ( gig_code, title, status, pacer_id, rover_id, cadence, parent_gig_id, date_due )
+    `)
+    .eq('done', false)
+    .order('created_at', { ascending: true })
+
+  if (error || !data) return []
+
+  return data.filter(t => {
+    const g = t.gigs
+    if (!g) return false
+    if (g.cadence === 'recurring' && !g.parent_gig_id) return false   // master-gig tasks excluded, same rule as everywhere else
+    return t.assigned_to === userId || g.pacer_id === userId || g.rover_id === userId
+  })
+}
+
+export async function fetchOpenGigsForUser(db, userId) {
+  const { data: allGigs, error } = await fetchGigs(db)
+  if (error || !allGigs) return []
+
+  return allGigs
+    .filter(g => (g.rover_id === userId || g.pacer_id === userId)
+      && g.status !== 'completed'
+      && !(g.cadence === 'recurring' && !g.parent_gig_id))
+    .map(enrichGig)
+    .map(g => ({
+      gig_id: g.gig_id, gig_code: g.gig_code, title: g.title,
+      status: g.status, date_due: g.date_due, isOverdue: g.isOverdue,
+    }))
+}
 
 // ── WEEK MATH ────────────────────────────────────────────────────────────
 

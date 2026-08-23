@@ -48,7 +48,12 @@ export function addDays(date, n) {
   return d
 }
 
-export function toISODate(d) { return d.toISOString().split('T')[0] }
+export function toISODate(d) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
 
 export function fmtWeekLabel(monday) {
   const sunday = addDays(monday, 6)

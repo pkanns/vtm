@@ -127,6 +127,9 @@ export async function computeWeekData(db, userId, monday, sunday) {
     .from('time_entries')
     .select('gig_id, duration_mins, entry_date')
     .eq('user_id', userId)
+    .eq('is_active', false)   // only submitted/completed entries — a still-running
+                               // clock-in isn't "reported" time yet, so it shouldn't
+                               // count toward the week until it's actually clocked out
     .gte('entry_date', toISODate(monday))
     .lte('entry_date', toISODate(sunday))
 
@@ -135,8 +138,13 @@ export async function computeWeekData(db, userId, monday, sunday) {
     minsByGig[e.gig_id] = (minsByGig[e.gig_id] || 0) + (e.duration_mins || 0)
   })
 
-  const activeGigs = myGigs.filter(g => g.status !== 'completed')
-  const gigs = activeGigs.map(g => ({
+  // Every gig the person is on gets a row here, regardless of its current
+  // status — a gig being marked completed today shouldn't make hours
+  // logged against it earlier this week silently vanish from the
+  // breakdown. (The render layer already only shows rows with minutes >
+  // 0, so this doesn't clutter anything — it just stops hiding real,
+  // already-logged time.)
+  const gigs = myGigs.map(g => ({
     gig_id: g.gig_id, gig_code: g.gig_code, title: g.title,
     project_code: g.projects?.project_code || null,
     status: g.status, date_due: g.date_due, isOverdue: g.isOverdue,

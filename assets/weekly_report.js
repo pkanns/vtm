@@ -1,21 +1,24 @@
 /**
  * weekly_report.js — Vidai to Mulai · Weekly Report (personal editor)
- * No lock, no draft/submitted lifecycle — any week is navigable and
- * editable, always live. Only the free text persists (weekly_reports);
- * everything else is computed fresh, and — deliberately — NOT fetched
- * until asked for.
+ * Rebuilt: no arbitrary week-by-week navigation, no live recompute of
+ * anything past the current week. Two states only:
  *
- * Page opens straight to the text fields (Accomplishment / Next steps /
- * Support needed) with nothing else on screen. Time View / Task View /
- * Gig View are optional reference panels: clicking a tab fetches and
- * opens that panel; clicking the same tab again collapses it. Only one
- * panel is open at a time. Nothing is fetched for a panel that was never
- * opened — the common case (just write the report) stays fast and quiet.
+ *   THIS WEEK  — fully live. Time View / Task View / Gig View compute
+ *                fresh from gigs/time_entries/gig_tasks/evaluations,
+ *                same as before. The three text fields (Accomplishment /
+ *                Next steps / Support needed) are editable and saved via
+ *                weekly_reports.
  *
- * Gig View is a rough approximation, not a true change-log — there's no
- * gig-level status-change history in the schema (deliberately, per
- * scope) — so it shows gigs placed this week (date_placed) and gigs
- * completed/evaluated this week (existing evaluations join).
+ *   LAST WEEK  — a fourth tab alongside Time/Task/Gig. Shows ONLY
+ *                whatever was actually saved to weekly_reports for last
+ *                week's Accomplishment / Next steps / Support needed —
+ *                read-only, nothing recomputed. If nothing was ever
+ *                saved for last week, says so plainly. This is
+ *                deliberately not a full gig/time/task snapshot — once a
+ *                week is over, the only thing worth trusting as
+ *                "history" is what was actually written down at the
+ *                time, not a live recalculation that can silently drift
+ *                as gigs get reassigned/completed/deleted later.
  *
  * Week window is Saturday → Friday (see report_data.js's saturdayOf) —
  * the weekend opens a week rather than closing one.
@@ -34,30 +37,23 @@ const session = vtmGetSession()
 if (!session) { window.location.replace('login.html'); throw new Error() }
 const myUserId = session.user_id
 
-let weekOffset    = 0        // 0 = this week; negative = past weeks; forward capped at 0
-let fields        = { accomplishment: '', next_steps: '', support_needed: '' }
+// This week never moves — no offset, no navigation.
+const currentMonday = saturdayOf(new Date())
+const currentSunday = addDays(currentMonday, 6)
+const lastWeekMonday = addDays(currentMonday, -7)
+
+let fields         = { accomplishment: '', next_steps: '', support_needed: '' }
 let hasExistingRow = false
-let currentView    = null    // null | 'time' | 'task' | 'gig' — null means no panel open
-let currentMonday  = null
-let currentSunday  = null
+let currentView    = null    // null | 'time' | 'task' | 'gig' | 'lastweek'
 let lastTasks       = []     // tasks currently shown in Task View — kept for in-place toggle updates
 
 const weekLabelEl = document.getElementById('weekLabel')
 const bodyEl       = document.getElementById('reportBody')
-const nextBtn       = document.getElementById('nextWeekBtn')
 
-async function loadWeek() {
-  currentMonday = addDays(saturdayOf(new Date()), weekOffset * 7)
-  currentSunday = addDays(currentMonday, 6)
-  const weekISO = toISODate(currentMonday)
-
+async function init() {
   weekLabelEl.textContent = fmtWeekLabel(currentMonday)
-  nextBtn.disabled = weekOffset >= 0
 
-  // Only fetch what's needed to write the report — nothing view-related
-  // happens here unless a view was already open before navigating weeks.
-  const existing = await fetchReportText(db, myUserId, weekISO)
-
+  const existing = await fetchReportText(db, myUserId, toISODate(currentMonday))
   hasExistingRow = !!existing
   fields = {
     accomplishment: existing?.accomplishment || '',
@@ -78,11 +74,6 @@ async function loadWeek() {
       </div>
     </div>
   `
-
-  syncTabState()
-  // A view left open before paging to a different week stays open,
-  // refreshed for the new week — anything else stays collapsed/unfetched.
-  if (currentView) await renderViewPanel(currentView)
 }
 
 // ── VIEW TOGGLE ──────────────────────────────────────────────────────────
@@ -126,7 +117,28 @@ async function renderViewPanel(view) {
   } else if (view === 'gig') {
     const { created, completed } = await fetchGigChangesForUser(db, myUserId, currentMonday, currentSunday)
     panel.innerHTML = buildGigChangesHTML(created, completed)
+  } else if (view === 'lastweek') {
+    const text = await fetchReportText(db, myUserId, toISODate(lastWeekMonday))
+    panel.innerHTML = buildLastWeekHTML(text)
   }
+}
+
+// ── LAST WEEK (static, read-only — nothing recomputed) ──────────────────
+
+function buildLastWeekHTML(text) {
+  if (!text) {
+    return `<div class="empty-week">No report was saved for last week (${fmtWeekLabel(lastWeekMonday)}).</div>`
+  }
+  return `
+    <div class="section-label">${fmtWeekLabel(lastWeekMonday)} \u2014 as saved</div>
+    ${textReadonlyHTML('Accomplishment', text.accomplishment)}
+    ${textReadonlyHTML('Next steps',     text.next_steps)}
+    ${textReadonlyHTML('Support needed', text.support_needed)}
+  `
+}
+
+function textReadonlyHTML(label, value) {
+  return `<div class="text-readonly"><label>${label}</label><div style="font-size:13px;color:var(--black);white-space:pre-wrap;">${esc(value) || '\u2014'}</div></div>`
 }
 
 // ── TIME VIEW ──────────────────────────────────────────────────────────
@@ -221,7 +233,12 @@ function fmtStatus(s) {
   return (s || 'placed').replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
-// ── TEXT BLOCKS ──────────────────────────────────────────────────────────
+function esc(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+// ── TEXT BLOCKS (this week — editable) ────────────────────────────────────
 
 function textBlockHTML(label, value, fieldId, placeholder) {
   return `<div class="text-block-card">
@@ -245,11 +262,6 @@ window.saveReport = async function() {
   hasExistingRow = true
 }
 
-window.goWeek = function(delta) {
-  const next = weekOffset + delta
-  if (next > 0) return
-  weekOffset = next
-  loadWeek()
-}
+// ── INIT ─────────────────────────────────────────────────────────────────
 
-loadWeek()
+init()

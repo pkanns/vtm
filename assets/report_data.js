@@ -4,20 +4,23 @@
  * report_dashboard.js import from here so the underlying gigs/hours/effort
  * computation only exists in one place.
  *
- * Nothing here is snapshotted or stored — every function computes live
- * from gigs/time_entries/evaluations for whichever user+week is asked for.
- * The only persisted data in this whole feature is the free-text reflection
- * in weekly_reports (accomplishment/next_steps/support_needed).
+ * The only persisted, hand-written data in this whole feature is the
+ * free-text reflection in weekly_reports (accomplishment/next_steps/
+ * support_needed) — that's the only thing that requires an actual saved
+ * row to exist; if nothing was saved for a week, nothing is shown for it.
  *
- * MASTER GIGS: a "master" gig (cadence:'recurring' with no parent_gig_id
- * — covers both true adhoc templates and scheduled recurring parents) is
- * never itself worked, only its spawned instances are — so it's excluded
- * from computeWeekData()'s gig list, same as it's excluded from the
- * Timesheet gig picker and the Task Register.
+ * Everything else (Time/Task/Gig View) computes live, safely, for ANY
+ * week — including past ones — because it's anchored to fixed, dated
+ * facts (time_entries.entry_date, gig_tasks.updated_at,
+ * evaluations.created_at, gigs.date_placed), not to a gig's *current*
+ * status or *current* Lead/Doer assignment. A gig closing or being
+ * reassigned after the fact doesn't change what actually happened that
+ * week. (Gig title/status shown still reflect today's state, not the
+ * gig's state back then — that's a display label, not a filter, so it's
+ * honest but not perfectly period-accurate.)
  */
 
 import { fetchGigs, esc } from './vtm_api.js'
-import { enrichGig }      from './gig_filters.js'
 
 // ── WEEK MATH ────────────────────────────────────────────────────────────
 
@@ -118,43 +121,48 @@ export async function resolveViewableUsers(db, session) {
 // ── GIGS + HOURS FOR ONE PERSON, ONE WEEK ───────────────────────────────
 
 export async function computeWeekData(db, userId, monday, sunday) {
-  const { data: allGigs, error } = await fetchGigs(db)
-  if (error) return { gigs: [], closedLine: '', totalMinutes: 0, timeSlices: [] }
-
-  // Master gigs (recurring, no parent) are excluded — they're never
-  // real, workable gigs, only their spawned instances are.
-  const myGigs = (allGigs || [])
-    .filter(g => (g.rover_id === userId || g.pacer_id === userId)
-      && !(g.cadence === 'recurring' && !g.parent_gig_id))
-    .map(enrichGig)
-
-  const { data: entries } = await db
+  const { data: entries, error } = await db
     .from('time_entries')
     .select('gig_id, duration_mins, entry_date')
     .eq('user_id', userId)
     .eq('is_active', false)   // only submitted/completed entries — a still-running
-                               // clock-in isn't "reported" time yet, so it shouldn't
-                               // count toward the week until it's actually clocked out
+                               // clock-in isn't "reported" time yet
     .gte('entry_date', toISODate(monday))
     .lte('entry_date', toISODate(sunday))
+
+  if (error) return { gigs: [], closedLine: '', totalMinutes: 0, timeSlices: [] }
 
   const minsByGig = {}
   ;(entries || []).forEach(e => {
     minsByGig[e.gig_id] = (minsByGig[e.gig_id] || 0) + (e.duration_mins || 0)
   })
 
-  // Every gig the person is on gets a row here, regardless of its current
-  // status — a gig being marked completed today shouldn't make hours
-  // logged against it earlier this week silently vanish from the
-  // breakdown. (The render layer already only shows rows with minutes >
-  // 0, so this doesn't clutter anything — it just stops hiding real,
-  // already-logged time.)
-  const gigs = myGigs.map(g => ({
-    gig_id: g.gig_id, gig_code: g.gig_code, title: g.title,
-    project_code: g.projects?.project_code || null,
-    status: g.status, date_due: g.date_due, isOverdue: g.isOverdue,
-    minutes: minsByGig[g.gig_id] || 0,
-  }))
+  // Only fetch the gigs actually touched this week — for title/code/status
+  // labels only, never used to decide which rows appear. A gig closing,
+  // getting reassigned, or being marked master doesn't erase real hours
+  // logged against it earlier in the week.
+  const gigIds = Object.keys(minsByGig)
+  let gigRows = []
+  if (gigIds.length) {
+    const { data } = await db
+      .from('gigs')
+      .select('gig_id, gig_code, title, status, date_due, projects ( project_code )')
+      .in('gig_id', gigIds)
+    gigRows = data || []
+  }
+
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const gigs = gigRows.map(g => {
+    const due = g.date_due ? new Date(g.date_due) : null
+    if (due) due.setHours(0, 0, 0, 0)
+    return {
+      gig_id: g.gig_id, gig_code: g.gig_code, title: g.title,
+      project_code: g.projects?.project_code || null,
+      status: g.status, date_due: g.date_due,
+      isOverdue: !!due && due < today && g.status !== 'completed',
+      minutes: minsByGig[g.gig_id] || 0,
+    }
+  })
 
   const totalMinutes = Object.values(minsByGig).reduce((s, m) => s + m, 0)
   const closedLine    = await buildClosedLine(db, userId, monday, sunday)

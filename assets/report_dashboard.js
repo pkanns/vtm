@@ -42,11 +42,17 @@ const currentMonday  = saturdayOf(new Date())
 const currentSunday  = addDays(currentMonday, 6)
 const lastWeekMonday = addDays(currentMonday, -7)
 
+// History covers offsets -2 .. -11 (10 weeks) — -1 stays exclusive to
+// the Last Week tab.
+const HISTORY_MIN_OFFSET = -11
+const HISTORY_MAX_OFFSET = -2
+let historyOffset = HISTORY_MAX_OFFSET
+
 let selectedUserId  = 'self'   // 'self' | 'all' | a user_id
 let scopeId          = 'open'
 let overdueOnly      = false
 let viewable          = { canViewAll: false, users: [] }
-let currentView       = null   // null | 'time' | 'task' | 'gig' | 'lastweek'
+let currentView       = null   // null | 'time' | 'task' | 'gig' | 'lastweek' | 'history'
 let lastPersonTasks   = []     // tasks currently shown for a single selected person — for in-place toggle
 
 const weekLabelEl   = document.getElementById('weekLabel')
@@ -117,18 +123,25 @@ async function refresh() {
   bodyEl.innerHTML = '<div class="empty-state">Loading&hellip;</div>'
 
   if (selectedUserId === 'all') {
-    headerEl.textContent = 'All users \u00b7 ' + fmtWeekLabel(currentMonday)
+    headerEl.textContent = currentView === 'history'
+      ? 'All users \u00b7 ' + fmtWeekLabel(addDays(currentMonday, historyOffset * 7))
+      : 'All users \u00b7 ' + fmtWeekLabel(currentMonday)
     if (currentView === 'time') await renderAllUsersTime()
     else if (currentView === 'task') await renderAllUsersTasks()
     else if (currentView === 'gig') await renderAllUsersGigs()
     else if (currentView === 'lastweek') await renderAllUsersLastWeek()
+    else if (currentView === 'history') await renderAllUsersHistory()
   } else {
     const person = viewable.users.find(u => u.user_id === selectedUserId)
-    headerEl.textContent = (person?.name || 'Report') + ' \u00b7 ' + fmtWeekLabel(currentMonday)
+    const label = currentView === 'history'
+      ? fmtWeekLabel(addDays(currentMonday, historyOffset * 7))
+      : fmtWeekLabel(currentMonday)
+    headerEl.textContent = (person?.name || 'Report') + ' \u00b7 ' + label
     if (currentView === 'time') await renderOnePersonTime(selectedUserId)
     else if (currentView === 'task') await renderOnePersonTasks(selectedUserId)
     else if (currentView === 'gig') await renderOnePersonGigs(selectedUserId)
     else if (currentView === 'lastweek') await renderOnePersonLastWeek(selectedUserId)
+    else if (currentView === 'history') await renderOnePersonHistory(selectedUserId)
   }
 }
 
@@ -233,12 +246,12 @@ async function renderAllUsersTasks() {
   `
 }
 
-function buildTaskChangesHTML(tasks) {
+function buildTaskChangesHTML(tasks, readOnly) {
   if (!tasks.length) return '<div class="empty-state">No tasks changed this week.</div>'
 
   const rows = tasks.map(t => {
     const g = t.gigs
-    const toggle = canToggleTask(t, session, g)
+    const toggle = !readOnly && canToggleTask(t, session, g)
     const checkAttr = toggle
       ? `onchange="toggleDashTask('${t.task_id}', this.checked)"`
       : 'disabled'
@@ -349,6 +362,76 @@ async function renderAllUsersLastWeek() {
         ${rows.map(r => `
           <tr onclick="window.jumpToUser('${r.user.user_id}')">
             <td>${r.user.name}</td>
+            <td><span class="bucket-tag ${r.submitted ? '20to40' : 'under20'}">${r.submitted ? 'Saved' : 'Not saved'}</span></td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  `
+}
+
+// ── HISTORY (weeks -2 .. -11 — Previous/Next, capped) ───────────────────
+
+window.historyNav = async function(delta) {
+  const next = historyOffset + delta
+  if (next > HISTORY_MAX_OFFSET || next < HISTORY_MIN_OFFSET) return
+  historyOffset = next
+  await refresh()
+}
+
+function historyNavHTML(monday) {
+  return `
+    <div class="history-nav">
+      <button class="week-nav-btn" onclick="historyNav(-1)" ${historyOffset <= HISTORY_MIN_OFFSET ? 'disabled' : ''}>&#8249;</button>
+      <span class="history-label">${fmtWeekLabel(monday)}</span>
+      <button class="week-nav-btn" onclick="historyNav(1)" ${historyOffset >= HISTORY_MAX_OFFSET ? 'disabled' : ''}>&#8250;</button>
+    </div>`
+}
+
+async function renderOnePersonHistory(userId) {
+  const monday = addDays(currentMonday, historyOffset * 7)
+  const sunday = addDays(monday, 6)
+
+  const [{ gigs, closedLine, timeSlices }, tasks, gigChanges, text] = await Promise.all([
+    computeWeekData(db, userId, monday, sunday),
+    fetchTasksChangedForUser(db, userId, monday, sunday),
+    fetchGigChangesForUser(db, userId, monday, sunday),
+    fetchReportText(db, userId, toISODate(monday)),
+  ])
+
+  bodyEl.innerHTML = `
+    ${historyNavHTML(monday)}
+    ${buildBarsHTML(timeSlices)}
+    ${buildGigsListHTML(applyGigFilters(gigs))}
+    ${closedLine ? `<div style="font-family:var(--font-mono);font-size:10px;color:var(--stone);margin-top:8px;">${closedLine}</div>` : ''}
+    <div class="filter-label" style="margin-top:16px">Tasks changed</div>
+    ${buildTaskChangesHTML(tasks, true)}
+    ${buildGigChangesHTML(gigChanges.created, gigChanges.completed)}
+    <div class="filter-label" style="margin-top:16px">${fmtWeekLabel(monday)} \u2014 as saved</div>
+    ${text
+      ? textReadonlyHTML('Accomplishment', text.accomplishment) + textReadonlyHTML('Next steps', text.next_steps) + textReadonlyHTML('Support needed', text.support_needed)
+      : `<div class="empty-state">No report was saved for this week.</div>`}
+  `
+}
+
+async function renderAllUsersHistory() {
+  const monday = addDays(currentMonday, historyOffset * 7)
+  const sunday = addDays(monday, 6)
+
+  const rows = await Promise.all(viewable.users.map(async u => {
+    const { totalMinutes } = await computeWeekData(db, u.user_id, monday, sunday)
+    const text = await fetchReportText(db, u.user_id, toISODate(monday))
+    return { user: u, totalMinutes, submitted: !!text }
+  }))
+
+  bodyEl.innerHTML = `
+    ${historyNavHTML(monday)}
+    <table class="summary-table">
+      <thead><tr><th>Name</th><th>Hours</th><th>Report</th></tr></thead>
+      <tbody>
+        ${rows.map(r => `
+          <tr onclick="window.jumpToUser('${r.user.user_id}')">
+            <td>${r.user.name}</td>
+            <td>${fmtHours(r.totalMinutes)}</td>
             <td><span class="bucket-tag ${r.submitted ? '20to40' : 'under20'}">${r.submitted ? 'Saved' : 'Not saved'}</span></td>
           </tr>`).join('')}
       </tbody>

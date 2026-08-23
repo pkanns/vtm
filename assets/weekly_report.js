@@ -1,27 +1,23 @@
 /**
  * weekly_report.js — Vidai to Mulai · Weekly Report (personal editor)
- * Rebuilt: no arbitrary week-by-week navigation, no live recompute of
- * anything past the current week. Two states only:
  *
  *   THIS WEEK  — fully live. Time View / Task View / Gig View compute
- *                fresh from gigs/time_entries/gig_tasks/evaluations,
- *                same as before. The three text fields (Accomplishment /
- *                Next steps / Support needed) are editable and saved via
- *                weekly_reports.
+ *                fresh, same as always. Text fields (Accomplishment /
+ *                Next steps / Support needed) are editable and saved.
  *
- *   LAST WEEK  — a fourth tab alongside Time/Task/Gig. Shows ONLY
- *                whatever was actually saved to weekly_reports for last
- *                week's Accomplishment / Next steps / Support needed —
- *                read-only, nothing recomputed. If nothing was ever
- *                saved for last week, says so plainly. This is
- *                deliberately not a full gig/time/task snapshot — once a
- *                week is over, the only thing worth trusting as
- *                "history" is what was actually written down at the
- *                time, not a live recalculation that can silently drift
- *                as gigs get reassigned/completed/deleted later.
+ *   LAST WEEK  — a dedicated tab. Shows ONLY the saved text fields for
+ *                last week, read-only — the quick "what did I say I'd
+ *                do" check against this week's accomplishments.
  *
- * Week window is Saturday → Friday (see report_data.js's saturdayOf) —
- * the weekend opens a week rather than closing one.
+ *   HISTORY    — a separate tab covering weeks -2 through -11 (10 weeks,
+ *                capped). Time/Task/Gig View + saved text for whichever
+ *                past week is selected via Previous/Next. Safe to
+ *                recompute for any past week because report_data.js
+ *                anchors everything to fixed dated facts (entry_date,
+ *                updated_at, created_at), not a gig's current status or
+ *                assignment — see that file's header comment.
+ *
+ * Week window is Saturday → Friday (see report_data.js's saturdayOf).
  */
 
 import { db } from './vtm_db.js'
@@ -38,13 +34,19 @@ if (!session) { window.location.replace('login.html'); throw new Error() }
 const myUserId = session.user_id
 
 // This week never moves — no offset, no navigation.
-const currentMonday = saturdayOf(new Date())
-const currentSunday = addDays(currentMonday, 6)
+const currentMonday  = saturdayOf(new Date())
+const currentSunday  = addDays(currentMonday, 6)
 const lastWeekMonday = addDays(currentMonday, -7)
+
+// History covers offsets -2 .. -11 (10 weeks) — -1 stays exclusive to
+// the Last Week tab so the two don't overlap.
+const HISTORY_MIN_OFFSET = -11
+const HISTORY_MAX_OFFSET = -2
+let historyOffset = HISTORY_MAX_OFFSET
 
 let fields         = { accomplishment: '', next_steps: '', support_needed: '' }
 let hasExistingRow = false
-let currentView    = null    // null | 'time' | 'task' | 'gig' | 'lastweek'
+let currentView    = null    // null | 'time' | 'task' | 'gig' | 'lastweek' | 'history'
 let lastTasks       = []     // tasks currently shown in Task View — kept for in-place toggle updates
 
 const weekLabelEl = document.getElementById('weekLabel')
@@ -113,15 +115,59 @@ async function renderViewPanel(view) {
     `
   } else if (view === 'task') {
     lastTasks = await fetchTasksChangedForUser(db, myUserId, currentMonday, currentSunday)
-    panel.innerHTML = buildTaskChangesHTML(lastTasks)
+    panel.innerHTML = `<div class="section-label">Tasks changed this week</div>${buildTaskChangesHTML(lastTasks)}`
   } else if (view === 'gig') {
     const { created, completed } = await fetchGigChangesForUser(db, myUserId, currentMonday, currentSunday)
     panel.innerHTML = buildGigChangesHTML(created, completed)
   } else if (view === 'lastweek') {
     const text = await fetchReportText(db, myUserId, toISODate(lastWeekMonday))
     panel.innerHTML = buildLastWeekHTML(text)
+  } else if (view === 'history') {
+    await renderHistoryPanel()
   }
 }
+
+// ── HISTORY (weeks -2 .. -11 — Previous/Next, capped) ───────────────────
+
+window.historyNav = async function(delta) {
+  const next = historyOffset + delta
+  if (next > HISTORY_MAX_OFFSET || next < HISTORY_MIN_OFFSET) return
+  historyOffset = next
+  await renderHistoryPanel()
+}
+
+async function renderHistoryPanel() {
+  const panel = document.getElementById('viewPanel')
+  if (!panel) return
+
+  const monday = addDays(currentMonday, historyOffset * 7)
+  const sunday = addDays(monday, 6)
+
+  const [{ gigs, closedLine, timeSlices }, tasks, gigChanges, text] = await Promise.all([
+    computeWeekData(db, myUserId, monday, sunday),
+    fetchTasksChangedForUser(db, myUserId, monday, sunday),
+    fetchGigChangesForUser(db, myUserId, monday, sunday),
+    fetchReportText(db, myUserId, toISODate(monday)),
+  ])
+
+  panel.innerHTML = `
+    <div class="history-nav">
+      <button class="history-nav-btn" onclick="historyNav(-1)" ${historyOffset <= HISTORY_MIN_OFFSET ? 'disabled' : ''}>&#8249;</button>
+      <span class="history-label">${fmtWeekLabel(monday)}</span>
+      <button class="history-nav-btn" onclick="historyNav(1)" ${historyOffset >= HISTORY_MAX_OFFSET ? 'disabled' : ''}>&#8250;</button>
+    </div>
+    ${buildBarsHTML(timeSlices)}
+    ${buildGigsListHTML(gigs.filter(g => g.minutes > 0))}
+    ${closedLine ? `<div class="closed-line">${closedLine}</div>` : ''}
+    <div class="section-label" style="margin-top:16px">Tasks changed</div>
+    ${buildTaskChangesHTML(tasks, true)}
+    ${buildGigChangesHTML(gigChanges.created, gigChanges.completed)}
+    <div class="section-label" style="margin-top:16px">${fmtWeekLabel(monday)} \u2014 as saved</div>
+    ${text
+      ? textReadonlyHTML('Accomplishment', text.accomplishment) + textReadonlyHTML('Next steps', text.next_steps) + textReadonlyHTML('Support needed', text.support_needed)
+      : `<div class="empty-week">No report was saved for this week.</div>`}
+  `
+
 
 // ── LAST WEEK (static, read-only — nothing recomputed) ──────────────────
 
@@ -169,12 +215,12 @@ function buildGigsListHTML(gigs) {
 
 // ── TASK VIEW ─────────────────────────────────────────────────────────
 
-function buildTaskChangesHTML(tasks) {
+function buildTaskChangesHTML(tasks, readOnly) {
   if (!tasks.length) return '<div class="gigs-list"><div class="empty-week">No tasks changed this week.</div></div>'
 
   const rows = tasks.map(t => {
     const g = t.gigs
-    const toggle = canToggleTask(t, session, g)
+    const toggle = !readOnly && canToggleTask(t, session, g)
     const checkAttr = toggle
       ? `onchange="toggleReportTask('${t.task_id}', this.checked)"`
       : 'disabled'
@@ -188,7 +234,7 @@ function buildTaskChangesHTML(tasks) {
       </div>`
   }).join('')
 
-  return `<div class="section-label">Tasks changed this week</div><div class="gigs-list">${rows}</div>`
+  return `<div class="gigs-list">${rows}</div>`
 }
 
 window.toggleReportTask = async function(taskId, done) {

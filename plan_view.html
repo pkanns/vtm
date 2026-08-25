@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plan View — Mulai</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Special+Elite&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/vtm_2.css">
+  <script src="assets/vtm.js"></script>
+  <script src="assets/vtm_auth_guard.js"></script>
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+
+    /* ── TOP BAR ── */
+    .wp-topbar {
+      height: 56px;
+      background: var(--black);
+      border-bottom: 3px solid var(--red);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      flex-shrink: 0;
+    }
+    .wp-brand {
+      font-family: var(--font-display);
+      font-size: 20px;
+      color: var(--white);
+      letter-spacing: 0.1em;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .wp-brand .sep { color: var(--red); }
+
+    .wp-week-nav { display: flex; align-items: center; gap: 14px; }
+    .wp-week-btn {
+      background: none;
+      border: 1px solid rgba(240,234,216,0.25);
+      color: rgba(240,234,216,0.7);
+      width: 26px; height: 26px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.15s;
+    }
+    .wp-week-btn:hover:not(:disabled) { border-color: var(--red); color: var(--white); }
+    .wp-week-btn:disabled { opacity: 0.25; cursor: default; }
+    .wp-week-label {
+      font-family: var(--font-display);
+      font-size: 15px;
+      color: var(--white);
+      letter-spacing: 0.03em;
+      min-width: 190px;
+      text-align: center;
+    }
+    .wp-week-today {
+      background: none;
+      border: 1px solid rgba(240,234,216,0.25);
+      color: rgba(240,234,216,0.5);
+      padding: 5px 12px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .wp-week-today:hover { border-color: var(--red); color: var(--white); }
+
+    .wp-signout {
+      background: none;
+      border: 1px solid rgba(247,246,242,0.2);
+      color: rgba(247,246,242,0.4);
+      padding: 6px 14px;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      font-family: var(--font-body);
+      transition: all 0.2s;
+    }
+    .wp-signout:hover { border-color: rgba(247,246,242,0.5); color: var(--white); }
+
+    /* ── MAIN ── */
+    .wp-main {
+      height: calc(100% - 56px);
+      display: grid;
+      grid-template-columns: 260px 1fr;
+    }
+
+    /* ── LEFT — USER FILTER ── */
+    .wp-filter {
+      background: var(--light);
+      border-right: 2px solid var(--black);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .wp-filter-head { padding: 18px 20px 10px; flex-shrink: 0; }
+    .wp-filter-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--stone);
+      margin-bottom: 4px;
+    }
+    .wp-filter-title {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      color: var(--black);
+      letter-spacing: 0.02em;
+    }
+    .db-status { font-size: 11px; font-family: var(--font-mono); color: var(--stone); margin-top: 6px; }
+    .db-status.ok  { color: var(--green); }
+    .db-status.err { color: var(--red); }
+
+    .wp-filter-actions { display: flex; gap: 8px; padding: 10px 20px 4px; flex-shrink: 0; }
+    .wp-filter-actions button {
+      flex: 1;
+      background: var(--white);
+      border: 1px solid var(--hole);
+      color: var(--charcoal);
+      padding: 5px 8px;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      font-family: var(--font-body);
+      transition: all 0.15s;
+    }
+    .wp-filter-actions button:hover { border-color: var(--charcoal); }
+
+    .wp-filter-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 8px 20px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .wp-user-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      background: var(--white);
+      border: 1px solid var(--hole);
+      border-left: 4px solid var(--hole);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .wp-user-row.active { opacity: 1; }
+    .wp-user-row.inactive { opacity: 0.4; }
+    .wp-user-name { font-size: 12.5px; font-family: var(--font-body); color: var(--black); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .wp-user-hours { font-family: var(--font-mono); font-size: 10px; color: var(--stone); flex-shrink: 0; }
+
+    .wp-empty { text-align: center; color: var(--stone); font-size: 12.5px; padding: 30px 10px; }
+
+    /* ── RIGHT — HOURLY GRID ── */
+    .wp-grid-wrap {
+      background: var(--white);
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .wp-hourgrid {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 52px repeat(5, 1fr);
+      grid-template-rows: auto 1fr;
+      border-top: 2px solid var(--black);
+      border-left: 2px solid var(--black);
+    }
+
+    .wp-corner { border-right: 2px solid var(--black); border-bottom: 2px solid var(--black); background: var(--light); }
+
+    .wp-day-head {
+      border-right: 2px solid var(--black);
+      border-bottom: 2px solid var(--black);
+      background: var(--black);
+      color: var(--white);
+      padding: 8px 8px;
+      text-align: center;
+    }
+    .wp-day-name { font-family: var(--font-display); font-size: 1rem; letter-spacing: 0.06em; line-height: 1; }
+    .wp-day-date { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.06em; color: rgba(240,234,216,0.45); margin-top: 3px; }
+
+    .wp-hourlabel-col {
+      display: flex;
+      flex-direction: column;
+      border-right: 2px solid var(--black);
+    }
+    .wp-hourlabel-cell {
+      flex: 1;
+      border-bottom: 1px solid var(--light);
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--stone);
+      padding: 2px 4px 0;
+      text-align: right;
+    }
+    .wp-hourlabel-cell:last-child { border-bottom: none; }
+
+    .wp-day-col {
+      position: relative;
+      border-right: 1px solid var(--hole);
+      background-image: repeating-linear-gradient(
+        to bottom,
+        var(--light) 0, var(--light) 1px,
+        transparent 1px, transparent calc(100% / 12)
+      );
+    }
+
+    .wp-block {
+      position: absolute;
+      left: 2px;
+      right: 2px;
+      border-radius: 2px;
+      padding: 2px 5px;
+      overflow: hidden;
+      font-family: var(--font-body);
+      font-size: 10px;
+      color: var(--white);
+      line-height: 1.25;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    .wp-block .code { font-family: var(--font-mono); font-size: 8.5px; opacity: 0.75; display: block; }
+    .wp-block .who  { font-weight: 700; }
+    .wp-block.live { box-shadow: 0 0 0 2px var(--green), 0 1px 3px rgba(0,0,0,0.15); }
+    .wp-block .live-dot {
+      display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+      background: var(--white); margin-right: 4px;
+      animation: wp-pulse 1.8s ease-in-out infinite;
+    }
+    @keyframes wp-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    @media (max-width: 900px) {
+      html, body { height: auto; overflow: auto; }
+      .wp-main { grid-template-columns: 1fr; height: auto; }
+      .wp-filter { border-right: none; border-bottom: 2px solid var(--black); }
+      .wp-filter-scroll { max-height: 220px; }
+      .wp-grid-wrap { padding: 16px; }
+      .wp-hourgrid { min-height: 640px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="wp-topbar">
+  <a href="dashboard.html" class="wp-brand">MULAI <span class="sep">·</span> Plan View</a>
+  <div class="wp-week-nav">
+    <button class="wp-week-btn" onclick="shiftWeek(-1)">&#8249;</button>
+    <div class="wp-week-label" id="weekLabel">Week of —</div>
+    <button class="wp-week-btn" id="nextWeekBtn" onclick="shiftWeek(1)">&#8250;</button>
+    <button class="wp-week-today" onclick="jumpToCurrentWeek()">This Week</button>
+  </div>
+  <button class="wp-signout" onclick="vtmSignOut()">Sign out</button>
+</div>
+
+<div class="wp-main">
+
+  <!-- LEFT — USER FILTER -->
+  <section class="wp-filter">
+    <div class="wp-filter-head">
+      <div class="wp-filter-label">Filter</div>
+      <div class="wp-filter-title">People</div>
+      <div class="db-status" id="dbStatus">Loading&hellip;</div>
+    </div>
+    <div class="wp-filter-actions" id="filterActions" style="display:none;">
+      <button onclick="wpSelectAll()">All</button>
+      <button onclick="wpSelectNone()">None</button>
+    </div>
+    <div class="wp-filter-scroll" id="filterScroll">
+      <div class="wp-empty">Loading&hellip;</div>
+    </div>
+  </section>
+
+  <!-- RIGHT — HOURLY GRID -->
+  <section class="wp-grid-wrap">
+    <div class="wp-hourgrid" id="hourGrid"></div>
+  </section>
+
+</div>
+
+<script type="module" src="assets/plan_view.js"></script>
+</body>
+</html>

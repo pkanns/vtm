@@ -12,7 +12,7 @@
  */
 
 import { db } from './vtm_db.js'
-import { resolveViewableUsers } from './report_data.js'
+import { resolveViewableUsers, toISODate as toISO } from './report_data.js'
 
 // ── SESSION ───────────────────────────────────────────────────────────────
 
@@ -27,14 +27,6 @@ const DAY_END_H   = 20   // 8pm
 const WINDOW_MINS = (DAY_END_H - DAY_START_H) * 60
 
 const USER_COLORS = ['#7b3fa0', '#2a5a8a', '#3a7a6b', '#8a6e3f', '#5a4a8a', '#a04a5c', '#4a7a8a', '#8a5a3f']
-const STATUS_ACCENT = {
-  placed:      '#2a5a8a',
-  matched:     '#7b3fa0',
-  aligned:     '#8a6200',
-  in_progress: '#b5201a',
-  delivered:   '#1e4d2b',
-  completed:   '#6b5f4e',
-}
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 
@@ -61,7 +53,10 @@ function addDays(date, n) {
   return d
 }
 
-function toISO(d) { return d.toISOString().split('T')[0] }
+// toISO(d) — imported above as the shared toISODate() from report_data.js,
+// aliased locally so every call site below doesn't need renaming. This
+// is the single source of truth for local-date formatting; don't add a
+// second one here.
 
 function currentMonday() {
   return addDays(mondayOf(new Date()), weekOffset * 7)
@@ -307,21 +302,26 @@ function renderGrid() {
       const top    = (startMin / WINDOW_MINS) * 100
       const height = ((endMin - startMin) / WINDOW_MINS) * 100
       const color  = colorByUser[e.user_id] || '#555'
-      const accent = STATUS_ACCENT[gig.status] || '#555'
+      const status = gig.status || 'matched'
 
       const block = document.createElement('div')
-      block.className = 'wp-block' + (isLiveNow ? ' live' : '')
-      block.style.top    = `${top}%`
-      block.style.height = `${Math.max(height, 2.2)}%`
-      block.style.left   = `calc(${laneIdx * laneWidth}% + 2px)`
-      block.style.width  = `calc(${laneWidth}% - 4px)`
-      block.style.background = color
-      block.style.borderLeft = `3px solid ${accent}`
+      block.className = `wp-block status-${status}` + (isLiveNow ? ' live' : '')
+      block.style.top       = `${top}%`
+      block.style.height    = `${Math.max(height, 2.2)}%`
+      block.style.left      = `calc(${laneIdx * laneWidth}% + 2px)`
+      block.style.width     = `calc(${laneWidth}% - 4px)`
+      block.style.borderLeft = `3px solid ${color}`
       block.title = `${user?.name || '—'} · ${gig.gig_code || '—'} · ${gig.title || ''} · ${e.start_time?.slice(0,5) || '—'}–${e.end_time ? e.end_time.slice(0,5) : (isLiveNow ? 'now' : '—')}`
 
-      block.innerHTML = `
-        <span class="who">${isLiveNow ? '<span class="live-dot"></span>' : ''}${escHtml(user?.name || '—')}</span>
-        <span class="code">${escHtml(gig.gig_code || '—')}</span>`
+      // Short blocks (brief entries) only get room for the code line —
+      // showing a name + title that just gets clipped mid-word reads worse
+      // than omitting it, so drop down to a compact variant instead.
+      const compact = height < 6
+      block.innerHTML = compact
+        ? `<span class="code">${isLiveNow ? '<span class="live-dot"></span>' : ''}${escHtml(gig.gig_code || '—')}</span>`
+        : `<span class="code">${isLiveNow ? '<span class="live-dot"></span>' : ''}${escHtml(gig.gig_code || '—')}</span>
+           <span class="who">${escHtml(user?.name || '—')}</span>
+           <span class="gtitle">${escHtml(gig.title || '')}</span>`
 
       col.appendChild(block)
     })

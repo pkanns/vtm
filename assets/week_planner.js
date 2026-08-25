@@ -53,7 +53,12 @@ function addDays(date, n) {
   return d
 }
 
-function toISO(d) { return d.toISOString().split('T')[0] }
+function toISO(d) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
 
 function defaultMonday() {
   // Always the week AFTER the current one — planning is done ahead, per
@@ -111,15 +116,6 @@ async function loadGigs() {
 }
 
 // ── PLACEMENT COUNTING ───────────────────────────────────────────────────
-
-function weekCells(monday) {
-  const cells = []
-  for (let i = 0; i < 5; i++) {
-    const dateISO = toISO(addDays(monday, i))
-    cells.push(`${dateISO}_AM`, `${dateISO}_PM`)
-  }
-  return cells
-}
 
 function placementCount(gigId, monday) {
   const weekKey = toISO(monday)
@@ -224,9 +220,11 @@ function renderCellChips(cellKey, monday) {
     if (!gig) return ''
     return `
       <div class="wp-chip status-${gig.status || 'matched'}">
-        <span class="code">${esc(gig.gig_code)}</span>
+        <div class="wp-chip-top">
+          <span class="code">${esc(gig.gig_code)}</span>
+          <button type="button" class="rm" onclick="wpRemoveChip('${cellKey}', ${idx})" title="Remove">×</button>
+        </div>
         <span class="title">${esc(gig.title)}</span>
-        <button type="button" class="rm" onclick="wpRemoveChip('${cellKey}', ${idx})" title="Remove">×</button>
       </div>`
   }).join('')
 }

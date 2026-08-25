@@ -39,7 +39,16 @@ export function addDays(date, n) {
   return d
 }
 
-export function toISODate(d) { return d.toISOString().split('T')[0] }
+export function toISODate(d) {
+  // Local date components, NOT toISOString() — toISOString() converts to
+  // UTC first, which shifts the date back a day for anyone in a timezone
+  // ahead of UTC (e.g. CET/CEST) once the calendar math lands near local
+  // midnight.
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
 
 export function fmtWeekLabel(weekStart) {
   const weekEnd = addDays(weekStart, 6)

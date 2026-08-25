@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Week Planner — Mulai</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Special+Elite&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/vtm_2.css">
+  <script src="assets/vtm.js"></script>
+  <script src="assets/vtm_auth_guard.js"></script>
+  <style>
+    /* ── No page scroll — top bar + main fill the viewport exactly.
+       Each half of main scrolls internally if its own content overflows. ── */
+    html, body { height: 100%; overflow: hidden; }
+
+    /* ── TOP BAR — deliberately lighter than the full vtm-header component
+       (skipped per instruction); just brand, week nav, sign out. ── */
+    .wp-topbar {
+      height: 56px;
+      background: var(--black);
+      border-bottom: 3px solid var(--red);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      flex-shrink: 0;
+    }
+    .wp-brand {
+      font-family: var(--font-display);
+      font-size: 20px;
+      color: var(--white);
+      letter-spacing: 0.1em;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .wp-brand .sep { color: var(--red); }
+    .wp-brand .sub {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(240,234,216,0.4);
+      margin-left: 4px;
+    }
+
+    .wp-week-nav { display: flex; align-items: center; gap: 14px; }
+    .wp-week-btn {
+      background: none;
+      border: 1px solid rgba(240,234,216,0.25);
+      color: rgba(240,234,216,0.7);
+      width: 26px; height: 26px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.15s;
+    }
+    .wp-week-btn:hover { border-color: var(--red); color: var(--white); }
+    .wp-week-label {
+      font-family: var(--font-display);
+      font-size: 15px;
+      color: var(--white);
+      letter-spacing: 0.03em;
+      min-width: 190px;
+      text-align: center;
+    }
+    .wp-week-today {
+      background: none;
+      border: 1px solid rgba(240,234,216,0.25);
+      color: rgba(240,234,216,0.5);
+      padding: 5px 12px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .wp-week-today:hover { border-color: var(--red); color: var(--white); }
+
+    .wp-signout {
+      background: none;
+      border: 1px solid rgba(247,246,242,0.2);
+      color: rgba(247,246,242,0.4);
+      padding: 6px 14px;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      font-family: var(--font-body);
+      transition: all 0.2s;
+    }
+    .wp-signout:hover { border-color: rgba(247,246,242,0.5); color: var(--white); }
+
+    /* ── MAIN — two columns, fills remaining viewport height exactly ── */
+    .wp-main {
+      height: calc(100% - 56px);
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 0;
+    }
+
+    /* ── LEFT — GIG POOL ── */
+    .wp-pool {
+      background: var(--light);
+      border-right: 2px solid var(--black);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .wp-pool-head { padding: 18px 20px 12px; flex-shrink: 0; }
+    .wp-pool-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--stone);
+      margin-bottom: 4px;
+    }
+    .wp-pool-title {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      color: var(--black);
+      letter-spacing: 0.02em;
+    }
+    .db-status { font-size: 11px; font-family: var(--font-mono); color: var(--stone); margin-top: 6px; }
+    .db-status.ok  { color: var(--green); }
+    .db-status.err { color: var(--red); }
+
+    .wp-pool-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 4px 20px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .wp-gig-card {
+      background: var(--white);
+      border: 1px solid var(--hole);
+      border-left: 4px solid var(--stone);
+      padding: 10px 12px;
+      cursor: grab;
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+    }
+    .wp-gig-card:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+    .wp-gig-card.dragging { opacity: 0.4; }
+    .wp-gig-card.maxed { opacity: 0.4; cursor: not-allowed; }
+    .wp-gig-card.maxed:hover { transform: none; box-shadow: none; }
+
+    .wp-gig-card.status-matched     { border-left-color: #7b3fa0; }
+    .wp-gig-card.status-aligned     { border-left-color: #8a6200; }
+    .wp-gig-card.status-in_progress { border-left-color: var(--red); }
+    .wp-gig-card.status-delivered   { border-left-color: var(--green); }
+
+    .wp-gig-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+    .wp-gig-code { font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.04em; color: var(--charcoal); }
+    .wp-gig-count {
+      font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.04em;
+      color: var(--stone); background: var(--light); padding: 1px 7px; flex-shrink: 0;
+    }
+    .wp-gig-count.full { background: var(--red); color: var(--white); }
+    .wp-gig-title { font-family: var(--font-body); font-size: 12.5px; color: var(--black); line-height: 1.3; margin-bottom: 6px; }
+    .wp-gig-status { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--stone); font-family: var(--font-mono); }
+
+    .wp-empty { text-align: center; color: var(--stone); font-size: 12.5px; padding: 30px 10px; }
+
+    /* ── RIGHT — WEEK GRID ── */
+    .wp-grid-wrap {
+      background: var(--white);
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .wp-grid {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 64px repeat(5, 1fr);
+      grid-template-rows: auto 1fr 1fr;
+      border-top: 2px solid var(--black);
+      border-left: 2px solid var(--black);
+    }
+
+    .wp-corner { border-right: 2px solid var(--black); border-bottom: 2px solid var(--black); background: var(--light); }
+
+    .wp-day-head {
+      border-right: 2px solid var(--black);
+      border-bottom: 2px solid var(--black);
+      background: var(--black);
+      color: var(--white);
+      padding: 10px 8px;
+      text-align: center;
+    }
+    .wp-day-name { font-family: var(--font-display); font-size: 1.05rem; letter-spacing: 0.06em; line-height: 1; }
+    .wp-day-date { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.06em; color: rgba(240,234,216,0.45); margin-top: 3px; }
+
+    .wp-row-label {
+      border-right: 2px solid var(--black);
+      border-bottom: 1px solid var(--light);
+      background: var(--light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .wp-row-label span {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--stone);
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+    }
+
+    .wp-cell {
+      border-right: 1px solid var(--hole);
+      border-bottom: 1px solid var(--light);
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      align-content: flex-start;
+      overflow-y: auto;
+      transition: background 0.12s;
+      min-height: 0;
+    }
+    .wp-cell.drag-over { background: #fdf5e0; box-shadow: inset 0 0 0 2px var(--red); }
+
+    .wp-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--charcoal);
+      color: var(--white);
+      padding: 4px 6px 4px 8px;
+      font-size: 11px;
+      font-family: var(--font-body);
+      line-height: 1.2;
+    }
+    .wp-chip .code { font-family: var(--font-mono); font-size: 9px; color: rgba(240,234,216,0.55); flex-shrink: 0; }
+    .wp-chip .title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .wp-chip .rm {
+      background: none; border: none; color: rgba(240,234,216,0.5);
+      cursor: pointer; font-size: 13px; line-height: 1; padding: 0 2px; flex-shrink: 0;
+    }
+    .wp-chip .rm:hover { color: var(--white); }
+    .wp-chip.status-matched     { background: #5a3878; }
+    .wp-chip.status-aligned     { background: #6b5320; }
+    .wp-chip.status-in_progress { background: var(--red-dark); }
+    .wp-chip.status-delivered   { background: var(--green); }
+
+    @media (max-width: 900px) {
+      html, body { height: auto; overflow: auto; }
+      .wp-main { grid-template-columns: 1fr; height: auto; }
+      .wp-pool { border-right: none; border-bottom: 2px solid var(--black); }
+      .wp-pool-scroll { max-height: 320px; }
+      .wp-grid-wrap { padding: 16px; }
+      .wp-grid { grid-template-rows: auto auto auto; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="wp-topbar">
+  <a href="dashboard.html" class="wp-brand">MULAI <span class="sep">·</span> Week Planner</a>
+  <div class="wp-week-nav">
+    <button class="wp-week-btn" onclick="shiftWeek(-1)">&#8249;</button>
+    <div class="wp-week-label" id="weekLabel">Week of —</div>
+    <button class="wp-week-btn" onclick="shiftWeek(1)">&#8250;</button>
+    <button class="wp-week-today" onclick="jumpToDefaultWeek()">Next Week</button>
+  </div>
+  <button class="wp-signout" onclick="vtmSignOut()">Sign out</button>
+</div>
+
+<div class="wp-main">
+
+  <!-- LEFT — GIG POOL -->
+  <section class="wp-pool">
+    <div class="wp-pool-head">
+      <div class="wp-pool-label">Matched &rarr; Delivered</div>
+      <div class="wp-pool-title">Gigs</div>
+      <div class="db-status" id="dbStatus">Loading&hellip;</div>
+    </div>
+    <div class="wp-pool-scroll" id="poolScroll">
+      <div class="wp-empty">Loading&hellip;</div>
+    </div>
+  </section>
+
+  <!-- RIGHT — WEEK GRID -->
+  <section class="wp-grid-wrap">
+    <div class="wp-grid" id="weekGrid"></div>
+  </section>
+
+</div>
+
+<script type="module" src="assets/week_planner.js"></script>
+</body>
+</html>

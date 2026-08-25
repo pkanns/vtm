@@ -1,89 +1,34 @@
 /**
  * report_data.js — Vidai to Mulai · Weekly Report data layer
- * Pure fetch/compute — no DOM, no rendering. Both weekly_report.js and
- * report_dashboard.js import from here so the underlying gigs/hours/effort
- * computation only exists in one place.
+ * Pure fetch/compute — no DOM, no rendering. weekly_report.js and
+ * report_dashboard.js import from here so the underlying gigs/hours/effort/
+ * task-changes computation only exists in one place.
  *
- * The only persisted, hand-written data in this whole feature is the
+ * Nothing here is snapshotted or stored — every function computes live
+ * from gigs/time_entries/gig_tasks/evaluations for whichever user+week is
+ * asked for. The only persisted data in this whole feature is the
  * free-text reflection in weekly_reports (accomplishment/next_steps/
- * support_needed) — that's the only thing that requires an actual saved
- * row to exist; if nothing was saved for a week, nothing is shown for it.
+ * support_needed).
  *
- * Everything else (Time/Task/Gig View) computes live, safely, for ANY
- * week — including past ones — because it's anchored to fixed, dated
- * facts (time_entries.entry_date, gig_tasks.updated_at,
- * evaluations.created_at, gigs.date_placed), not to a gig's *current*
- * status or *current* Lead/Doer assignment. A gig closing or being
- * reassigned after the fact doesn't change what actually happened that
- * week. (Gig title/status shown still reflect today's state, not the
- * gig's state back then — that's a display label, not a filter, so it's
- * honest but not perfectly period-accurate.)
+ * WEEK WINDOW: Saturday → Friday (not Monday → Sunday). saturdayOf()
+ * returns the most recent Saturday on/before the given date; the weekend
+ * (Sat/Sun) therefore opens a week rather than closing one.
  */
 
-import { fetchGigs, esc } from './vtm_api.js'
-import { enrichGig } from './gig_filters.js'
-
-// ── OPEN TASKS / GIGS ────────────────────────────────────────────────────
-// Not tied to any week at all — "what's open right now," full stop.
-// Separate from the weekly Task/Gig View sections below, which only ever
-// showed what *changed* in a given week — that's still useful as an
-// activity log, but it isn't the same question as "what's still on my
-// plate." Both are shown together in the UI.
-
-export async function fetchOpenTasksForUser(db, userId) {
-  const { data, error } = await db
-    .from('gig_tasks')
-    .select(`
-      *,
-      gigs ( gig_code, title, status, pacer_id, rover_id, cadence, parent_gig_id, date_due )
-    `)
-    .eq('done', false)
-    .order('created_at', { ascending: true })
-
-  if (error || !data) return []
-
-  return data.filter(t => {
-    const g = t.gigs
-    if (!g) return false
-    if (g.cadence === 'recurring' && !g.parent_gig_id) return false   // master-gig tasks excluded, same rule as everywhere else
-    return t.assigned_to === userId || g.pacer_id === userId || g.rover_id === userId
-  })
-}
-
-export async function fetchOpenGigsForUser(db, userId) {
-  const { data: allGigs, error } = await fetchGigs(db)
-  if (error || !allGigs) return []
-
-  return allGigs
-    .filter(g => (g.rover_id === userId || g.pacer_id === userId)
-      && g.status !== 'completed'
-      && !(g.cadence === 'recurring' && !g.parent_gig_id))
-    .map(enrichGig)
-    .map(g => ({
-      gig_id: g.gig_id, gig_code: g.gig_code, title: g.title,
-      status: g.status, date_due: g.date_due, isOverdue: g.isOverdue,
-    }))
-}
+import { fetchGigs, fetchAllTasksWithGigContext, esc } from './vtm_api.js'
+import { enrichGig }      from './gig_filters.js'
 
 // ── WEEK MATH ────────────────────────────────────────────────────────────
 
-export function mondayOf(date) {
-  const d = new Date(date)
-  d.setHours(0, 0, 0, 0)
-  const day = d.getDay()
-  const diff = day === 0 ? -6 : 1 - day
-  d.setDate(d.getDate() + diff)
-  return d
-}
-
-// Saturday → Friday week anchor. The weekend opens a week rather than
-// closing one — used by weekly_report.js / report_dashboard.js instead
-// of mondayOf().
+/**
+ * Start of the Saturday-anchored week containing `date` — the most
+ * recent Saturday on or before `date`.
+ */
 export function saturdayOf(date) {
   const d = new Date(date)
   d.setHours(0, 0, 0, 0)
-  const day = d.getDay()               // 0 = Sun ... 6 = Sat
-  const diff = day === 6 ? 0 : -(day + 1)
+  const day = d.getDay()              // 0=Sun ... 6=Sat
+  const diff = -((day + 1) % 7)       // Sat->0, Sun->-1, Mon->-2 ... Fri->-6
   d.setDate(d.getDate() + diff)
   return d
 }
@@ -94,19 +39,14 @@ export function addDays(date, n) {
   return d
 }
 
-export function toISODate(d) {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
+export function toISODate(d) { return d.toISOString().split('T')[0] }
 
-export function fmtWeekLabel(monday) {
-  const sunday = addDays(monday, 6)
+export function fmtWeekLabel(weekStart) {
+  const weekEnd = addDays(weekStart, 6)
   const opts = { month: 'short', day: 'numeric' }
-  const startStr = monday.toLocaleDateString(undefined, opts)
-  const endStr   = sunday.toLocaleDateString(undefined,
-    monday.getMonth() === sunday.getMonth() ? { day: 'numeric' } : opts)
+  const startStr = weekStart.toLocaleDateString(undefined, opts)
+  const endStr   = weekEnd.toLocaleDateString(undefined,
+    weekStart.getMonth() === weekEnd.getMonth() ? { day: 'numeric' } : opts)
   return `Week of ${startStr} \u2013 ${endStr}`
 }
 
@@ -118,15 +58,12 @@ export function fmtHours(mins) {
   return `${h}h ${m}m`
 }
 
-// Short "date, time" label for a task's updated_at, e.g. "14 Aug, 3:05 PM"
 export function fmtDateTimeShort(iso) {
-  if (!iso) return '—'
+  if (!iso) return '\u2014'
   const d = new Date(iso)
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-  const h24 = d.getHours()
-  const h12 = h24 % 12 || 12
-  const m   = String(d.getMinutes()).padStart(2, '0')
-  return `${d.getDate()} ${months[d.getMonth()]}, ${h12}:${m} ${h24 < 12 ? 'AM' : 'PM'}`
+  const time = d.toTimeString().slice(0, 5)
+  return `${d.getDate()} ${months[d.getMonth()]} \u00b7 ${time}`
 }
 
 // ── ACCESS MODEL ─────────────────────────────────────────────────────────
@@ -162,50 +99,47 @@ export async function resolveViewableUsers(db, session) {
 }
 
 // ── GIGS + HOURS FOR ONE PERSON, ONE WEEK ───────────────────────────────
+// Deliberately NOT filtered by "is this gig currently mine" or "is this
+// gig still open" — a time entry is a fact that already happened. If the
+// gig was later reassigned, completed, or otherwise changed, the hours
+// this person logged against it still belong in their weekly report.
+// Any restriction on what counts as loggable time belongs upstream (the
+// timesheet gig-picker, gig status rules) — not in the report itself.
 
 export async function computeWeekData(db, userId, monday, sunday) {
-  const { data: entries, error } = await db
+  const { data: allGigs, error } = await fetchGigs(db)
+  if (error) return { gigs: [], closedLine: '', totalMinutes: 0, timeSlices: [] }
+
+  const gigById = {}
+  ;(allGigs || []).forEach(g => { gigById[g.gig_id] = enrichGig(g) })
+
+  const { data: entries } = await db
     .from('time_entries')
     .select('gig_id, duration_mins, entry_date')
     .eq('user_id', userId)
-    .eq('is_active', false)   // only submitted/completed entries — a still-running
-                               // clock-in isn't "reported" time yet
     .gte('entry_date', toISODate(monday))
     .lte('entry_date', toISODate(sunday))
-
-  if (error) return { gigs: [], closedLine: '', totalMinutes: 0, timeSlices: [] }
 
   const minsByGig = {}
   ;(entries || []).forEach(e => {
     minsByGig[e.gig_id] = (minsByGig[e.gig_id] || 0) + (e.duration_mins || 0)
   })
 
-  // Only fetch the gigs actually touched this week — for title/code/status
-  // labels only, never used to decide which rows appear. A gig closing,
-  // getting reassigned, or being marked master doesn't erase real hours
-  // logged against it earlier in the week.
-  const gigIds = Object.keys(minsByGig)
-  let gigRows = []
-  if (gigIds.length) {
-    const { data } = await db
-      .from('gigs')
-      .select('gig_id, gig_code, title, status, date_due, projects ( project_code )')
-      .in('gig_id', gigIds)
-    gigRows = data || []
-  }
-
-  const today = new Date(); today.setHours(0, 0, 0, 0)
-  const gigs = gigRows.map(g => {
-    const due = g.date_due ? new Date(g.date_due) : null
-    if (due) due.setHours(0, 0, 0, 0)
-    return {
-      gig_id: g.gig_id, gig_code: g.gig_code, title: g.title,
-      project_code: g.projects?.project_code || null,
-      status: g.status, date_due: g.date_due,
-      isOverdue: !!due && due < today && g.status !== 'completed',
-      minutes: minsByGig[g.gig_id] || 0,
-    }
-  })
+  // Every gig with logged time this week — regardless of current
+  // ownership or status. A gig that's been deleted since the entry was
+  // logged has no row to join to; skip it rather than show a blank line.
+  const gigs = Object.keys(minsByGig)
+    .map(gigId => {
+      const g = gigById[gigId]
+      if (!g) return null
+      return {
+        gig_id: g.gig_id, gig_code: g.gig_code, title: g.title,
+        project_code: g.projects?.project_code || null,
+        status: g.status, date_due: g.date_due, isOverdue: g.isOverdue,
+        minutes: minsByGig[gigId] || 0,
+      }
+    })
+    .filter(Boolean)
 
   const totalMinutes = Object.values(minsByGig).reduce((s, m) => s + m, 0)
   const closedLine    = await buildClosedLine(db, userId, monday, sunday)
@@ -231,6 +165,34 @@ async function buildClosedLine(db, userId, monday, sunday) {
   if (!mine.length) return ''
 
   return `Closed this week \u00b7 ` + mine.map(e => `<strong>${esc(e.gigs.gig_code)}</strong>`).join(', ')
+}
+
+// ── TASKS CHANGED THIS WEEK ───────────────────────────────────────────
+// "Changed" = gig_tasks.updated_at falls inside the week — stamped by
+// vtm_api.js on creation, toggling done, and reassignment. Visibility
+// mirrors task_index.js's rule for a single user: tasks on gigs where
+// they're the Lead or Doer, plus tasks assigned to them even on a gig
+// they don't own.
+
+export async function fetchTasksChangedForUser(db, userId, monday, sunday) {
+  const { data, error } = await fetchAllTasksWithGigContext(db)
+  if (error || !data) return []
+
+  const windowStart = monday
+  const windowEnd   = addDays(sunday, 1)   // exclusive
+
+  return data
+    .filter(t => t.gigs && t.updated_at)
+    .filter(t => {
+      const u = new Date(t.updated_at)
+      return u >= windowStart && u < windowEnd
+    })
+    .filter(t =>
+      t.gigs.pacer_id === userId ||
+      t.gigs.rover_id === userId ||
+      t.assigned_to === userId
+    )
+    .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
 }
 
 // ── TIME SLICES (project-consolidated, for bars/charts) ────────────────
@@ -272,68 +234,41 @@ export function effortBucketId(totalMinutes) {
   return (EFFORT_BUCKETS.find(b => b.test(totalMinutes)) || EFFORT_BUCKETS[0]).id
 }
 
-// ── TASKS CHANGED THIS WEEK (Task View) ─────────────────────────────────
-// Any gig_task whose updated_at falls in the given week, relevant to this
-// user (assigned to them, or on a gig they lead/do). Master-gig tasks
-// (the template checklist copied onto every spawned instance) are
-// excluded, same rule as computeWeekData() above.
-
-export async function fetchTasksChangedForUser(db, userId, monday, sunday) {
-  const startISO = toISODate(monday)
-  const endISO   = toISODate(addDays(sunday, 1))   // updated_at is a timestamp — use "< next day"
-
-  const { data, error } = await db
-    .from('gig_tasks')
-    .select(`
-      *,
-      gigs ( gig_code, title, status, pacer_id, rover_id, cadence, parent_gig_id )
-    `)
-    .gte('updated_at', startISO)
-    .lt('updated_at', endISO)
-    .order('updated_at', { ascending: false })
-
-  if (error || !data) return []
-
-  return data.filter(t => {
-    const g = t.gigs
-    if (!g) return false
-    if (g.cadence === 'recurring' && !g.parent_gig_id) return false
-    return t.assigned_to === userId || g.pacer_id === userId || g.rover_id === userId
-  })
-}
-
-// ── GIGS PLACED / COMPLETED THIS WEEK (Gig View) ────────────────────────
-// Rough approximation, not a true change-log — no gig-level status
-// history in the schema (deliberately, per scope). "Placed" = date_placed
-// falls in the week; "Completed" = an evaluation was recorded in the
-// week, same join buildClosedLine() already uses above.
+// ── GIG CHANGES THIS WEEK (rough view — no schema change) ────────────
+// True gig-level status-change history isn't tracked yet, so this is a
+// deliberately rough substitute using fields we already have:
+//   - gigs newly placed this week (date_placed falls in the week)
+//   - gigs completed/evaluated this week (evaluations.created_at in week)
+// Master/template gigs (recurring, no parent) are excluded — they're
+// structural, never real placed work.
 
 export async function fetchGigChangesForUser(db, userId, monday, sunday) {
   const { data: allGigs, error } = await fetchGigs(db)
   if (error) return { created: [], completed: [] }
 
-  const startISO = toISODate(monday)
-  const endISO   = toISODate(sunday)
-
-  const myGigs = (allGigs || []).filter(g =>
+  const mine = (allGigs || []).filter(g =>
     (g.rover_id === userId || g.pacer_id === userId) &&
     !(g.cadence === 'recurring' && !g.parent_gig_id)
   )
 
-  const created = myGigs
-    .filter(g => g.date_placed && g.date_placed >= startISO && g.date_placed <= endISO)
-    .map(g => ({ gig_id: g.gig_id, gig_code: g.gig_code, title: g.title, date: g.date_placed }))
+  const startISO = toISODate(monday)
+  const endISO   = toISODate(sunday)
+  const inWeek = iso => !!iso && iso >= startISO && iso <= endISO
+
+  const created = mine
+    .filter(g => inWeek(g.date_placed))
+    .map(g => ({ gig_id: g.gig_id, gig_code: g.gig_code, title: g.title, status: g.status, date: g.date_placed }))
 
   const nextDay = toISODate(addDays(sunday, 1))
-  const { data: evals } = await db
+  const { data: evalRows } = await db
     .from('evaluations')
     .select('gig_id, created_at, gigs(gig_code, title, status, rover_id, pacer_id)')
     .gte('created_at', startISO)
     .lt('created_at', nextDay)
 
-  const completed = (evals || [])
+  const completed = (evalRows || [])
     .filter(e => e.gigs?.status === 'completed' && (e.gigs.rover_id === userId || e.gigs.pacer_id === userId))
-    .map(e => ({ gig_id: e.gig_id, gig_code: e.gigs.gig_code, title: e.gigs.title, date: (e.created_at || '').split('T')[0] }))
+    .map(e => ({ gig_id: e.gig_id, gig_code: e.gigs.gig_code, title: e.gigs.title, date: e.created_at }))
 
   return { created, completed }
 }

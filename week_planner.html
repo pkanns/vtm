@@ -137,35 +137,63 @@
       gap: 10px;
     }
 
+    .wp-empty { text-align: center; color: var(--stone); font-size: 12.5px; padding: 30px 10px; }
+
+    /* ── GIG PICKER LOOK — same visual language as .vtm-picker-card
+       (gig_eval.html / gig_index.html), sized to fit this pool's compact
+       single-column list rather than the full picker grid. Status-colored
+       TOP border (not left), dot+code header, Bebas Neue title, meta row
+       — this is the shared "how a gig is represented" pattern, reused
+       here rather than reinvented. ── */
     .wp-gig-card {
       background: var(--white);
       border: 1px solid var(--hole);
-      border-left: 4px solid var(--stone);
-      padding: 10px 12px;
+      border-top: 4px solid var(--stone);
+      padding: 12px 14px 10px;
       cursor: grab;
       transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
     }
-    .wp-gig-card:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+    .wp-gig-card:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0,0,0,0.08); }
     .wp-gig-card.dragging { opacity: 0.4; }
     .wp-gig-card.maxed { opacity: 0.4; cursor: not-allowed; }
     .wp-gig-card.maxed:hover { transform: none; box-shadow: none; }
 
-    .wp-gig-card.status-matched     { border-left-color: #7b3fa0; }
-    .wp-gig-card.status-aligned     { border-left-color: #8a6200; }
-    .wp-gig-card.status-in_progress { border-left-color: var(--red); }
-    .wp-gig-card.status-delivered   { border-left-color: var(--green); }
+    .wp-gig-card.status-matched     { border-top-color: #7b3fa0; }
+    .wp-gig-card.status-aligned     { border-top-color: #8a6200; }
+    .wp-gig-card.status-in_progress { border-top-color: var(--red); }
+    .wp-gig-card.status-delivered   { border-top-color: var(--green); }
 
-    .wp-gig-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
-    .wp-gig-code { font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.04em; color: var(--charcoal); }
+    .wp-gig-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+    .wp-gig-code {
+      font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+      color: var(--stone); display: flex; align-items: center; gap: 6px;
+    }
+    .wp-gig-code::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+    .wp-gig-card.status-matched     .wp-gig-code { color: #7b3fa0; }
+    .wp-gig-card.status-aligned     .wp-gig-code { color: #8a6200; }
+    .wp-gig-card.status-in_progress .wp-gig-code { color: var(--red); }
+    .wp-gig-card.status-delivered   .wp-gig-code { color: var(--green); }
+
     .wp-gig-count {
       font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.04em;
       color: var(--stone); background: var(--light); padding: 1px 7px; flex-shrink: 0;
     }
     .wp-gig-count.full { background: var(--red); color: var(--white); }
-    .wp-gig-title { font-family: var(--font-body); font-size: 12.5px; color: var(--black); line-height: 1.3; margin-bottom: 6px; }
-    .wp-gig-status { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--stone); font-family: var(--font-mono); }
 
-    .wp-empty { text-align: center; color: var(--stone); font-size: 12.5px; padding: 30px 10px; }
+    .wp-gig-title {
+      font-family: var(--font-display); font-size: 1.1rem; letter-spacing: 0.02em;
+      color: var(--black); line-height: 1.15; margin-bottom: 8px;
+    }
+
+    .wp-gig-status {
+      font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700;
+      font-family: var(--font-mono); color: var(--stone);
+      border-top: 1px solid var(--light); padding-top: 6px;
+    }
+    .wp-gig-card.status-matched     .wp-gig-status { color: #7b3fa0; }
+    .wp-gig-card.status-aligned     .wp-gig-status { color: #8a6200; }
+    .wp-gig-card.status-in_progress .wp-gig-status { color: var(--red); }
+    .wp-gig-card.status-delivered   .wp-gig-status { color: var(--green); }
 
     /* ── RIGHT — WEEK GRID ── */
     .wp-grid-wrap {
@@ -231,28 +259,43 @@
     }
     .wp-cell.drag-over { background: #fdf5e0; box-shadow: inset 0 0 0 2px var(--red); }
 
+    /* ── GIG PICKER LOOK — mini variant, for a gig once placed in a slot.
+       Same status-top-border + dot+code + title pattern as .wp-gig-card,
+       scaled down since several of these can stack inside one cell. ── */
     .wp-chip {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--charcoal);
-      color: var(--white);
-      padding: 4px 6px 4px 8px;
-      font-size: 11px;
-      font-family: var(--font-body);
-      line-height: 1.2;
+      background: var(--white);
+      border: 1px solid var(--hole);
+      border-top: 3px solid var(--stone);
+      padding: 5px 7px 4px;
+      transition: box-shadow 0.15s;
     }
-    .wp-chip .code { font-family: var(--font-mono); font-size: 9px; color: rgba(240,234,216,0.55); flex-shrink: 0; }
-    .wp-chip .title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .wp-chip:hover { box-shadow: 0 3px 8px rgba(0,0,0,0.08); }
+    .wp-chip.status-matched     { border-top-color: #7b3fa0; }
+    .wp-chip.status-aligned     { border-top-color: #8a6200; }
+    .wp-chip.status-in_progress { border-top-color: var(--red); }
+    .wp-chip.status-delivered   { border-top-color: var(--green); }
+
+    .wp-chip-top { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+    .wp-chip .code {
+      font-family: var(--font-mono); font-size: 9px; font-weight: 700; letter-spacing: 0.06em;
+      color: var(--stone); display: flex; align-items: center; gap: 4px; min-width: 0;
+    }
+    .wp-chip .code::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+    .wp-chip.status-matched     .code { color: #7b3fa0; }
+    .wp-chip.status-aligned     .code { color: #8a6200; }
+    .wp-chip.status-in_progress .code { color: var(--red); }
+    .wp-chip.status-delivered   .code { color: var(--green); }
+
+    .wp-chip .title {
+      font-family: var(--font-body); font-size: 11px; color: var(--black); line-height: 1.25;
+      margin-top: 2px; display: block; overflow: hidden; text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     .wp-chip .rm {
-      background: none; border: none; color: rgba(240,234,216,0.5);
-      cursor: pointer; font-size: 13px; line-height: 1; padding: 0 2px; flex-shrink: 0;
+      background: none; border: none; color: var(--stone);
+      cursor: pointer; font-size: 13px; line-height: 1; padding: 0 0 0 4px; flex-shrink: 0;
     }
-    .wp-chip .rm:hover { color: var(--white); }
-    .wp-chip.status-matched     { background: #5a3878; }
-    .wp-chip.status-aligned     { background: #6b5320; }
-    .wp-chip.status-in_progress { background: var(--red-dark); }
-    .wp-chip.status-delivered   { background: var(--green); }
+    .wp-chip .rm:hover { color: var(--red); }
 
     @media (max-width: 900px) {
       html, body { height: auto; overflow: auto; }

@@ -109,22 +109,6 @@
     }
     .text-block-card textarea::placeholder { color: #bbb; font-style: italic; }
 
-    .text-readonly { background: var(--light); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
-    .text-readonly label {
-      display: block; font-family: var(--font-mono); font-size: 9px;
-      letter-spacing: 0.1em; text-transform: uppercase; color: var(--stone); margin-bottom: 6px;
-    }
-
-    .history-nav { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-    .history-label { font-family: var(--font-display); font-size: 15px; color: var(--black); }
-    .history-nav-btn {
-      background: none; border: 1px solid var(--hole); color: var(--charcoal);
-      font-size: 14px; cursor: pointer; padding: 3px 9px; line-height: 1;
-      border-radius: 20px; transition: all 0.15s;
-    }
-    .history-nav-btn:hover:not(:disabled) { border-color: var(--charcoal); color: var(--black); }
-    .history-nav-btn:disabled { opacity: 0.3; cursor: default; }
-
     .report-actions { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 16px; }
     .save-note { font-family: var(--font-mono); font-size: 10px; color: var(--stone); }
     .btn-save {
@@ -157,15 +141,17 @@
 
   <div class="report-card">
     <div class="report-header">
-      <div class="week-label" id="weekLabel">Week of &mdash;</div>
+      <div class="week-nav">
+        <button class="week-nav-btn" id="prevWeekBtn" onclick="goWeek(-1)">&#8249;</button>
+        <div class="week-label" id="weekLabel">Week of &mdash;</div>
+        <button class="week-nav-btn" id="nextWeekBtn" onclick="goWeek(1)">&#8250;</button>
+      </div>
     </div>
     <div class="report-body">
       <div class="view-tabs" id="viewTabs">
         <button class="view-tab" data-view="time" onclick="setView('time')">Time View</button>
         <button class="view-tab" data-view="task" onclick="setView('task')">Task View</button>
         <button class="view-tab" data-view="gig"  onclick="setView('gig')">Gig View</button>
-        <button class="view-tab" data-view="lastweek" onclick="setView('lastweek')">Last Week</button>
-        <button class="view-tab" data-view="history"  onclick="setView('history')">History</button>
       </div>
       <div id="reportBody">
         <div class="empty-week">Loading&hellip;</div>

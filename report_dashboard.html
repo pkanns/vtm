@@ -35,8 +35,6 @@
     .week-nav { display: flex; align-items: center; gap: 8px; }
     .week-nav-btn { background: none; border: none; color: var(--charcoal); font-size: 14px; cursor: pointer; padding: 2px 4px; }
     .week-nav-btn:disabled { opacity: 0.3; cursor: default; }
-    .history-nav { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-    .history-label { font-family: var(--font-display); font-size: 15px; color: var(--black); }
     .week-nav-label { font-family: var(--font-display); font-size: 15px; color: var(--black); }
 
     .filter-chip {
@@ -117,9 +115,14 @@
   <a href="weekly_report.html" class="back-link">&larr; Back to my report</a>
 
   <div class="filter-bar">
-    <div class="week-nav-label" id="weekLabel">Week of &mdash;</div>
+    <div class="filter-label">Week</div>
+    <div class="week-nav" style="margin-bottom:14px;">
+      <button class="week-nav-btn" id="prevWeekBtn" onclick="goWeek(-1)">&#8249;</button>
+      <div class="week-nav-label" id="weekLabel">Week of &mdash;</div>
+      <button class="week-nav-btn" id="nextWeekBtn" onclick="goWeek(1)">&#8250;</button>
+    </div>
 
-    <div class="filter-label" style="margin-top:14px;">Filter</div>
+    <div class="filter-label">Filter</div>
     <div class="filter-group">
       <select class="filter-select" id="userSelect"></select>
       <select class="filter-select scope-select" id="scopeSelect">
@@ -129,6 +132,10 @@
       </select>
       <div class="filter-sep"></div>
       <div class="filter-chip" id="chipOverdue" onclick="toggleChip('overdue')">Overdue</div>
+      <div class="filter-sep"></div>
+      <div class="filter-chip" id="chipUnder20" onclick="toggleBucket('under20')">Under 20h</div>
+      <div class="filter-chip" id="chip20to40" onclick="toggleBucket('20to40')">20&ndash;40h</div>
+      <div class="filter-chip" id="chipOver40" onclick="toggleBucket('over40')">Over 40h</div>
     </div>
   </div>
 
@@ -136,8 +143,6 @@
     <button class="view-tab" data-view="time" onclick="setView('time')">Time View</button>
     <button class="view-tab" data-view="task" onclick="setView('task')">Task View</button>
     <button class="view-tab" data-view="gig"  onclick="setView('gig')">Gig View</button>
-    <button class="view-tab" data-view="lastweek" onclick="setView('lastweek')">Last Week</button>
-    <button class="view-tab" data-view="history"  onclick="setView('history')">History</button>
   </div>
 
   <div class="results-card">

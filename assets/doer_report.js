@@ -19,10 +19,17 @@
  * clustering, ported from the Python script's logic) — no drill-down,
  * per scope decision.
  *
- * Tasks are counted as "existing by end of period" — assigned_to this
- * doer, created_at on/before the period end — with done/open reflecting
- * CURRENT state, not state-as-of-then (no historical status tracking
- * exists, so this matches what the old Python report did).
+ * Tasks are counted as "touched" in the period — created_at OR updated_at
+ * falls inside the window. There's no completed_at timestamp on gig_tasks
+ * (done is a plain boolean), so this is the closest honest proxy to "closed
+ * during this period" available without a schema change. The All/Open/
+ * Closed toggle in the Tasks block filters this same touched-in-period
+ * list client-side.
+ *
+ * The Doer picker's first option is always "Me" — the current admin
+ * session, not a lookup — so an admin doing hands-on field/desk work can
+ * see their own report without any other admin/Lead being exposed in the
+ * dropdown. Everything below "Me" is still the plain rover list.
  */
 
 import { db }                          from './vtm_db.js'
@@ -103,8 +110,10 @@ function haversineKm(lat1, lng1, lat2, lng2) {
 // ── FETCHERS ──────────────────────────────────────────────────────────────
 
 async function fetchDoerProfile(doerId) {
-  return db.from('vtm_users').select('user_id, name, created_at').eq('user_id', doerId).single()
+  return db.from('vtm_users').select('user_id, name, role, created_at').eq('user_id', doerId).single()
 }
+
+const ROLE_LABEL = { admin: 'Admin', pacer: 'Lead', rover: 'Doer' }
 
 async function fetchEntries(doerId, start, end) {
   let q = db.from('time_entries')
@@ -120,22 +129,35 @@ async function fetchEntries(doerId, start, end) {
   return error ? [] : (data || [])
 }
 
-// Tasks assigned to this doer that existed by the period end — same
-// "existed by end of period" framing the old Python report used. No lower
-// bound: a task created before the window but still open/closed during it
-// is still relevant. Master-gig tasks (the template checklist copied onto
-// every spawned instance) are excluded, same convention as task_index.js.
-async function fetchTasksForDoer(doerId, end) {
+// Tasks "touched" in the period — created_at OR updated_at falls inside
+// the window. There's no completed_at column (done is a plain boolean, no
+// timestamp of when it flipped), so "touched" is the closest honest proxy:
+// updated_at IS stamped by toggleTaskDone() on every completion toggle, so
+// a task closed during the period will show up even if it was created
+// earlier. Filtering only on "existed by period end" (the old logic) meant
+// every period converged on the same static set — this fixes that.
+// Master-gig tasks (the template checklist copied onto every spawned
+// instance) are excluded, same convention as task_index.js.
+async function fetchTasksForDoer(doerId, start, end) {
   const { data, error } = await fetchAllTasksWithGigContext(db)
   if (error || !data) return []
 
-  const cutoff = end ? addDays(end, 1) : null // exclusive upper bound
+  const rangeStart = start || null
+  const rangeEndExclusive = end ? addDays(end, 1) : null
+
+  const inRange = iso => {
+    if (!iso) return false
+    const d = new Date(iso)
+    if (rangeStart && d < rangeStart) return false
+    if (rangeEndExclusive && d >= rangeEndExclusive) return false
+    return true
+  }
 
   return data
     .filter(t => t.gigs)
     .filter(t => !(t.gigs.cadence === 'recurring' && !t.gigs.parent_gig_id))
     .filter(t => t.assigned_to === doerId)
-    .filter(t => !cutoff || new Date(t.created_at) < cutoff)
+    .filter(t => (!rangeStart && !rangeEndExclusive) || inRange(t.created_at) || inRange(t.updated_at))
 }
 
 async function fetchEvalsForDoer(doerId, start, end) {
@@ -206,21 +228,22 @@ function computeStats(entries, tasks, evalRows) {
 
 function renderReport(doer, id, start, end, stats, evalRows, tasks) {
   const activeSince = doer.created_at ? fmtDate(doer.created_at.slice(0, 10)) : '\u2014'
+  const roleLabel   = ROLE_LABEL[doer.role] || doer.role || '\u2014'
 
   document.getElementById('reportWrap').innerHTML = `
     <div class="rp-card">
       <div class="rp-header">
         <div>
-          <div class="rp-eyebrow">Doer Performance &middot; Field Report</div>
+          <div class="rp-eyebrow">Performance &middot; Field Report</div>
           <div class="rp-name">${esc(doer.name)}</div>
-          <div class="rp-sub">Doer &middot; Active since ${esc(activeSince)}</div>
+          <div class="rp-sub">${esc(roleLabel)} &middot; Active since ${esc(activeSince)}</div>
         </div>
         <div class="rp-period">${esc(periodLabel(id, start, end))}</div>
       </div>
 
       <div class="rp-stats">
         <div class="rp-stat"><div class="rp-stat-val">${fmtHours(stats.totalMinutes)}</div><div class="rp-stat-lbl">Time Logged</div></div>
-        <div class="rp-stat"><div class="rp-stat-val">${stats.tasksDone}<span class="unit">/ ${stats.tasksTotal}</span></div><div class="rp-stat-lbl">Tasks Closed</div></div>
+        <div class="rp-stat"><div class="rp-stat-val">${stats.tasksDone}<span class="unit">/ ${stats.tasksTotal}</span></div><div class="rp-stat-lbl">Tasks Touched</div></div>
         <div class="rp-stat"><div class="rp-stat-val">${stats.evalAvg !== null ? stats.evalAvg.toFixed(2) : '\u2014'}<span class="unit">/ 5 &#9733;</span></div><div class="rp-stat-lbl">Avg. Final Score</div></div>
         <div class="rp-stat"><div class="rp-stat-val">${stats.gigsWorked}<span class="unit">gigs</span></div><div class="rp-stat-lbl">Gigs Worked</div></div>
       </div>
@@ -320,20 +343,46 @@ window.toggleEvalDetail = function(i) {
   document.getElementById('evalDetail-' + i)?.classList.toggle('open')
 }
 
+let lastTasksForFilter = []   // the touched-in-period task list, kept so the
+                               // All/Open/Closed toggle can re-filter client-side
+
 function renderTaskSummary(done, total, tasks) {
+  lastTasksForFilter = tasks
   const pct = total ? Math.round((done / total) * 100) : 0
   return `
+    <div class="rp-block-sub">Touched (created or updated) in this period</div>
     <div class="rp-task-summary" onclick="toggleTaskDetail()">
       <div class="rp-task-num">${done}<span>/${total}</span></div>
       <div class="rp-task-bar"><div class="rp-task-bar-fill" style="width:${pct}%"></div></div>
     </div>
     <div class="rp-task-detail" id="taskDetail">
-      ${tasks.length ? tasks.map(t => `
-        <div class="rp-task-row">
-          <span class="${t.done ? 'rp-task-done' : ''}">${esc(t.gigs?.gig_code || '\u2014')} &middot; ${esc(t.title)}</span>
-          <span class="rp-task-status">${t.done ? 'Done' : 'Open'}</span>
-        </div>`).join('') : '<div class="rp-empty">No tasks.</div>'}
+      <div class="rp-task-filters">
+        <button type="button" class="rp-task-filter-btn" data-filter="all" onclick="setTaskFilter('all')">All</button>
+        <button type="button" class="rp-task-filter-btn" data-filter="open" onclick="setTaskFilter('open')">Open</button>
+        <button type="button" class="rp-task-filter-btn active" data-filter="closed" onclick="setTaskFilter('closed')">Closed</button>
+      </div>
+      <div id="rpTaskList">${renderTaskList(tasks, 'closed')}</div>
     </div>`
+}
+
+function renderTaskList(tasks, filter) {
+  const filtered = filter === 'open'   ? tasks.filter(t => !t.done)
+                  : filter === 'closed' ? tasks.filter(t => t.done)
+                  : tasks
+
+  if (!filtered.length) return `<div class="rp-empty">No ${filter === 'all' ? '' : filter + ' '}tasks touched in this period.</div>`
+
+  return filtered.map(t => `
+    <div class="rp-task-row">
+      <span class="${t.done ? 'rp-task-done' : ''}">${esc(t.gigs?.gig_code || '\u2014')} &middot; ${esc(t.title)}</span>
+      <span class="rp-task-status">${t.done ? 'Done' : 'Open'}</span>
+    </div>`).join('')
+}
+
+window.setTaskFilter = function(filter) {
+  document.querySelectorAll('.rp-task-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === filter))
+  const list = document.getElementById('rpTaskList')
+  if (list) list.innerHTML = renderTaskList(lastTasksForFilter, filter)
 }
 
 window.toggleTaskDetail = function() {
@@ -358,15 +407,23 @@ function renderGeo(geoStats) {
 
 // ── UI WIRING ─────────────────────────────────────────────────────────────
 
+// "Me" is always the FIRST option, built from the current session only —
+// never from a lookup — so no other admin or Lead is ever exposed here,
+// regardless of what fetchActiveDoers() returns below.
 async function loadDoers() {
   const sel = document.getElementById('doerSelect')
+  const meOption = `<option value="${session.user_id}">Me \u2014 ${esc(session.name)}</option>`
+
   const { data, error } = await fetchActiveDoers(db)
   if (error || !data?.length) {
-    sel.innerHTML = '<option value="">\u2014 No doers found \u2014</option>'
+    sel.innerHTML = '<option value="">\u2014 Select \u2014</option>' + meOption
     return
   }
-  sel.innerHTML = '<option value="">\u2014 Select Doer \u2014</option>' +
-    data.map(u => `<option value="${u.user_id}">${esc(u.name)}</option>`).join('')
+
+  sel.innerHTML = '<option value="">\u2014 Select \u2014</option>' + meOption +
+    '<optgroup label="Doers">' +
+    data.map(u => `<option value="${u.user_id}">${esc(u.name)}</option>`).join('') +
+    '</optgroup>'
 }
 
 document.querySelectorAll('.period-pill').forEach(btn => {
@@ -391,7 +448,7 @@ window.generateReport = async function() {
     const [doerRes, entries, tasks, evalRows] = await Promise.all([
       fetchDoerProfile(doerId),
       fetchEntries(doerId, start, end),
-      fetchTasksForDoer(doerId, end),
+      fetchTasksForDoer(doerId, start, end),
       fetchEvalsForDoer(doerId, start, end),
     ])
 

@@ -39,23 +39,33 @@ const TODAY    = new Date().toISOString().split('T')[0]
 let activeEntry   = null
 let allEntries    = []
 let openEntries   = []
-let currentFilter = 'week'
+let currentFilter = null   // null = no range picked yet — Time Log stays empty until asked for
 let gigMap        = {}   // gig_id → { code, title, project_id }
 let projectMap    = {}   // project_id → { code, name }
 let editingEntryId = null // entry_id currently open for editing in the Time Log
 
 // ── INIT ──────────────────────────────────────────────────────────────────
+// Loading is staged by priority. Clocking in/out is the whole point of this
+// page, so checkActiveTimer() — one small query — runs alone, first, and
+// everything else that touches the Auto/Manual panels waits for it. Gigs,
+// projects, and Open Timesheets load right after, in parallel, but don't
+// block the active-timer render. The historical Time Log is the heaviest
+// query on this page and is genuinely optional most visits, so it's not
+// fetched at all until the person picks a range — see setFilter() /
+// loadCompletedEntries() / renderLogEmptyState().
 
 document.getElementById('manualDate').value = TODAY
 
-await loadGigs()
-await loadProjects()
-await checkActiveTimer()
-await loadEntries()
-initToggle()
-applyStartParam()
-patchSignOut()
 buildPunchStrip()
+initToggle()
+patchSignOut()
+
+await checkActiveTimer()
+applyStartParam()
+
+loadGigs().then(loadProjects)
+loadOpenEntries()
+renderLogEmptyState()
 
 // ── ?start=auto — hand-off from the dashboard's Clock block ───────────────
 // Only applies if there isn't already an active timer (matches what
@@ -410,7 +420,6 @@ window.clockIn = async function() {
   updateCardNo('autoGig', 'autoCardNo', 'autoCardStatus')
 
   showToast('Clocked in ✓', 'ok')
-  await loadEntries()
 
   btn.disabled    = false
   btn.textContent = 'Clock In →'
@@ -459,7 +468,7 @@ window.clockOut = async function() {
 
   showToast('Clocked out ✓', 'ok')
   hideActiveTimer()
-  await loadEntries()
+  await refreshLogs()
 }
 
 // ── MANUAL SAVE ───────────────────────────────────────────────────────────
@@ -498,7 +507,7 @@ window.saveManual = async function() {
 
     showToast('Entry updated ✓', 'ok')
     resetManual()
-    await loadEntries()
+    await refreshLogs()
     return
   }
 
@@ -524,7 +533,7 @@ window.saveManual = async function() {
   btn.disabled    = false
   btn.textContent = 'Save →'
   resetManual()
-  await loadEntries()
+  await refreshLogs()
 }
 
 // ── EDIT OPEN ENTRY (save updated times/notes) ────────────────────────────
@@ -562,43 +571,105 @@ window.saveOpenEntry = async function(entryId) {
   }
 
   showToast(end ? 'Entry completed ✓' : 'Entry updated ✓', 'ok')
-  await loadEntries()
+  await refreshLogs()
 }
 
 // ── LOAD ENTRIES ──────────────────────────────────────────────────────────
+// Split in two, deliberately:
+//
+//   loadOpenEntries()      — entries missing an end_time. Small, and
+//                            actionable (they need finishing), so this
+//                            loads eagerly alongside gigs/projects — not
+//                            gated behind a filter pick.
+//
+//   loadCompletedEntries() — the actual historical log. This is the
+//                            expensive query on the page, and most visits
+//                            to Timesheet are "clock in" or "clock out",
+//                            not "review my history" — so nothing here is
+//                            fetched until the person explicitly picks a
+//                            range (see setFilter()). The query itself is
+//                            date-bounded server-side per range, rather
+//                            than fetching everything and filtering in
+//                            the browser.
+//
+// refreshLogs() is the shared "something changed" entry point: open
+// entries always get refreshed (any save could add/remove one), the
+// completed log only refreshes if a range is currently being viewed.
 
-async function loadEntries() {
+async function loadOpenEntries() {
   let query = db
     .from('time_entries')
     .select('*, gigs(gig_code, title)')
     .eq('is_active', false)
+    .is('end_time', null)
     .order('entry_date', { ascending: false })
-    .order('start_time', { ascending: false })
 
-  // Admin sees all; others see own
   if (!isAdmin) query = query.eq('user_id', userId)
 
   const { data, error } = await query
+  if (error) return   // Open Timesheets section just stays hidden — non-critical path
 
+  openEntries = data || []
+  renderOpenEntries()
+}
+
+function getFilterStartDate(filter) {
+  const now = new Date(); now.setHours(0, 0, 0, 0)
+  if (filter === 'week') {
+    const start = new Date(now)
+    const day = start.getDay()
+    start.setDate(start.getDate() + ((day === 0) ? -6 : 1 - day))
+    return start
+  }
+  if (filter === 'month') return new Date(now.getFullYear(), now.getMonth(), 1)
+  return null   // 'all' — no lower bound
+}
+
+async function loadCompletedEntries(filter) {
   const statusEl = document.getElementById('dbStatus')
+  statusEl.textContent = 'Loading…'
+  statusEl.className   = 'db-status'
+
+  let query = db
+    .from('time_entries')
+    .select('*, gigs(gig_code, title)')
+    .eq('is_active', false)
+    .not('end_time', 'is', null)
+    .order('entry_date', { ascending: false })
+    .order('start_time', { ascending: false })
+
+  if (!isAdmin) query = query.eq('user_id', userId)
+
+  const startDate = getFilterStartDate(filter)
+  if (startDate) query = query.gte('entry_date', startDate.toISOString().split('T')[0])
+
+  const { data, error } = await query
 
   if (error) {
     statusEl.textContent = 'Could not load entries'
     statusEl.className   = 'db-status err'
+    allEntries = []
     return
   }
 
-  const all = data || []
-
-  // Split: open = no end_time, done = has end_time
-  openEntries = all.filter(e => !e.end_time)
-  allEntries  = all.filter(e =>  e.end_time)
-
+  allEntries = data || []
   statusEl.textContent = `● ${allEntries.length} entr${allEntries.length !== 1 ? 'ies' : 'y'}`
   statusEl.className   = 'db-status ok'
+}
 
-  renderOpenEntries()
+async function refreshLogs() {
+  await loadOpenEntries()
+  if (currentFilter) await loadCompletedEntries(currentFilter)
   renderEntries()
+}
+
+function renderLogEmptyState() {
+  const list = document.getElementById('logList')
+  list.innerHTML = '<div class="empty-state">Select a range above to view your time log.</div>'
+  document.getElementById('dbStatus').textContent = 'No range selected'
+  document.getElementById('dbStatus').className   = 'db-status'
+  document.getElementById('logTotalLabel').textContent = 'Time Log'
+  document.getElementById('weekTotal').textContent = '—'
 }
 
 // ── RENDER OPEN TIMESHEETS ────────────────────────────────────────────────
@@ -659,35 +730,22 @@ function renderOpenEntries() {
 // ── RENDER COMPLETED LOG ──────────────────────────────────────────────────
 
 function renderEntries() {
-  const now   = new Date(); now.setHours(0,0,0,0)
-  const list  = document.getElementById('logList')
+  const list = document.getElementById('logList')
 
-  // Week starts Monday
-  const weekStart = new Date(now)
-  const day = weekStart.getDay()
-  weekStart.setDate(weekStart.getDate() + ((day === 0) ? -6 : 1 - day))
-
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-
-  const filtered = allEntries.filter(e => {
-    const d = new Date(e.entry_date); d.setHours(0,0,0,0)
-    if (currentFilter === 'week')  return d >= weekStart
-    if (currentFilter === 'month') return d >= monthStart
-    return true
-  })
+  if (!currentFilter) { renderLogEmptyState(); return }
 
   // Total + label match whichever period is currently selected — not always "this week"
-  const totalMins = filtered.reduce((sum, e) => sum + (e.duration_mins || 0), 0)
+  const totalMins = allEntries.reduce((sum, e) => sum + (e.duration_mins || 0), 0)
   const periodLabel = currentFilter === 'week' ? 'This week' : currentFilter === 'month' ? 'This month' : 'All time'
   document.getElementById('logTotalLabel').textContent = periodLabel
   document.getElementById('weekTotal').textContent = fmtDuration(totalMins)
 
-  if (!filtered.length) {
+  if (!allEntries.length) {
     list.innerHTML = `<div class="empty-state">No completed entries${currentFilter !== 'all' ? ' for this period' : ''}.</div>`
     return
   }
 
-  list.innerHTML = filtered.map(e => {
+  list.innerHTML = allEntries.map(e => {
     const gig  = e.gigs || {}
     const code = gig.gig_code || '—'
     const dur  = e.duration_mins ? fmtDuration(e.duration_mins) : '—'
@@ -793,11 +851,12 @@ window.editEntry = async function(entryId) {
 
 // ── FILTER ────────────────────────────────────────────────────────────────
 
-window.setFilter = function(filter) {
+window.setFilter = async function(filter) {
   currentFilter = filter
   document.querySelectorAll('.week-tab').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.filter === filter)
   })
+  await loadCompletedEntries(filter)
   renderEntries()
 }
 
@@ -808,7 +867,7 @@ window.deleteEntry = async function(id) {
   const { error } = await db.from('time_entries').delete().eq('entry_id', id)
   if (error) { showToast('Delete failed', 'err'); return }
   showToast('Entry deleted', 'ok')
-  await loadEntries()
+  await refreshLogs()
 }
 
 // ── RESET MANUAL FORM ─────────────────────────────────────────────────────

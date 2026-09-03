@@ -58,6 +58,7 @@ document.getElementById('manualDate').value = TODAY
 
 buildPunchStrip()
 initToggle()
+initGigPoolDrag()
 patchSignOut()
 
 await checkActiveTimer()
@@ -147,6 +148,7 @@ function showEntryPanel(mode) {
       return
     }
     autoPanel.style.display = 'block'
+    clearArmed()
   }
 
   if (mode === 'manual') {
@@ -181,9 +183,7 @@ async function loadProjects() {
     `<option value="${p.project_id}">${esc(p.project_code)} · ${esc(p.project_name)}</option>`
   ).join('')
 
-  const autoProj   = document.getElementById('autoProject')
   const manualProj = document.getElementById('manualProject')
-  if (autoProj)   autoProj.innerHTML   = opts
   if (manualProj) manualProj.innerHTML = opts
 }
 
@@ -191,7 +191,7 @@ async function loadProjects() {
 
 async function loadGigs() {
   let query = db.from('gigs')
-    .select('gig_id, gig_code, title, project_id, status, pacer_id, rover_id, cadence, parent_gig_id')
+    .select('gig_id, gig_code, title, project_id, status, pacer_id, rover_id, cadence, parent_gig_id, date_due')
     .not('status', 'eq', 'completed')
     .order('gig_code')
 
@@ -208,10 +208,10 @@ async function loadGigs() {
   data
     .filter(g => !(g.cadence === 'recurring' && !g.parent_gig_id))
     .forEach(g => {
-      gigMap[g.gig_id] = { code: g.gig_code, title: g.title, project_id: g.project_id }
+      gigMap[g.gig_id] = { code: g.gig_code, title: g.title, project_id: g.project_id, status: g.status, date_due: g.date_due }
     })
 
-  populateGigDropdown('autoGig',   null)
+  renderGigPool()
   populateGigDropdown('manualGig', null)
 }
 
@@ -247,6 +247,252 @@ window.updateCardNo = function(gigSelectId, cardNoTargetId, statusTargetId) {
   const gig = gigId ? gigMap[gigId] : null
   target.textContent = gig ? gig.code : '— : —'
   if (status) status.textContent = gig ? '● Ready' : '○ Awaiting'
+}
+
+// ── DRAG-TO-CLOCK-IN (Auto panel) ───────────────────────────────────────
+// Pointer-events based rather than native HTML5 drag-and-drop, so the
+// exact same code path handles mouse AND touch. Two ways to clock in,
+// both wired through the same pointerdown/pointermove/pointerup
+// listeners:
+//   - Press-and-drag a gig card onto the Clock In zone, or drag the zone
+//     onto a card, then release.
+//   - Tap a card to arm it, then tap the zone to commit — or tap the
+//     zone first, then tap a card. No continuous hold needed.
+// A pointerdown that never moves is treated as a tap (arm/commit); one
+// that moves is treated as a genuine drag. Cards use the same
+// .vtm-picker-card component as Gig Index / Gig Eval — no new card look,
+// just a new way to act on it.
+
+let armed     = null   // { kind: 'gig', gigId } | { kind: 'zone' } | null
+let dragState = null   // { kind, gigId?, moved }
+
+function renderGigPool() {
+  const pool = document.getElementById('autoGigPool')
+  if (!pool) return
+
+  const gigs = Object.entries(gigMap).map(([id, g]) => ({ id, ...g }))
+
+  if (!gigs.length) {
+    pool.innerHTML = '<div class="empty-state">No gigs available to clock into.</div>'
+    return
+  }
+
+  pool.innerHTML = gigs.map(g => `
+    <div class="vtm-picker-card status-${g.status || 'placed'}" data-gig-id="${g.id}">
+      <div class="vtm-picker-code">${esc(g.code)}</div>
+      <div class="vtm-picker-title">${esc(g.title)}</div>
+      <div class="vtm-picker-meta">
+        <span>${g.date_due ? fmtDate(g.date_due) : 'No due date'}</span>
+        <span class="status-label">${fmtStatus(g.status)}</span>
+      </div>
+    </div>`).join('')
+}
+
+function fmtStatus(s) {
+  return (s || 'placed').replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
+// Wired once — cards are re-rendered by renderGigPool() on every gig
+// reload, so this listens on the pool's parent container (event
+// delegation) rather than on individual cards that get replaced.
+
+function initGigPoolDrag() {
+  const pool = document.getElementById('autoGigPool')
+  const zone = document.getElementById('autoDropzone')
+  if (!pool || !zone) return
+
+  pool.addEventListener('pointerdown', e => {
+    const card = e.target.closest('.vtm-picker-card')
+    if (card) startDrag('gig', card, e)
+  })
+  zone.addEventListener('pointerdown', e => startDrag('zone', zone, e))
+
+  document.addEventListener('pointermove', onPointerMove)
+  document.addEventListener('pointerup', onPointerUp)
+
+  pool.addEventListener('click', e => {
+    if (dragState) return   // a real drag just ended — the trailing click isn't a tap
+    const card = e.target.closest('.vtm-picker-card')
+    if (card) onTap('gig', card)
+  })
+  zone.addEventListener('click', e => {
+    if (dragState) return
+    onTap('zone', zone)
+  })
+}
+
+function startDrag(kind, el, e) {
+  dragState = { kind, gigId: kind === 'gig' ? el.dataset.gigId : null, moved: false, el }
+  el.setPointerCapture?.(e.pointerId)
+  el.classList.add(kind === 'gig' ? 'drag-source' : 'busy')
+}
+
+function onPointerMove(e) {
+  if (!dragState) return
+  dragState.moved = true
+
+  const ghost = document.getElementById('dragGhost')
+  ghost.style.transform = `translate(${e.clientX + 14}px, ${e.clientY + 10}px)`
+  if (!ghost.innerHTML) {
+    ghost.innerHTML = dragState.kind === 'gig'
+      ? dragState.el.outerHTML
+      : '<div class="vtm-picker-card status-matched" style="border-top-color:var(--red)"><div class="vtm-picker-title">Clock In</div></div>'
+    ghost.style.opacity = '0.92'
+  }
+
+  const zone = document.getElementById('autoDropzone')
+  const under = document.elementFromPoint(e.clientX, e.clientY)
+
+  if (dragState.kind === 'gig') {
+    zone.classList.toggle('drag-over', !!under && zone.contains(under))
+  } else {
+    document.querySelectorAll('#autoGigPool .vtm-picker-card').forEach(card => {
+      card.classList.toggle('armed', !!under && card.contains(under))
+    })
+  }
+}
+
+function onPointerUp(e) {
+  if (!dragState) return
+  const zone = document.getElementById('autoDropzone')
+  const under = document.elementFromPoint(e.clientX, e.clientY)
+
+  if (dragState.moved) {
+    if (dragState.kind === 'gig' && under && zone.contains(under)) {
+      commitClockIn(dragState.gigId)
+    } else if (dragState.kind === 'zone' && under) {
+      const card = under.closest('.vtm-picker-card')
+      if (card) commitClockIn(card.dataset.gigId)
+    }
+  }
+
+  cleanupDrag()
+}
+
+function cleanupDrag() {
+  const ghost = document.getElementById('dragGhost')
+  ghost.style.opacity = '0'
+  ghost.innerHTML = ''
+
+  document.querySelectorAll('#autoGigPool .vtm-picker-card').forEach(c => c.classList.remove('drag-source', 'armed'))
+  const zone = document.getElementById('autoDropzone')
+  zone.classList.remove('drag-over', 'busy')
+
+  const stateWasDrag = dragState?.moved
+  dragState = null
+  // A completed drag already resolved (or missed) the drop — clear any
+  // tap-armed state too so a stray tap-arm doesn't linger afterward.
+  if (stateWasDrag) clearArmed()
+}
+
+function onTap(kind, el) {
+  if (kind === 'gig') {
+    const gigId = el.dataset.gigId
+    if (armed?.kind === 'zone') { commitClockIn(gigId); return }
+    if (armed?.kind === 'gig' && armed.gigId === gigId) { clearArmed(); return }
+    armGig(gigId)
+  } else {
+    if (armed?.kind === 'gig') { commitClockIn(armed.gigId); return }
+    if (armed?.kind === 'zone') { clearArmed(); return }
+    armZone()
+  }
+}
+
+function armGig(gigId) {
+  clearArmed()
+  armed = { kind: 'gig', gigId }
+  const card = document.querySelector(`#autoGigPool .vtm-picker-card[data-gig-id="${gigId}"]`)
+  card?.classList.add('armed')
+  const zone = document.getElementById('autoDropzone')
+  zone.classList.add('drag-over')
+  document.getElementById('autoZoneLabel').textContent = 'Tap here to clock in'
+  updateAutoHeader(gigId)
+}
+
+function armZone() {
+  clearArmed()
+  armed = { kind: 'zone' }
+  document.getElementById('autoDropzone').classList.add('armed')
+  document.getElementById('autoZoneLabel').textContent = 'Tap a gig to clock in'
+}
+
+function clearArmed() {
+  document.querySelectorAll('#autoGigPool .vtm-picker-card').forEach(c => c.classList.remove('armed'))
+  const zone = document.getElementById('autoDropzone')
+  zone.classList.remove('armed', 'drag-over')
+  document.getElementById('autoZoneLabel').textContent = 'Drag a gig here to clock in'
+  armed = null
+  updateAutoHeader(null)
+}
+
+function updateAutoHeader(gigId) {
+  const gig = gigId ? gigMap[gigId] : null
+  document.getElementById('autoCardNo').textContent = gig ? gig.code : '— : —'
+  document.getElementById('autoCardStatus').textContent = gig ? '● Ready' : '○ Awaiting'
+}
+
+let committing = false
+
+async function commitClockIn(gigId) {
+  if (!gigId || !gigMap[gigId]) return
+  if (activeEntry) { showToast('Already clocked in — clock out first', 'err'); clearArmed(); return }
+  if (committing) return
+  committing = true
+
+  const zone  = document.getElementById('autoDropzone')
+  const label = document.getElementById('autoZoneLabel')
+  zone.classList.add('busy')
+  zone.classList.remove('armed', 'drag-over')
+  label.textContent = 'Clocking in…'
+
+  let lat = null, lng = null, locationLabel = null
+  try {
+    const pos = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 8000 })
+    })
+    lat = pos.coords.latitude
+    lng = pos.coords.longitude
+    locationLabel = `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+  } catch {
+    locationLabel = 'Denied'
+  }
+
+  const now = new Date()
+  const payload = {
+    gig_id:         gigId,
+    user_id:        userId,
+    entry_date:     TODAY,
+    start_time:     now.toTimeString().slice(0, 5),
+    entry_type:     'live',
+    is_active:      true,
+    clock_in_lat:   lat,
+    clock_in_lng:   lng,
+    location_label: locationLabel,
+    notes:          null,   // notes are added from the active-timer card after clock-in instead
+  }
+
+  const { data, error } = await db.from('time_entries').insert(payload).select().single()
+
+  zone.classList.remove('busy')
+
+  if (error) {
+    showToast('Clock in failed — ' + error.message, 'err')
+    clearArmed()
+    committing = false
+    return
+  }
+
+  activeEntry = { ...data, gigs: { gig_code: gigMap[gigId].code, title: gigMap[gigId].title } }
+  showActiveTimer(activeEntry)
+
+  zone.classList.add('success')
+  label.textContent = `Clocked in — ${gigMap[gigId].code}`
+  showToast('Clocked in ✓', 'ok')
+
+  armed = null
+  committing = false
+  document.querySelectorAll('input[name="tog-entry"]').forEach(r => r.checked = false)
+  showEntryPanel(null)
 }
 
 // ── TASK CHECKLIST + LOGGED HOURS (clock-out / manual save context) ───────
@@ -361,69 +607,7 @@ function hideActiveTimer() {
   activeEntry = null
 }
 
-// ── CLOCK IN ──────────────────────────────────────────────────────────────
-
-window.clockIn = async function() {
-  const gigId = document.getElementById('autoGig').value
-  if (!gigId) { showToast('Please select a gig', 'err'); return }
-
-  const btn = document.getElementById('clockInBtn')
-  btn.disabled    = true
-  btn.textContent = 'Clocking in…'
-
-  let lat = null, lng = null, locationLabel = null
-  try {
-    const pos = await new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 8000 })
-    })
-    lat = pos.coords.latitude
-    lng = pos.coords.longitude
-    locationLabel = `${lat.toFixed(4)}, ${lng.toFixed(4)}`
-  } catch {
-    locationLabel = 'Denied'
-  }
-
-  const now       = new Date()
-  const startTime = now.toTimeString().slice(0,5)
-  const notes     = document.getElementById('autoNotesIn')?.value.trim() || null
-
-  const payload = {
-    gig_id:         gigId,
-    user_id:        userId,
-    entry_date:     TODAY,
-    start_time:     startTime,
-    entry_type:     'live',
-    is_active:      true,
-    clock_in_lat:   lat,
-    clock_in_lng:   lng,
-    location_label: locationLabel,
-    notes:          notes,
-  }
-
-  const { data, error } = await db.from('time_entries').insert(payload).select().single()
-
-  if (error) {
-    showToast('Clock in failed — ' + error.message, 'err')
-    btn.disabled    = false
-    btn.textContent = 'Clock In →'
-    return
-  }
-
-  activeEntry = { ...data, gigs: gigMap[gigId] ? { gig_code: gigMap[gigId].code, title: gigMap[gigId].title } : null }
-  showActiveTimer(activeEntry)
-
-  // Reset toggle and hide auto panel
-  document.querySelectorAll('input[name="tog-entry"]').forEach(r => r.checked = false)
-  showEntryPanel(null)
-  document.getElementById('autoGig').value = ''
-  document.getElementById('autoNotesIn').value = ''
-  updateCardNo('autoGig', 'autoCardNo', 'autoCardStatus')
-
-  showToast('Clocked in ✓', 'ok')
-
-  btn.disabled    = false
-  btn.textContent = 'Clock In →'
-}
+// ── CLOCK IN — see commitClockIn() in the drag-to-clock-in section above ──
 
 // ── CLOCK OUT ─────────────────────────────────────────────────────────────
 

@@ -274,6 +274,59 @@
     .btn-clockin:hover { opacity: 0.85; transform: translateY(-1px); }
     .btn-clockin:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
+    /* ── DRAG-TO-CLOCK-IN — gig pool + drop zone ─────────────────────────
+       Cards reuse .vtm-picker-card (vtm_2.css) — same shape as the Gig
+       Index / Gig Eval pickers. Only the drag/tap mechanics and the drop
+       zone itself are page-local; a pointer-events implementation (not
+       native HTML5 drag) so the same code path works on touch. */
+    .gig-pool { margin-bottom: 16px; }
+    .gig-pool .vtm-picker-card { cursor: grab; user-select: none; touch-action: none; }
+    .gig-pool .vtm-picker-card.armed { box-shadow: 0 0 0 2px var(--red); }
+    .gig-pool .vtm-picker-card.drag-source { opacity: 0.35; }
+
+    .clockin-zone {
+      border: 2px dashed var(--hole);
+      border-radius: 4px;
+      padding: 20px;
+      text-align: center;
+      cursor: grab;
+      user-select: none;
+      touch-action: none;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .clockin-zone-icon { font-size: 18px; margin-bottom: 6px; color: var(--stone); line-height: 1; }
+    .clockin-zone-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--stone);
+    }
+    .clockin-zone.armed,
+    .clockin-zone.drag-over {
+      border-color: var(--red);
+      background: rgba(192,57,43,0.06);
+    }
+    .clockin-zone.armed .clockin-zone-label,
+    .clockin-zone.drag-over .clockin-zone-label { color: var(--red); }
+    .clockin-zone.success {
+      border-style: solid;
+      border-color: var(--green);
+      background: rgba(45,90,61,0.08);
+    }
+    .clockin-zone.success .clockin-zone-label { color: var(--green); }
+    .clockin-zone.busy { opacity: 0.6; cursor: not-allowed; }
+
+    #dragGhost {
+      position: fixed;
+      top: 0; left: 0;
+      pointer-events: none;
+      z-index: 999;
+      opacity: 0;
+      width: 220px;
+    }
+    #dragGhost .vtm-picker-card { box-shadow: 0 8px 20px rgba(0,0,0,0.18); }
+
     .btn-save {
       background: var(--red);
       color: var(--white);
@@ -592,29 +645,15 @@
       </div>
     </div>
     <div class="entry-panel-body">
-    <div class="card-subtitle">Select project and gig — location captured automatically</div>
+    <div class="card-subtitle">Drag a gig onto Clock In — or drag Clock In onto a gig. Works with touch too.</div>
 
-    <div class="cascade-grid">
-      <div class="form-row">
-        <label>Project</label>
-        <select id="autoProject" onchange="onProjectChange('autoProject','autoGig'); updateCardNo('autoGig','autoCardNo','autoCardStatus')">
-          <option value="">— All Projects —</option>
-        </select>
-      </div>
-      <div class="form-row">
-        <label>Gig *</label>
-        <select id="autoGig" onchange="updateCardNo('autoGig','autoCardNo','autoCardStatus')">
-          <option value="">— Select Gig —</option>
-        </select>
-      </div>
+    <div class="gig-pool vtm-picker-grid" id="autoGigPool">
+      <div class="empty-state">Loading gigs…</div>
     </div>
 
-    <div class="form-bottom">
-      <div class="form-row">
-        <label>Notes <span class="optional-tag">optional</span></label>
-        <input type="text" id="autoNotesIn" placeholder="What will you be working on?">
-      </div>
-      <button class="btn-clockin" id="clockInBtn" onclick="clockIn()">Clock In →</button>
+    <div class="clockin-zone" id="autoDropzone">
+      <div class="clockin-zone-icon">&#9201;</div>
+      <div class="clockin-zone-label" id="autoZoneLabel">Drag a gig here to clock in</div>
     </div>
     </div>
   </div>
@@ -719,6 +758,8 @@
   </div>
 
 </div>
+
+<div id="dragGhost"></div>
 
 <script type="module" src="assets/timesheet.js"></script>
 </body>

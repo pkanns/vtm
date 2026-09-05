@@ -47,7 +47,23 @@ let editingEntryId = null // entry_id currently open for editing in the Time Log
 let pinnedGigIds  = new Set()   // gig_ids pinned via Time Recording Gigs — shown within the fold
 let showingMore   = false        // whether the collapsed "rest of your gigs" pool is expanded
 
-// ── INIT ──────────────────────────────────────────────────────────────────
+// Drag/tap + geolocation state — deliberately declared here, at the very
+// top, rather than near the functions that use them. checkActiveTimer()
+// and initGigPoolDrag() both run as part of the synchronous init sequence
+// below, and if any of these were still declared further down the file
+// as `let`, referencing them before that later line had executed would
+// throw "Cannot access before initialization" (the temporal dead zone) —
+// which is exactly the bug that shipped here once already and silently
+// aborted the rest of page setup on every load. Consolidating all
+// module-level state up here removes that whole category of ordering
+// bug regardless of where a given function is defined.
+let armed          = null    // { kind: 'gig', gigId } | { kind: 'zone' } | null
+let dragState      = null    // { kind, gigId?, moved }
+let committing     = false   // guards against a double clock-in submit
+let cachedLocation = null    // { lat, lng, label, timestamp } | null
+const LOCATION_MAX_AGE_MS = 30000
+
+// ── INIT ─────────────────────────────────────────────────────────────────
 // Loading is staged by priority. Clocking in/out is the whole point of this
 // page, so checkActiveTimer() — one small query — runs alone, first, and
 // everything else that touches the Auto/Manual panels waits for it. Gigs,
@@ -261,9 +277,6 @@ window.updateCardNo = function(gigSelectId, cardNoTargetId, statusTargetId) {
 // that moves is treated as a genuine drag. Cards use the same
 // .vtm-picker-card component as Gig Index / Gig Eval — no new card look,
 // just a new way to act on it.
-
-let armed     = null   // { kind: 'gig', gigId } | { kind: 'zone' } | null
-let dragState = null   // { kind, gigId?, moved }
 
 function renderGigPool() {
   const pool    = document.getElementById('autoGigPool')
@@ -479,9 +492,8 @@ function updateAutoHeader(gigId) {
 // Falls back to a real (still capped) request on a cold start, same
 // timeout as before — this never blocks longer than the old behavior,
 // it just very often doesn't have to wait at all.
-
-const LOCATION_MAX_AGE_MS = 30000
-let cachedLocation = null   // { lat, lng, label, timestamp } | null
+// (LOCATION_MAX_AGE_MS and cachedLocation are declared in the STATE
+// block at the top of the file — see the note there on why.)
 
 function prefetchLocation() {
   navigator.geolocation.getCurrentPosition(
@@ -517,7 +529,7 @@ async function resolveLocation() {
   }
 }
 
-let committing = false
+// (committing is declared in the STATE block at the top of the file)
 
 async function commitClockIn(gigId) {
   if (!gigId || !gigMap[gigId]) return

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Time Recording Gigs — Mulai</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Special+Elite&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/vtm_2.css">
+  <script src="assets/vtm.js"></script>
+  <script src="assets/vtm_auth_guard.js"></script>
+  <style>
+    .index-container { max-width: 900px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    .back-link { display: inline-block; margin-bottom: 16px; font-family: var(--font-mono); font-size: 11px; color: var(--stone); text-decoration: none; }
+    .back-link:hover { color: var(--black); }
+
+    .page-title { font-family: var(--font-display); font-size: 2rem; letter-spacing: 0.02em; color: var(--black); }
+    .page-subtitle { font-size: 12px; color: var(--stone); font-family: var(--font-mono); margin: 6px 0 22px; letter-spacing: 0.02em; line-height: 1.6; max-width: 60ch; }
+
+    .search-row { margin-bottom: 16px; }
+    .search-row input {
+      width: 100%; padding: 10px 16px; background: var(--white); border: 1px solid var(--hole);
+      border-radius: 20px; font-family: var(--font-body); font-size: 13px; color: var(--black); outline: none;
+      transition: border-color 0.15s;
+    }
+    .search-row input:focus { border-color: var(--red); }
+
+    .db-status { font-size: 11px; font-family: var(--font-mono); padding: 0 0 16px; color: var(--stone); letter-spacing: 0.04em; }
+    .db-status.ok  { color: var(--green); }
+    .db-status.err { color: var(--red); }
+
+    .register-card { background: var(--white); padding: 8px 0; border-top: 4px solid var(--charcoal); }
+    .register-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .register-table thead tr { background: var(--black); color: var(--white); }
+    .register-table th { padding: 10px 14px; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; text-align: left; }
+    .register-table th.center { text-align: center; }
+    .register-table td { padding: 11px 14px; border-bottom: 1px solid var(--light); vertical-align: middle; color: var(--charcoal); }
+    .register-table td.center { text-align: center; }
+    .register-table tr:last-child td { border-bottom: none; }
+    .register-table tr:hover td { background: var(--light); }
+
+    .pin-check { width: 17px; height: 17px; accent-color: var(--red); cursor: pointer; }
+
+    .status-pill { display: inline-block; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; font-weight: 600; }
+    .status-pill.placed      { background: #e8eef5; color: #2a5a8a; }
+    .status-pill.matched     { background: #f5eef8; color: #7b3fa0; }
+    .status-pill.aligned     { background: #fdf5e0; color: #8a6200; }
+    .status-pill.in_progress { background: #fceee8; color: var(--red); }
+    .status-pill.delivered   { background: #e8f5ee; color: var(--green); }
+
+    .empty-state { text-align: center; padding: 40px 0; color: var(--stone); font-size: 13px; }
+
+    @media (max-width: 640px) {
+      .register-table th:nth-child(5), .register-table td:nth-child(5) { display: none; }
+    }
+  </style>
+</head>
+<body data-page="time_recording_gigs">
+
+<div id="vtmHeader"></div>
+<script src="assets/vtm_header.js"></script>
+
+<main class="index-container">
+  <a href="timesheet.html" class="back-link">&larr; Back to Timesheet</a>
+  <div class="page-title">Time Recording Gigs</div>
+  <div class="page-subtitle">
+    Pin the gigs you clock time to most — they'll show up right away on the Timesheet.
+    Everything else is still one tap away under "Show more gigs" there, nothing is hidden for good.
+  </div>
+
+  <div class="search-row">
+    <input type="text" id="searchInput" placeholder="Search by code or title…">
+  </div>
+
+  <div class="db-status" id="dbStatus">Loading…</div>
+
+  <div class="register-card">
+    <table class="register-table">
+      <thead>
+        <tr>
+          <th class="center" style="width:70px">Pinned</th>
+          <th style="width:170px">Code</th>
+          <th>Title</th>
+          <th style="width:110px">Status</th>
+          <th style="width:100px">Due</th>
+        </tr>
+      </thead>
+      <tbody id="gigsTableBody">
+        <tr><td colspan="5"><div class="empty-state">Loading…</div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<script type="module" src="assets/time_recording_gigs.js"></script>
+</body>
+</html>

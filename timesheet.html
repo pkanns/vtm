@@ -284,6 +284,34 @@
     .gig-pool .vtm-picker-card.armed { box-shadow: 0 0 0 2px var(--red); }
     .gig-pool .vtm-picker-card.drag-source { opacity: 0.35; }
 
+    .btn-show-more {
+      display: block;
+      width: 100%;
+      background: none;
+      border: 1px dashed var(--hole);
+      color: var(--stone);
+      padding: 10px;
+      font-family: var(--font-body);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      margin-bottom: 16px;
+      transition: all 0.15s;
+    }
+    .btn-show-more:hover { border-color: var(--charcoal); color: var(--charcoal); }
+
+    .manage-gigs-link {
+      display: inline-block;
+      margin-top: 14px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      color: var(--stone);
+      text-decoration: none;
+    }
+    .manage-gigs-link:hover { color: var(--red); }
+
     .clockin-zone {
       border: 2px dashed var(--hole);
       border-radius: 4px;
@@ -647,14 +675,20 @@
     <div class="entry-panel-body">
     <div class="card-subtitle">Drag a gig onto Clock In — or drag Clock In onto a gig. Works with touch too.</div>
 
-    <div class="gig-pool vtm-picker-grid" id="autoGigPool">
-      <div class="empty-state">Loading gigs…</div>
+    <div id="autoGigPoolWrap">
+      <div class="gig-pool vtm-picker-grid" id="autoGigPool">
+        <div class="empty-state">Loading gigs…</div>
+      </div>
+      <button type="button" class="btn-show-more" id="autoShowMoreBtn" style="display:none;" onclick="toggleShowMoreGigs()">Show more gigs</button>
+      <div class="gig-pool vtm-picker-grid" id="autoGigPoolMore" style="display:none;"></div>
     </div>
 
     <div class="clockin-zone" id="autoDropzone">
       <div class="clockin-zone-icon">&#9201;</div>
       <div class="clockin-zone-label" id="autoZoneLabel">Drag a gig here to clock in</div>
     </div>
+
+    <a href="time_recording_gigs.html" class="manage-gigs-link">Manage which gigs show up here &rarr;</a>
     </div>
   </div>
 

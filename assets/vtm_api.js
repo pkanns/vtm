@@ -9,12 +9,14 @@
  *  2. PROJECT CATEGORIES
  *  3. GIGS
  *  3b. ADHOC TEMPLATES
+ *  3c. CLOCKABLE GIGS (shared — Timesheet + Time Recording Gigs)
  *  4. RECURRENCE SCHEDULE
  *  5. GIG TASKS
  *  6. DASHBOARD PAGES
  *  7. EVALUATIONS
  *  8. USERS
  *  9. TIME ENTRY AGGREGATES
+ *  9b. TIMESHEET PINNED GIGS
  * 10. COUNTS (dashboard)
  * 11. SHARED HELPERS
  */
@@ -336,6 +338,31 @@ export async function spawnAdhocInstance(db, templateGigId) {
   return { data: newGig, error: null }
 }
 
+// ── 3c. CLOCKABLE GIGS (shared — Timesheet's drag pool + Time Recording
+//         Gigs pin manager) ────────────────────────────────────────────
+// Non-completed, non-master (a "master" gig — cadence:'recurring' with no
+// parent_gig_id — is never itself worked, only its spawned instances
+// are), role-scoped the same way everywhere else in the app: Lead/Doer
+// see only their own, Admin sees all. This is the single source of truth
+// for "what can this person clock time to" — both pages call it so they
+// can never silently drift into showing different gig sets.
+
+export async function fetchClockableGigs(db, role, userId) {
+  let query = db.from('gigs')
+    .select('gig_id, gig_code, title, project_id, status, pacer_id, rover_id, cadence, parent_gig_id, date_due')
+    .not('status', 'eq', 'completed')
+    .order('gig_code')
+
+  if (role === 'pacer') query = query.eq('pacer_id', userId)
+  if (role === 'rover') query = query.eq('rover_id', userId)
+
+  const { data, error } = await query
+  if (error) return { data: null, error }
+
+  const clockable = (data || []).filter(g => !(g.cadence === 'recurring' && !g.parent_gig_id))
+  return { data: clockable, error: null }
+}
+
 // ── 4. RECURRENCE SCHEDULE ────────────────────────────────────────────────
 
 export async function fetchActiveSchedules(db) {
@@ -522,6 +549,33 @@ export async function fetchLoggedMinutesForGig(db, gigId) {
 
   if (error || !data) return 0
   return data.reduce((sum, e) => sum + (e.duration_mins || 0), 0)
+}
+
+// ── 9b. TIMESHEET PINNED GIGS ─────────────────────────────────────────────
+// Table: timesheet_pinned_gigs (id, user_id, gig_id, created_at) — see the
+// migration in the Time Recording Gigs build notes; not created by this
+// file. Pinning is per-person, self-managed: what shows up "within the
+// fold" in the Timesheet's drag pool vs behind "Show more gigs".
+
+export async function fetchPinnedGigIds(db, userId) {
+  return db
+    .from('timesheet_pinned_gigs')
+    .select('gig_id')
+    .eq('user_id', userId)
+}
+
+export async function pinGig(db, userId, gigId) {
+  return db
+    .from('timesheet_pinned_gigs')
+    .insert({ user_id: userId, gig_id: gigId })
+}
+
+export async function unpinGig(db, userId, gigId) {
+  return db
+    .from('timesheet_pinned_gigs')
+    .delete()
+    .eq('user_id', userId)
+    .eq('gig_id', gigId)
 }
 
 // ── 10. COUNTS (dashboard) ─────────────────────────────────────────────────

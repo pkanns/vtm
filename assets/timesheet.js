@@ -11,8 +11,8 @@
  * MASTER GIGS: a "master" gig (cadence:'recurring' with no parent_gig_id
  * — covers both true adhoc templates and scheduled recurring parents) is
  * never itself clockable — only the instances spawned from it are real,
- * workable gigs. loadGigs() excludes masters from gigMap so they never
- * appear in either the Auto or Manual gig dropdown.
+ * workable gigs. fetchClockableGigs() (vtm_api.js) excludes masters at
+ * the source, shared with Time Recording Gigs, so neither page can drift.
  *
  * Added: task checklist + plain logged-hours line at clock-out and manual
  * save time (see loadTaskChecklist()/loadLoggedHours() below). No schema
@@ -23,7 +23,8 @@
  */
 
 import { db } from './vtm_db.js'
-import { fetchTasksByGig, toggleTaskDone, fetchLoggedMinutesForGig, esc as apiEsc } from './vtm_api.js'
+import { fetchTasksByGig, toggleTaskDone, fetchLoggedMinutesForGig,
+         fetchClockableGigs, fetchPinnedGigIds, esc as apiEsc } from './vtm_api.js'
 
 // ── SESSION ───────────────────────────────────────────────────────────────
 
@@ -40,19 +41,21 @@ let activeEntry   = null
 let allEntries    = []
 let openEntries   = []
 let currentFilter = null   // null = no range picked yet — Time Log stays empty until asked for
-let gigMap        = {}   // gig_id → { code, title, project_id }
+let gigMap        = {}   // gig_id → { code, title, project_id, status, date_due }
 let projectMap    = {}   // project_id → { code, name }
 let editingEntryId = null // entry_id currently open for editing in the Time Log
+let pinnedGigIds  = new Set()   // gig_ids pinned via Time Recording Gigs — shown within the fold
+let showingMore   = false        // whether the collapsed "rest of your gigs" pool is expanded
 
 // ── INIT ──────────────────────────────────────────────────────────────────
 // Loading is staged by priority. Clocking in/out is the whole point of this
 // page, so checkActiveTimer() — one small query — runs alone, first, and
 // everything else that touches the Auto/Manual panels waits for it. Gigs,
-// projects, and Open Timesheets load right after, in parallel, but don't
-// block the active-timer render. The historical Time Log is the heaviest
-// query on this page and is genuinely optional most visits, so it's not
-// fetched at all until the person picks a range — see setFilter() /
-// loadCompletedEntries() / renderLogEmptyState().
+// pins, projects, and Open Timesheets load right after, in parallel, but
+// don't block the active-timer render. The historical Time Log is the
+// heaviest query on this page and is genuinely optional most visits, so
+// it's not fetched at all until the person picks a range — see
+// setFilter() / loadCompletedEntries() / renderLogEmptyState().
 
 document.getElementById('manualDate').value = TODAY
 
@@ -64,7 +67,10 @@ patchSignOut()
 await checkActiveTimer()
 applyStartParam()
 
-loadGigs().then(loadProjects)
+Promise.all([loadGigs(), loadPinnedGigIds()]).then(() => {
+  renderGigPool()
+  loadProjects()
+})
 loadOpenEntries()
 renderLogEmptyState()
 
@@ -149,6 +155,7 @@ function showEntryPanel(mode) {
     }
     autoPanel.style.display = 'block'
     clearArmed()
+    prefetchLocation()
   }
 
   if (mode === 'manual') {
@@ -190,29 +197,21 @@ async function loadProjects() {
 // ── LOAD GIGS ─────────────────────────────────────────────────────────────
 
 async function loadGigs() {
-  let query = db.from('gigs')
-    .select('gig_id, gig_code, title, project_id, status, pacer_id, rover_id, cadence, parent_gig_id, date_due')
-    .not('status', 'eq', 'completed')
-    .order('gig_code')
-
-  if (session.role === 'pacer') query = query.eq('pacer_id', userId)
-  if (session.role === 'rover') query = query.eq('rover_id', userId)
-
-  const { data, error } = await query
+  const { data, error } = await fetchClockableGigs(db, session.role, userId)
   if (error || !data?.length) return
 
-  // Master gigs (recurring, no parent — templates and scheduled recurring
-  // parents alike) are never clockable — exclude them from the map so
-  // they never populate either gig dropdown.
   gigMap = {}
-  data
-    .filter(g => !(g.cadence === 'recurring' && !g.parent_gig_id))
-    .forEach(g => {
-      gigMap[g.gig_id] = { code: g.gig_code, title: g.title, project_id: g.project_id, status: g.status, date_due: g.date_due }
-    })
+  data.forEach(g => {
+    gigMap[g.gig_id] = { code: g.gig_code, title: g.title, project_id: g.project_id, status: g.status, date_due: g.date_due }
+  })
 
-  renderGigPool()
   populateGigDropdown('manualGig', null)
+}
+
+async function loadPinnedGigIds() {
+  const { data, error } = await fetchPinnedGigIds(db, userId)
+  if (error) { pinnedGigIds = new Set(); return }
+  pinnedGigIds = new Set((data || []).map(r => r.gig_id))
 }
 
 function populateGigDropdown(selectId, projectId) {
@@ -267,17 +266,43 @@ let armed     = null   // { kind: 'gig', gigId } | { kind: 'zone' } | null
 let dragState = null   // { kind, gigId?, moved }
 
 function renderGigPool() {
-  const pool = document.getElementById('autoGigPool')
-  if (!pool) return
+  const pool    = document.getElementById('autoGigPool')
+  const morePool = document.getElementById('autoGigPoolMore')
+  const moreBtn  = document.getElementById('autoShowMoreBtn')
+  if (!pool || !morePool || !moreBtn) return
 
-  const gigs = Object.entries(gigMap).map(([id, g]) => ({ id, ...g }))
+  clearArmed()
+
+  const gigs   = Object.entries(gigMap).map(([id, g]) => ({ id, ...g }))
+  const pinned = gigs.filter(g => pinnedGigIds.has(g.id))
+  const rest   = gigs.filter(g => !pinnedGigIds.has(g.id))
 
   if (!gigs.length) {
     pool.innerHTML = '<div class="empty-state">No gigs available to clock into.</div>'
+    moreBtn.style.display  = 'none'
+    morePool.style.display = 'none'
+    morePool.innerHTML     = ''
     return
   }
 
-  pool.innerHTML = gigs.map(g => `
+  pool.innerHTML = pinned.length
+    ? pinned.map(gigCardHTML).join('')
+    : '<div class="empty-state">No gigs pinned yet — <a href="time_recording_gigs.html">manage which show up here</a>, or tap "Show more gigs" below.</div>'
+
+  if (rest.length) {
+    moreBtn.style.display  = 'block'
+    moreBtn.textContent    = showingMore ? 'Show fewer gigs' : `Show more gigs (${rest.length})`
+    morePool.innerHTML     = rest.map(gigCardHTML).join('')
+    morePool.style.display = showingMore ? 'grid' : 'none'
+  } else {
+    moreBtn.style.display  = 'none'
+    morePool.style.display = 'none'
+    morePool.innerHTML     = ''
+  }
+}
+
+function gigCardHTML(g) {
+  return `
     <div class="vtm-picker-card status-${g.status || 'placed'}" data-gig-id="${g.id}">
       <div class="vtm-picker-code">${esc(g.code)}</div>
       <div class="vtm-picker-title">${esc(g.title)}</div>
@@ -285,23 +310,29 @@ function renderGigPool() {
         <span>${g.date_due ? fmtDate(g.date_due) : 'No due date'}</span>
         <span class="status-label">${fmtStatus(g.status)}</span>
       </div>
-    </div>`).join('')
+    </div>`
+}
+
+window.toggleShowMoreGigs = function() {
+  showingMore = !showingMore
+  renderGigPool()
 }
 
 function fmtStatus(s) {
   return (s || 'placed').replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
-// Wired once — cards are re-rendered by renderGigPool() on every gig
-// reload, so this listens on the pool's parent container (event
-// delegation) rather than on individual cards that get replaced.
+// Wired once, on the wrap that contains BOTH the pinned pool and the
+// collapsed "rest" pool — cards are re-rendered by renderGigPool() and
+// toggleShowMoreGigs() on every reload/expand, so this listens via event
+// delegation on the stable parent rather than on individual cards.
 
 function initGigPoolDrag() {
-  const pool = document.getElementById('autoGigPool')
+  const wrap = document.getElementById('autoGigPoolWrap')
   const zone = document.getElementById('autoDropzone')
-  if (!pool || !zone) return
+  if (!wrap || !zone) return
 
-  pool.addEventListener('pointerdown', e => {
+  wrap.addEventListener('pointerdown', e => {
     const card = e.target.closest('.vtm-picker-card')
     if (card) startDrag('gig', card, e)
   })
@@ -310,7 +341,7 @@ function initGigPoolDrag() {
   document.addEventListener('pointermove', onPointerMove)
   document.addEventListener('pointerup', onPointerUp)
 
-  pool.addEventListener('click', e => {
+  wrap.addEventListener('click', e => {
     if (dragState) return   // a real drag just ended — the trailing click isn't a tap
     const card = e.target.closest('.vtm-picker-card')
     if (card) onTap('gig', card)
@@ -346,7 +377,7 @@ function onPointerMove(e) {
   if (dragState.kind === 'gig') {
     zone.classList.toggle('drag-over', !!under && zone.contains(under))
   } else {
-    document.querySelectorAll('#autoGigPool .vtm-picker-card').forEach(card => {
+    document.querySelectorAll('#autoGigPoolWrap .vtm-picker-card').forEach(card => {
       card.classList.toggle('armed', !!under && card.contains(under))
     })
   }
@@ -374,7 +405,7 @@ function cleanupDrag() {
   ghost.style.opacity = '0'
   ghost.innerHTML = ''
 
-  document.querySelectorAll('#autoGigPool .vtm-picker-card').forEach(c => c.classList.remove('drag-source', 'armed'))
+  document.querySelectorAll('#autoGigPoolWrap .vtm-picker-card').forEach(c => c.classList.remove('drag-source', 'armed'))
   const zone = document.getElementById('autoDropzone')
   zone.classList.remove('drag-over', 'busy')
 
@@ -401,7 +432,7 @@ function onTap(kind, el) {
 function armGig(gigId) {
   clearArmed()
   armed = { kind: 'gig', gigId }
-  const card = document.querySelector(`#autoGigPool .vtm-picker-card[data-gig-id="${gigId}"]`)
+  const card = document.querySelector(`#autoGigPoolWrap .vtm-picker-card[data-gig-id="${gigId}"]`)
   card?.classList.add('armed')
   const zone = document.getElementById('autoDropzone')
   zone.classList.add('drag-over')
@@ -417,7 +448,7 @@ function armZone() {
 }
 
 function clearArmed() {
-  document.querySelectorAll('#autoGigPool .vtm-picker-card').forEach(c => c.classList.remove('armed'))
+  document.querySelectorAll('#autoGigPoolWrap .vtm-picker-card').forEach(c => c.classList.remove('armed'))
   const zone = document.getElementById('autoDropzone')
   zone.classList.remove('armed', 'drag-over')
   document.getElementById('autoZoneLabel').textContent = 'Drag a gig here to clock in'
@@ -429,6 +460,61 @@ function updateAutoHeader(gigId) {
   const gig = gigId ? gigMap[gigId] : null
   document.getElementById('autoCardNo').textContent = gig ? gig.code : '— : —'
   document.getElementById('autoCardStatus').textContent = gig ? '● Ready' : '○ Awaiting'
+}
+
+// ── LOCATION CACHE ───────────────────────────────────────────────────────
+// The actual cause of clock-in/out feeling slow: getCurrentPosition() with
+// no maximumAge forces a brand-new GPS/network fix from scratch every
+// single time, which routinely takes 2-8s on a phone, especially indoors
+// — and the DB write only happens AFTER that resolves. Two changes fix
+// this together:
+//   1. maximumAge lets a recent fix (<30s old) be reused instantly rather
+//      than re-acquired every time.
+//   2. prefetchLocation() kicks the request off ahead of the actual
+//      commit — when the Auto panel opens, and again right after a
+//      successful clock-in (anticipating the eventual clock-out) — so by
+//      the time someone actually taps/drops, resolveLocation() usually
+//      just returns the already-resolved cache instead of waiting on
+//      anything.
+// Falls back to a real (still capped) request on a cold start, same
+// timeout as before — this never blocks longer than the old behavior,
+// it just very often doesn't have to wait at all.
+
+const LOCATION_MAX_AGE_MS = 30000
+let cachedLocation = null   // { lat, lng, label, timestamp } | null
+
+function prefetchLocation() {
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      cachedLocation = {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        label: `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`,
+        timestamp: Date.now(),
+      }
+    },
+    () => { cachedLocation = { lat: null, lng: null, label: 'Denied', timestamp: Date.now() } },
+    { timeout: 8000, maximumAge: LOCATION_MAX_AGE_MS }
+  )
+}
+
+async function resolveLocation() {
+  if (cachedLocation && (Date.now() - cachedLocation.timestamp) < LOCATION_MAX_AGE_MS) {
+    return cachedLocation
+  }
+  try {
+    const pos = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 8000, maximumAge: LOCATION_MAX_AGE_MS })
+    })
+    return {
+      lat: pos.coords.latitude,
+      lng: pos.coords.longitude,
+      label: `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`,
+      timestamp: Date.now(),
+    }
+  } catch {
+    return { lat: null, lng: null, label: 'Denied', timestamp: Date.now() }
+  }
 }
 
 let committing = false
@@ -445,17 +531,7 @@ async function commitClockIn(gigId) {
   zone.classList.remove('armed', 'drag-over')
   label.textContent = 'Clocking in…'
 
-  let lat = null, lng = null, locationLabel = null
-  try {
-    const pos = await new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 8000 })
-    })
-    lat = pos.coords.latitude
-    lng = pos.coords.longitude
-    locationLabel = `${lat.toFixed(4)}, ${lng.toFixed(4)}`
-  } catch {
-    locationLabel = 'Denied'
-  }
+  const loc = await resolveLocation()
 
   const now = new Date()
   const payload = {
@@ -465,9 +541,9 @@ async function commitClockIn(gigId) {
     start_time:     now.toTimeString().slice(0, 5),
     entry_type:     'live',
     is_active:      true,
-    clock_in_lat:   lat,
-    clock_in_lng:   lng,
-    location_label: locationLabel,
+    clock_in_lat:   loc.lat,
+    clock_in_lng:   loc.lng,
+    location_label: loc.label,
     notes:          null,   // notes are added from the active-timer card after clock-in instead
   }
 
@@ -596,6 +672,7 @@ function showActiveTimer(entry) {
 
   loadTaskChecklist(entry.gig_id, 'timerTaskChecklist')
   loadLoggedHours(entry.gig_id, 'timerLoggedHours')
+  prefetchLocation()   // get ready for the eventual clock-out
 }
 
 function hideActiveTimer() {
@@ -605,6 +682,7 @@ function hideActiveTimer() {
   const pill = document.getElementById('headerTimerPill')
   if (pill) pill.classList.remove('visible')
   activeEntry = null
+  cachedLocation = null
 }
 
 // ── CLOCK IN — see commitClockIn() in the drag-to-clock-in section above ──
@@ -618,14 +696,7 @@ window.clockOut = async function() {
   btn.disabled    = true
   btn.textContent = 'Clocking out…'
 
-  let lat = null, lng = null
-  try {
-    const pos = await new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 8000 })
-    })
-    lat = pos.coords.latitude
-    lng = pos.coords.longitude
-  } catch { /* denied — ok */ }
+  const loc = await resolveLocation()
 
   const now     = new Date()
   const endTime = now.toTimeString().slice(0,5)
@@ -637,8 +708,8 @@ window.clockOut = async function() {
     .update({
       end_time:      endTime,
       is_active:     false,
-      clock_out_lat: lat,
-      clock_out_lng: lng,
+      clock_out_lat: loc.lat,
+      clock_out_lng: loc.lng,
       notes:         notes,
     })
     .eq('entry_id', activeEntry.entry_id)

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gig Lifecycle — Mulai</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Special+Elite&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/vtm_2.css">
+  <script src="assets/vtm.js"></script>
+  <script src="assets/vtm_auth_guard.js"></script>
+  <style>
+    .index-container { max-width: 1000px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    .page-title { font-family: var(--font-display); font-size: 2rem; letter-spacing: 0.02em; color: var(--black); }
+    .page-subtitle { font-size: 12px; color: var(--stone); font-family: var(--font-mono); margin: 6px 0 24px; letter-spacing: 0.02em; line-height: 1.6; max-width: 64ch; }
+
+    .section-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--stone); margin: 32px 0 10px; }
+    .section-label:first-of-type { margin-top: 0; }
+
+    /* ── PROJECTS ── */
+    .project-row {
+      display: flex; align-items: center; gap: 14px; justify-content: space-between;
+      background: var(--white); border: 1px solid var(--hole); border-left: 4px solid var(--charcoal);
+      padding: 12px 16px; margin-bottom: 8px;
+    }
+    .project-row.has-frozen { border-left-color: #8a6200; }
+    .project-info { min-width: 0; }
+    .project-code { font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--black); }
+    .project-name { font-size: 12px; color: var(--stone); margin-top: 2px; }
+    .project-counts { font-family: var(--font-mono); font-size: 10px; color: var(--stone); margin-top: 3px; letter-spacing: 0.03em; }
+    .project-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+    /* ── GIGS ── */
+    .search-row { margin-bottom: 14px; }
+    .search-row input {
+      width: 100%; padding: 10px 16px; background: var(--white); border: 1px solid var(--hole);
+      border-radius: 20px; font-family: var(--font-body); font-size: 13px; color: var(--black); outline: none;
+      transition: border-color 0.15s;
+    }
+    .search-row input:focus { border-color: var(--red); }
+
+    .db-status { font-size: 11px; font-family: var(--font-mono); padding: 0 0 14px; color: var(--stone); letter-spacing: 0.04em; }
+    .db-status.ok  { color: var(--green); }
+    .db-status.err { color: var(--red); }
+
+    .register-card { background: var(--white); padding: 8px 0; border-top: 4px solid var(--charcoal); }
+    .register-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .register-table thead tr { background: var(--black); color: var(--white); }
+    .register-table th { padding: 10px 14px; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; text-align: left; }
+    .register-table td { padding: 11px 14px; border-bottom: 1px solid var(--light); vertical-align: middle; color: var(--charcoal); }
+    .register-table tr:last-child td { border-bottom: none; }
+    .register-table tr:hover td { background: var(--light); }
+
+    .status-pill { display: inline-block; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; font-weight: 600; }
+    .status-pill.placed      { background: #e8eef5; color: #2a5a8a; }
+    .status-pill.matched     { background: #f5eef8; color: #7b3fa0; }
+    .status-pill.aligned     { background: #fdf5e0; color: #8a6200; }
+    .status-pill.in_progress { background: #fceee8; color: var(--red); }
+    .status-pill.delivered   { background: #e8f5ee; color: var(--green); }
+    .status-pill.completed   { background: var(--light); color: var(--stone); }
+
+    .lifecycle-badge { display: inline-block; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; font-weight: 600; cursor: default; }
+    .lifecycle-badge.active { background: var(--light); color: var(--stone); }
+    .lifecycle-badge.frozen { background: #fdf5e0; color: #8a6200; }
+    .lifecycle-badge.killed { background: #2a2a2a; color: #f0ead8; }
+
+    .lc-btn {
+      background: none; border: 1px solid var(--hole); color: var(--charcoal);
+      padding: 4px 11px; font-size: 10px; cursor: pointer; font-family: var(--font-body);
+      letter-spacing: 0.06em; margin-right: 4px; transition: all 0.2s; white-space: nowrap;
+    }
+    .lc-btn:hover { border-color: var(--charcoal); color: var(--black); }
+    .lc-btn.danger { border-color: rgba(192,57,43,0.4); color: var(--red); }
+    .lc-btn.danger:hover { border-color: var(--red); background: #fceee8; }
+    .lc-btn.small { padding: 3px 9px; font-size: 9.5px; }
+    .lc-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .killed-note { font-size: 11px; color: var(--stone); font-style: italic; }
+    .gig-title-cell { max-width: 260px; }
+
+    .empty-state { text-align: center; padding: 36px 0; color: var(--stone); font-size: 13px; }
+
+    @media (max-width: 700px) {
+      .register-table th:nth-child(5), .register-table td:nth-child(5) { display: none; }
+      .project-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+    }
+  </style>
+</head>
+<body data-page="gig_lifecycle">
+
+<div id="vtmHeader"></div>
+<script src="assets/vtm_header.js"></script>
+<script type="module" src="assets/vtm_admin_guard.js"></script>
+
+<main class="index-container">
+  <div class="page-title">Gig Lifecycle</div>
+  <div class="page-subtitle">
+    Freeze a gig to take it out of active work without losing anything — fully reversible.
+    Kill a gig to close it out for good, with a reason on record. Neither touches time already
+    logged, tasks already tracked, or evaluations already given — those stay exactly as they are.
+  </div>
+
+  <div class="section-label">Projects</div>
+  <div id="projectsList"></div>
+
+  <div class="section-label">Gigs</div>
+  <div class="search-row">
+    <input type="text" id="searchInput" placeholder="Search by code or title…">
+  </div>
+  <div class="db-status" id="dbStatus">Loading…</div>
+
+  <div class="register-card">
+    <table class="register-table">
+      <thead>
+        <tr>
+          <th style="width:170px">Code</th>
+          <th>Title</th>
+          <th style="width:110px">Project</th>
+          <th style="width:100px">Status</th>
+          <th style="width:100px">Lifecycle</th>
+          <th style="width:190px"></th>
+        </tr>
+      </thead>
+      <tbody id="gigsTableBody">
+        <tr><td colspan="6"><div class="empty-state">Loading…</div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<script type="module" src="assets/gig_lifecycle.js"></script>
+</body>
+</html>

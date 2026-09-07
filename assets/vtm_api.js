@@ -10,6 +10,7 @@
  *  3. GIGS
  *  3b. ADHOC TEMPLATES
  *  3c. CLOCKABLE GIGS (shared — Timesheet + Time Recording Gigs)
+ *  3d. GIG LIFECYCLE (freeze / kill)
  *  4. RECURRENCE SCHEDULE
  *  5. GIG TASKS
  *  6. DASHBOARD PAGES
@@ -361,6 +362,112 @@ export async function fetchClockableGigs(db, role, userId) {
 
   const clockable = (data || []).filter(g => !(g.cadence === 'recurring' && !g.parent_gig_id))
   return { data: clockable, error: null }
+}
+
+// ── 3d. GIG LIFECYCLE (freeze / kill) ──────────────────────────────────────
+// Table: gig_lifecycle (gig_id, state, reason, changed_by, changed_at) —
+// see scripts/migration_gig_lifecycle.sql, not created by this file.
+// A row present = frozen or killed (state tells you which). No row =
+// active. Killing ALSO sets gigs.status = 'completed' — a killed gig IS
+// a completed gig, distinguished from a normal evaluated completion by
+// having a gig_lifecycle row. Unlike fetchClockableGigs(), this
+// deliberately INCLUDES master/template gigs — freezing/killing a
+// master is how you stop it spawning new instances (see Stage 3, the
+// daily cron), so it must be manageable here even though it's never
+// itself "clockable".
+//
+// fetchLifecycleGigs() returns every gig that's either still open
+// (status != 'completed', which also covers currently-frozen gigs,
+// since freezing never touches status) OR has been killed (so a killed
+// gig — now status:'completed' — stays visible/searchable here even
+// though its status changed). Ordinary gigs that reached 'completed'
+// the normal way (an evaluation) are excluded — nothing to manage there.
+
+export async function fetchLifecycleGigs(db) {
+  const GIG_FIELDS = 'gig_id, gig_code, title, project_id, status, cadence, parent_gig_id, date_due, projects ( project_code, project_name )'
+
+  const [openRes, killedIdsRes] = await Promise.all([
+    db.from('gigs').select(GIG_FIELDS).not('status', 'eq', 'completed').order('gig_code'),
+    db.from('gig_lifecycle').select('gig_id').eq('state', 'killed'),
+  ])
+
+  if (openRes.error) return { data: null, error: openRes.error }
+
+  const killedIds = (killedIdsRes.data || []).map(r => r.gig_id)
+  let killedGigs = []
+  if (killedIds.length) {
+    const { data, error } = await db.from('gigs').select(GIG_FIELDS).in('gig_id', killedIds)
+    if (error) return { data: null, error }
+    killedGigs = data || []
+  }
+
+  const merged = [...(openRes.data || []), ...killedGigs]
+  if (!merged.length) return { data: [], error: null }
+
+  const { data: lifecycleRows, error: lcErr } = await db
+    .from('gig_lifecycle')
+    .select('*')
+    .in('gig_id', merged.map(g => g.gig_id))
+  if (lcErr) return { data: null, error: lcErr }
+
+  const lifecycleByGig = {}
+  ;(lifecycleRows || []).forEach(r => { lifecycleByGig[r.gig_id] = r })
+
+  return { data: merged.map(g => ({ ...g, lifecycle: lifecycleByGig[g.gig_id] || null })), error: null }
+}
+
+export async function freezeGig(db, gigId, userId, reason) {
+  return db.from('gig_lifecycle').upsert({
+    gig_id: gigId, state: 'frozen', reason: reason || null, changed_by: userId, changed_at: new Date().toISOString(),
+  })
+}
+
+// Only ever removes a state:'frozen' row — a state:'killed' row can
+// never be deleted through this (or any UI) path, by design.
+export async function unfreezeGig(db, gigId) {
+  return db.from('gig_lifecycle').delete().eq('gig_id', gigId).eq('state', 'frozen')
+}
+
+// Two writes, sequential rather than a single transaction — same
+// convention already used for evaluations (gig_eval.js writes the
+// evaluation row, then separately calls updateGigStatus()).
+export async function killGig(db, gigId, userId, reason) {
+  const { error: lcErr } = await db.from('gig_lifecycle').upsert({
+    gig_id: gigId, state: 'killed', reason, changed_by: userId, changed_at: new Date().toISOString(),
+  })
+  if (lcErr) return { error: lcErr }
+  return db.from('gigs').update({ status: 'completed' }).eq('gig_id', gigId)
+}
+
+// ── PROJECT-LEVEL CASCADE ───────────────────────────────────────────────
+// "Freeze/kill a project" is not its own concept — it's applying the
+// same gig-level action to every one of that project's still-open gigs
+// in one go. No separate project table or project-level field anywhere;
+// every downstream view keeps checking gig_lifecycle exactly as before.
+
+export async function freezeProjectGigs(db, projectId, userId, reason) {
+  const { data: gigs, error } = await db.from('gigs').select('gig_id').eq('project_id', projectId).not('status', 'eq', 'completed')
+  if (error) return { count: 0, error }
+  const ids = (gigs || []).map(g => g.gig_id)
+  if (!ids.length) return { count: 0, error: null }
+
+  const rows = ids.map(gig_id => ({ gig_id, state: 'frozen', reason: reason || null, changed_by: userId, changed_at: new Date().toISOString() }))
+  const { error: upsertErr } = await db.from('gig_lifecycle').upsert(rows)
+  return { count: ids.length, error: upsertErr }
+}
+
+export async function killProjectGigs(db, projectId, userId, reason) {
+  const { data: gigs, error } = await db.from('gigs').select('gig_id').eq('project_id', projectId).not('status', 'eq', 'completed')
+  if (error) return { count: 0, error }
+  const ids = (gigs || []).map(g => g.gig_id)
+  if (!ids.length) return { count: 0, error: null }
+
+  const rows = ids.map(gig_id => ({ gig_id, state: 'killed', reason, changed_by: userId, changed_at: new Date().toISOString() }))
+  const { error: lcErr } = await db.from('gig_lifecycle').upsert(rows)
+  if (lcErr) return { count: 0, error: lcErr }
+
+  const { error: statusErr } = await db.from('gigs').update({ status: 'completed' }).in('gig_id', ids)
+  return { count: ids.length, error: statusErr }
 }
 
 // ── 4. RECURRENCE SCHEDULE ────────────────────────────────────────────────

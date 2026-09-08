@@ -14,9 +14,11 @@
 import { db }                    from './vtm_db.js'
 import { fetchProjectsWithGigs,
          fetchCategoriesByProject,
+         fetchLifecycleMap,
          deleteProject,
          deleteGig,
          fmtDate, esc }          from './vtm_api.js'
+import { enrichGig }             from './gig_filters.js'
 import { renderActionsMenu }     from './gig_actions.js'
 
 // ── SESSION ───────────────────────────────────────────────────────────────
@@ -42,7 +44,10 @@ async function loadProjects() {
   statusEl.textContent = 'Connecting…'
   statusEl.className   = 'db-status'
 
-  const { data, error } = await fetchProjectsWithGigs(db)
+  const [{ data, error }, lifecycleRes] = await Promise.all([
+    fetchProjectsWithGigs(db),
+    fetchLifecycleMap(db),
+  ])
 
   if (error) {
     statusEl.textContent = 'Could not connect — ' + error.message
@@ -50,7 +55,7 @@ async function loadProjects() {
     return
   }
 
-  allProjects = data || []
+  allProjects = (data || []).map(p => ({ ...p, gigs: p.gigs.map(g => enrichGig(g, lifecycleRes.data)) }))
 
   // Role filter — rovers only see their own gigs
   if (role === 'rover') {
@@ -65,13 +70,16 @@ async function loadProjects() {
   statusEl.textContent = `● ${allProjects.length} project${allProjects.length !== 1 ? 's' : ''} · ${totalGigs} gig${totalGigs !== 1 ? 's' : ''}`
   statusEl.className   = 'db-status ok'
 
-  // Update stats strip
+  // Update stats strip. Frozen no longer counts as "active" (it's
+  // paused, not being worked), and killed no longer counts as
+  // "completed" (it's not a genuine evaluated finish, even though it
+  // shares the same status value under the hood).
   const recurringCount = allProjects.reduce((s, p) =>
-    s + p.gigs.filter(g => g.cadence === 'recurring' && !g.parent_gig_id).length, 0)
+    s + p.gigs.filter(g => g.isMaster).length, 0)
   const completedCount = allProjects.reduce((s, p) =>
-    s + p.gigs.filter(g => g.status === 'completed').length, 0)
+    s + p.gigs.filter(g => g.status === 'completed' && !g.isKilled).length, 0)
   const activeCount    = allProjects.reduce((s, p) =>
-    s + p.gigs.filter(g => g.status !== 'completed').length, 0)
+    s + p.gigs.filter(g => g.status !== 'completed' && !g.isFrozen).length, 0)
 
   _setText('statProjects',  allProjects.length)
   _setText('statGigs',      activeCount)
@@ -99,9 +107,12 @@ function renderProjects() {
 }
 
 function renderProjectCard(p) {
-  const catCodes  = [...new Set(p.gigs.map(g =>
+  const visibleGigs = p.gigs.filter(g => !g.isFrozen)
+  const frozenCount = p.gigs.length - visibleGigs.length
+
+  const catCodes  = [...new Set(visibleGigs.map(g =>
     g.project_categories?.category_code).filter(Boolean))]
-  const gigCount  = p.gigs.length
+  const gigCount  = visibleGigs.length
   const catPills  = catCodes.map(c => `<span class="cat-pill">${esc(c)}</span>`).join('')
 
   const editBtn   = role !== 'rover'
@@ -121,7 +132,7 @@ function renderProjectCard(p) {
           ${catPills ? `<div class="cat-list">${catPills}</div>` : ''}
         </div>
         <div class="project-meta">
-          <span class="project-gig-count">${gigCount} gig${gigCount !== 1 ? 's' : ''}</span>
+          <span class="project-gig-count">${gigCount} gig${gigCount !== 1 ? 's' : ''}${frozenCount ? ` · +${frozenCount} frozen` : ''}</span>
           ${editBtn}
           ${deleteBtn}
           <span class="expand-arrow">›</span>
@@ -134,13 +145,13 @@ function renderProjectCard(p) {
             ? `<a href="create_gig.html?project_id=${p.project_id}" class="btn-secondary btn-sm">+ New Gig</a>`
             : ''}
         </div>
-        ${renderGigTable(p)}
+        ${renderGigTable(p, visibleGigs)}
       </div>
     </div>`
 }
 
-function renderGigTable(p) {
-  if (!p.gigs.length) {
+function renderGigTable(p, visibleGigs) {
+  if (!visibleGigs.length) {
     return `<div class="empty-gigs">No gigs yet —
       ${role !== 'rover'
         ? `<a href="create_gig.html?project_id=${p.project_id}">create one</a>`
@@ -149,8 +160,8 @@ function renderGigTable(p) {
   }
 
   // Separate parents and instances
-  const parents   = p.gigs.filter(g => !g.parent_gig_id)
-  const instances = p.gigs.filter(g =>  g.parent_gig_id)
+  const parents   = visibleGigs.filter(g => !g.parent_gig_id)
+  const instances = visibleGigs.filter(g =>  g.parent_gig_id)
 
   // Build rows — parents first, instances indented below their parent
   const rows = []
@@ -197,13 +208,17 @@ function renderGigRow(g, isInstance) {
         ? `<span class="gig-type-badge R">Recurring</span>`
         : `<span class="gig-type-badge O">One-off</span>`
 
+  const statusCell = g.isKilled
+    ? `<span class="status-pill completed" title="${g.lifecycleReason ? esc(g.lifecycleReason) : 'Killed'}">Killed</span>`
+    : `<span class="status-pill ${g.status || 'placed'}">${fmtStatus(g.status)}</span>`
+
   return `
     <tr style="${rowStyle}">
       <td class="gig-code-cell" style="${codeStyle}">${esc(g.gig_code)}</td>
       <td style="${isInstance ? 'color:var(--mid)' : ''}">${esc(g.title)}</td>
       <td><span class="cat-tag">${esc(catCode)}</span></td>
       <td>${cadenceBadge}</td>
-      <td><span class="status-pill ${g.status || 'placed'}">${fmtStatus(g.status)}</span></td>
+      <td>${statusCell}</td>
       <td style="color:var(--stone);font-size:11px">${fmtDate(g.date_due)}</td>
       <td onclick="event.stopPropagation()">${renderActionsMenu(g, session, { variant: 'row' })}</td>
     </tr>`

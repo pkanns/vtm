@@ -13,8 +13,15 @@
 // (weekly/fortnightly/monthly) recurring parents. Masters are never
 // worked directly (only their spawned instances are), so every "real
 // gig" surface in the app excludes them.
+//
+// isFrozen / isKilled / lifecycleReason: from gig_lifecycle (see
+// vtm_api.js's fetchLifecycleMap()). lifecycleMap is optional and
+// defaults to {} so any caller not yet passing one still works — a
+// gig simply reads as active. A killed gig already has status:
+// 'completed' (that's how Kill is implemented), so isKilled is what
+// tells it apart from a normal evaluated completion.
 
-export function enrichGig(g) {
+export function enrichGig(g, lifecycleMap = {}) {
   const today = new Date(); today.setHours(0, 0, 0, 0)
   const due   = g.date_due ? new Date(g.date_due) : null
   if (due) due.setHours(0, 0, 0, 0)
@@ -22,27 +29,38 @@ export function enrichGig(g) {
   const isOverdue = !!due && due < today && g.status !== 'completed'
   const isMaster  = g.cadence === 'recurring' && !g.parent_gig_id
 
-  return { ...g, isOverdue, isMaster }
+  const lifecycle = lifecycleMap[g.gig_id] || null
+  const isFrozen  = lifecycle?.state === 'frozen'
+  const isKilled  = lifecycle?.state === 'killed'
+
+  return { ...g, isOverdue, isMaster, isFrozen, isKilled, lifecycleReason: lifecycle?.reason || null }
 }
 
-// ── SCOPE (Status: Open / Complete / All / Masters) ─────────────────────
+// ── SCOPE (Status: Open / Complete / All / Masters / Frozen / Killed) ───
 // Single-select. "Open" is the default — completed gigs stay out of the
 // way until asked for. Only applies when no specific pipeline stage is
 // picked from the flow strip — a stage selection is already a more
 // specific ask than this coarse scope, so it takes precedence instead of
 // fighting with it.
 //
-// Open/Complete/All exclude master gigs — they aren't real, workable
-// gigs, so they'd only clutter these operational views. "Masters" is the
-// one scope that surfaces them: every master (adhoc template AND
-// scheduled recurring parent), broadened from the old "Templates" scope
-// which only showed adhoc ones.
+// Open/Complete/All exclude master, frozen, AND killed gigs — none of
+// them are real, currently-relevant work, so they'd only clutter these
+// operational views. Masters/Frozen/Killed are the three scopes that
+// surface them explicitly, same principle as each other: "Masters"
+// broadened from the old "Templates" scope to show every master (adhoc
+// template AND scheduled recurring parent); "Frozen" and "Killed" are
+// new, same idea. Note "Complete" also excludes killed gigs specifically
+// — a killed gig has status:'completed' (that's how Kill works under
+// the hood) but isn't a genuine evaluated completion, so it doesn't
+// belong mixed in with real finished work.
 
 export const SCOPE_OPTIONS = [
-  { id: 'open',      label: 'Open',      predicate: g => g.status !== 'completed' && !g.isMaster },
-  { id: 'complete',  label: 'Complete',  predicate: g => g.status === 'completed' && !g.isMaster },
-  { id: 'all',       label: 'All',       predicate: g => !g.isMaster },
+  { id: 'open',      label: 'Open',      predicate: g => g.status !== 'completed' && !g.isMaster && !g.isFrozen && !g.isKilled },
+  { id: 'complete',  label: 'Complete',  predicate: g => g.status === 'completed' && !g.isMaster && !g.isKilled },
+  { id: 'all',       label: 'All',       predicate: g => !g.isMaster && !g.isFrozen && !g.isKilled },
   { id: 'masters',   label: 'Masters',   predicate: g => g.isMaster },
+  { id: 'frozen',    label: 'Frozen',    predicate: g => g.isFrozen },
+  { id: 'killed',    label: 'Killed',    predicate: g => g.isKilled },
 ]
 
 // ── CHIPS (On track / Overdue) ──────────────────────────────────────────

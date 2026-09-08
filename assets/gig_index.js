@@ -29,6 +29,7 @@
 
 import { db }                                 from './vtm_db.js'
 import { fetchGigs, deleteGig, fetchActiveLeads, fetchActiveDoers,
+         fetchLifecycleMap,
          fmtDate, esc }                       from './vtm_api.js'
 import { enrichGig, SCOPE_OPTIONS, FILTER_CHIPS, applyFilters, sortByDueDate } from './gig_filters.js'
 import { renderActionsMenu }                  from './gig_actions.js'
@@ -109,7 +110,10 @@ if (urlStatus) {
 // ── LOAD ──────────────────────────────────────────────────────────────────
 
 async function loadGigs() {
-  const { data: all, error } = await fetchGigs(db)
+  const [{ data: all, error }, lifecycleRes] = await Promise.all([
+    fetchGigs(db),
+    fetchLifecycleMap(db),
+  ])
 
   if (error) {
     statusEl.textContent = 'Could not connect — ' + error.message
@@ -122,7 +126,7 @@ async function loadGigs() {
   if (role === 'pacer')  filtered = filtered.filter(g => g.pacer_id === myUserId)
   if (role === 'rover')  filtered = filtered.filter(g => g.rover_id === myUserId)
 
-  allGigs = filtered.map(enrichGig)
+  allGigs = filtered.map(g => enrichGig(g, lifecycleRes.data))
 
   populateProjectOptions()
   applyChipUI()
@@ -271,13 +275,17 @@ function renderGigCard(g) {
     primaryClick = `editGig('${g.gig_id}')`
   }
 
+  const codeTag    = isTemplate ? ' · Template' : g.isFrozen ? ' · Frozen' : g.isKilled ? ' · Killed' : ''
+  const statusText = g.isKilled ? 'Killed' : fmtStatus(g.status)
+  const reasonTip  = (g.isFrozen || g.isKilled) && g.lifecycleReason ? ` title="${esc(g.lifecycleReason)}"` : ''
+
   return `
     <div class="vtm-picker-card status-${g.status || 'placed'}" onclick="${primaryClick}">
-      <div class="vtm-picker-code">${esc(g.gig_code)}${isTemplate ? ' · Template' : ''}</div>
+      <div class="vtm-picker-code"${reasonTip}>${esc(g.gig_code)}${codeTag}</div>
       <div class="vtm-picker-title">${esc(g.title)}</div>
       <div class="vtm-picker-meta">
         <span>${esc(projCode)} · ${fmtDate(g.date_due)}</span>
-        <span class="status-label">${fmtStatus(g.status)}</span>
+        <span class="status-label"${reasonTip}>${statusText}</span>
       </div>
       ${renderActionsMenu(g, session, { variant: 'card' })}
     </div>`

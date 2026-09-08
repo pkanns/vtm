@@ -13,7 +13,7 @@
  */
 
 import { db }         from './vtm_db.js'
-import { fetchGigs, esc } from './vtm_api.js'
+import { fetchGigs, fetchLifecycleMap, esc } from './vtm_api.js'
 
 // ── SESSION ───────────────────────────────────────────────────────────────
 
@@ -87,7 +87,10 @@ function fmtDayDate(d) {
 
 async function loadGigs() {
   const statusEl = document.getElementById('dbStatus')
-  const { data, error } = await fetchGigs(db)
+  const [{ data, error }, lifecycleRes] = await Promise.all([
+    fetchGigs(db),
+    fetchLifecycleMap(db),
+  ])
 
   if (error) {
     statusEl.textContent = 'Could not connect — ' + error.message
@@ -101,10 +104,13 @@ async function loadGigs() {
   if (role === 'pacer') filtered = filtered.filter(g => g.pacer_id === myUserId)
   if (role === 'rover') filtered = filtered.filter(g => g.rover_id === myUserId)
 
-  // Plannable statuses only, masters excluded
+  // Plannable statuses only, masters excluded, frozen excluded (killed
+  // already falls out since PLANNABLE_STATUSES never includes 'completed')
+  const frozenIds = new Set(Object.entries(lifecycleRes.data).filter(([, v]) => v.state === 'frozen').map(([id]) => id))
   filtered = filtered.filter(g =>
     PLANNABLE_STATUSES.includes(g.status) &&
-    !(g.cadence === 'recurring' && !g.parent_gig_id)
+    !(g.cadence === 'recurring' && !g.parent_gig_id) &&
+    !frozenIds.has(g.gig_id)
   )
 
   allGigs = filtered

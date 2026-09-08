@@ -11,7 +11,7 @@
  *  3b. ADHOC TEMPLATES
  *  3c. CLOCKABLE GIGS (shared — Timesheet + Time Recording Gigs)
  *  3d. GIG LIFECYCLE (freeze / kill)
- *  3e. GIG LIFECYCLE REASONS (suggestion list)
+ *  3f. LIFECYCLE MAP (shared — hide frozen/killed from fetched lists)
  *  4. RECURRENCE SCHEDULE
  *  5. GIG TASKS
  *  6. DASHBOARD PAGES
@@ -344,10 +344,14 @@ export async function spawnAdhocInstance(db, templateGigId) {
 //         Gigs pin manager) ────────────────────────────────────────────
 // Non-completed, non-master (a "master" gig — cadence:'recurring' with no
 // parent_gig_id — is never itself worked, only its spawned instances
-// are), role-scoped the same way everywhere else in the app: Lead/Doer
-// see only their own, Admin sees all. This is the single source of truth
-// for "what can this person clock time to" — both pages call it so they
-// can never silently drift into showing different gig sets.
+// are), non-frozen, role-scoped the same way everywhere else in the app:
+// Lead/Doer see only their own, Admin sees all. This is the single
+// source of truth for "what can this person clock time to" — every page
+// that calls it (Timesheet, Time Recording Gigs, and via fetchGigs()
+// downstream consumers) can never silently drift into showing different
+// gig sets. Killed gigs are excluded for free (status:'completed' is
+// already filtered out) — frozen needs an explicit check since freezing
+// deliberately never touches status.
 
 export async function fetchClockableGigs(db, role, userId) {
   let query = db.from('gigs')
@@ -358,11 +362,38 @@ export async function fetchClockableGigs(db, role, userId) {
   if (role === 'pacer') query = query.eq('pacer_id', userId)
   if (role === 'rover') query = query.eq('rover_id', userId)
 
-  const { data, error } = await query
+  const [{ data, error }, frozenRes] = await Promise.all([
+    query,
+    db.from('gig_lifecycle').select('gig_id').eq('state', 'frozen'),
+  ])
   if (error) return { data: null, error }
 
-  const clockable = (data || []).filter(g => !(g.cadence === 'recurring' && !g.parent_gig_id))
+  const frozenIds = new Set((frozenRes.data || []).map(r => r.gig_id))
+  const clockable = (data || []).filter(g =>
+    !(g.cadence === 'recurring' && !g.parent_gig_id) && !frozenIds.has(g.gig_id)
+  )
   return { data: clockable, error: null }
+}
+
+// ── 3f. LIFECYCLE MAP (shared — anywhere that needs to hide frozen/
+//         killed gigs from an ALREADY-FETCHED gig list) ────────────────
+// Returns { [gig_id]: { state, reason } } for every gig with a
+// gig_lifecycle row. Deliberately a plain lookup rather than baked into
+// fetchGigs()/fetchProjectsWithGigs() themselves — those two are also
+// used for HISTORICAL reporting (report_data.js), which must keep
+// showing a gig's past activity regardless of its current lifecycle
+// state. Consumers that need to hide frozen/killed (Gig Index, Project
+// Index, Task Register, Week Planner) fetch this alongside their normal
+// gig query and filter client-side; reporting consumers simply don't
+// call this at all.
+
+export async function fetchLifecycleMap(db) {
+  const { data, error } = await db.from('gig_lifecycle').select('gig_id, state, reason')
+  if (error) return { data: {}, error }
+
+  const map = {}
+  ;(data || []).forEach(r => { map[r.gig_id] = r })
+  return { data: map, error: null }
 }
 
 // ── 3d. GIG LIFECYCLE (freeze / kill) ──────────────────────────────────────
@@ -469,20 +500,6 @@ export async function killProjectGigs(db, projectId, userId, reason) {
 
   const { error: statusErr } = await db.from('gigs').update({ status: 'completed' }).in('gig_id', ids)
   return { count: ids.length, error: statusErr }
-}
-
-// ── 3e. GIG LIFECYCLE REASONS (suggestion list) ─────────────────────────
-// Table: gig_lifecycle_reasons (id, reason, sort_order, created_at) —
-// see scripts/migration_gig_lifecycle_reasons.sql. Powers the reason
-// picker's autocomplete suggestions on gig_lifecycle.html — a free-text
-// input, not a locked dropdown, so a reason outside this list can still
-// be typed. Managed directly via SQL for now; short list, changes rarely.
-
-export async function fetchLifecycleReasons(db) {
-  return db
-    .from('gig_lifecycle_reasons')
-    .select('reason')
-    .order('sort_order', { ascending: true })
 }
 
 // ── 4. RECURRENCE SCHEDULE ────────────────────────────────────────────────

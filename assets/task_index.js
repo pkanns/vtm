@@ -29,7 +29,7 @@
 import { db }                                        from './vtm_db.js'
 import { fetchAllTasksWithGigContext, toggleTaskDone,
          updateTask, deleteTask, fetchActiveLeads,
-         fetchActiveDoers, fmtDate, esc }             from './vtm_api.js'
+         fetchActiveDoers, fetchLifecycleMap, fmtDate, esc } from './vtm_api.js'
 import { canManageTask, canToggleTask }               from './gig_tasks.js'
 
 // ── SESSION ───────────────────────────────────────────────────────────────
@@ -70,7 +70,10 @@ subtitleEl.textContent = role === 'admin' ? 'All tasks' : `Your tasks · ${sessi
 // ── LOAD ──────────────────────────────────────────────────────────────────
 
 async function loadTasks() {
-  const { data, error } = await fetchAllTasksWithGigContext(db)
+  const [{ data, error }, lifecycleRes] = await Promise.all([
+    fetchAllTasksWithGigContext(db),
+    fetchLifecycleMap(db),
+  ])
 
   if (error) {
     statusEl.textContent = 'Could not connect — ' + error.message
@@ -85,10 +88,15 @@ async function loadTasks() {
   //
   // Master gigs (cadence:'recurring', no parent_gig_id) are excluded —
   // their checklist is a template copied onto every spawned instance,
-  // not real live work.
+  // not real live work. Frozen and killed gigs are excluded too — unlike
+  // most other pages, this one has no existing gig.status filter to
+  // piggyback on (it filters by task.done, not gig status), so both need
+  // an explicit check here rather than falling out for free.
+  const lifecycleMap = lifecycleRes.data
   let visible = data || []
   visible = visible.filter(t => t.gigs) // orphaned tasks (gig deleted) shouldn't appear
   visible = visible.filter(t => !(t.gigs.cadence === 'recurring' && !t.gigs.parent_gig_id))
+  visible = visible.filter(t => !lifecycleMap[t.gigs.gig_id])   // no row = active; any row = frozen or killed
 
   if (role === 'pacer') {
     visible = visible.filter(t => t.gigs.pacer_id === myUserId)

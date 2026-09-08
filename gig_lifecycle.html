@@ -76,6 +76,45 @@
     .lc-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
     .killed-note { font-size: 11px; color: var(--stone); font-style: italic; }
+
+    /* ── REASON PICKER MODAL — replaces prompt()/confirm() for Freeze/Kill
+       so a reason can be typed with autocomplete suggestions (datalist),
+       which a native prompt() can't show. First modal in the app — kept
+       page-local rather than added to vtm_2.css until a second page
+       needs the same pattern. ── */
+    .lc-modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(26,20,16,0.55);
+      z-index: 1000; align-items: center; justify-content: center; padding: 20px;
+    }
+    .lc-modal-overlay.open { display: flex; }
+    .lc-modal {
+      background: var(--white); border: 2px solid var(--black); max-width: 420px; width: 100%;
+      padding: 24px 28px 20px;
+    }
+    .lc-modal-title { font-family: var(--font-display); font-size: 1.4rem; letter-spacing: 0.02em; color: var(--black); }
+    .lc-modal-sub { font-size: 12px; color: var(--stone); margin: 4px 0 18px; line-height: 1.5; }
+    .lc-modal-sub.danger { color: var(--red); }
+    .lc-modal label { display: block; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--stone); margin-bottom: 6px; font-weight: 500; }
+    .lc-modal input[type="text"] {
+      width: 100%; padding: 10px 12px; background: var(--light); border: none;
+      border-bottom: 2px solid #ccc; font-family: var(--font-body); font-size: 14px;
+      color: var(--black); outline: none; transition: border-color 0.2s;
+    }
+    .lc-modal input[type="text"]:focus { border-bottom-color: var(--red); }
+    .lc-modal-error { font-size: 11px; color: var(--red); margin-top: 6px; display: none; }
+    .lc-modal-error.visible { display: block; }
+    .lc-modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; }
+    .lc-modal-actions .btn-secondary {
+      background: none; border: 1px solid var(--hole); color: var(--stone); padding: 9px 18px;
+      font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; font-family: var(--font-body);
+    }
+    .lc-modal-actions .btn-secondary:hover { border-color: var(--charcoal); color: var(--black); }
+    .lc-modal-actions .btn-confirm {
+      background: var(--red); color: var(--white); border: none; padding: 9px 20px;
+      font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; font-family: var(--font-body);
+    }
+    .lc-modal-actions .btn-confirm:hover { background: var(--red-dark); }
+
     .gig-title-cell { max-width: 260px; }
 
     .empty-state { text-align: center; padding: 36px 0; color: var(--stone); font-size: 13px; }
@@ -127,6 +166,23 @@
     </table>
   </div>
 </main>
+
+<!-- ── REASON PICKER MODAL — used for Freeze/Kill, both single-gig and
+     project-cascade. Populated per-action by gig_lifecycle.js. ────────── -->
+<div class="lc-modal-overlay" id="lcModalOverlay">
+  <div class="lc-modal">
+    <div class="lc-modal-title" id="lcModalTitle">Freeze</div>
+    <div class="lc-modal-sub" id="lcModalSub">Reason is optional.</div>
+    <label for="lcModalReasonInput">Reason</label>
+    <input type="text" id="lcModalReasonInput" list="lcReasonSuggestions" placeholder="Type or pick a reason…" autocomplete="off">
+    <datalist id="lcReasonSuggestions"></datalist>
+    <div class="lc-modal-error" id="lcModalError">A reason is required.</div>
+    <div class="lc-modal-actions">
+      <button type="button" class="btn-secondary" onclick="closeLcModal()">Cancel</button>
+      <button type="button" class="btn-confirm" id="lcModalConfirmBtn" onclick="confirmLcModal()">Confirm</button>
+    </div>
+  </div>
+</div>
 
 <script type="module" src="assets/gig_lifecycle.js"></script>
 </body>

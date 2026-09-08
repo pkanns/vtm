@@ -11,6 +11,7 @@
  *  3b. ADHOC TEMPLATES
  *  3c. CLOCKABLE GIGS (shared — Timesheet + Time Recording Gigs)
  *  3d. GIG LIFECYCLE (freeze / kill)
+ *  3e. GIG LIFECYCLE REASONS (suggestion list)
  *  4. RECURRENCE SCHEDULE
  *  5. GIG TASKS
  *  6. DASHBOARD PAGES
@@ -468,6 +469,20 @@ export async function killProjectGigs(db, projectId, userId, reason) {
 
   const { error: statusErr } = await db.from('gigs').update({ status: 'completed' }).in('gig_id', ids)
   return { count: ids.length, error: statusErr }
+}
+
+// ── 3e. GIG LIFECYCLE REASONS (suggestion list) ─────────────────────────
+// Table: gig_lifecycle_reasons (id, reason, sort_order, created_at) —
+// see scripts/migration_gig_lifecycle_reasons.sql. Powers the reason
+// picker's autocomplete suggestions on gig_lifecycle.html — a free-text
+// input, not a locked dropdown, so a reason outside this list can still
+// be typed. Managed directly via SQL for now; short list, changes rarely.
+
+export async function fetchLifecycleReasons(db) {
+  return db
+    .from('gig_lifecycle_reasons')
+    .select('reason')
+    .order('sort_order', { ascending: true })
 }
 
 // ── 4. RECURRENCE SCHEDULE ────────────────────────────────────────────────

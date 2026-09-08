@@ -27,7 +27,7 @@
 
 import { db } from './vtm_db.js'
 import { fetchLifecycleGigs, freezeGig, unfreezeGig, killGig,
-         freezeProjectGigs, killProjectGigs, esc } from './vtm_api.js'
+         freezeProjectGigs, killProjectGigs, fetchLifecycleReasons, esc } from './vtm_api.js'
 
 // ── SESSION ───────────────────────────────────────────────────────────────
 
@@ -38,9 +38,15 @@ if (session.role !== 'admin') { window.location.href = 'dashboard.html'; throw n
 const userId = session.user_id
 
 // ── STATE ─────────────────────────────────────────────────────────────────
+// All module-level state declared here, before init runs at the bottom
+// of the file — see timesheet.js's history for why that ordering
+// actually matters (a `let` declared later than where it's first used
+// throws, it doesn't just silently work).
 
-let allGigs    = []   // every manageable gig, each with .lifecycle attached (or null)
-let searchTerm = ''
+let allGigs         = []   // every manageable gig, each with .lifecycle attached (or null)
+let searchTerm       = ''
+let reasonSuggestions = []   // strings from gig_lifecycle_reasons, feeds the modal's datalist
+let pendingAction     = null // { kind: 'freeze'|'kill'|'freezeProject'|'killProject', id, code, openCount? }
 
 // ── LOAD ──────────────────────────────────────────────────────────────────
 
@@ -61,6 +67,15 @@ async function load() {
   updateStatus()
   renderProjects()
   renderGigs()
+}
+
+async function loadReasons() {
+  const { data, error } = await fetchLifecycleReasons(db)
+  if (error) return   // suggestions are a nicety — a free-text reason still works without them
+
+  reasonSuggestions = (data || []).map(r => r.reason)
+  const datalist = document.getElementById('lcReasonSuggestions')
+  if (datalist) datalist.innerHTML = reasonSuggestions.map(r => `<option value="${esc(r)}"></option>`).join('')
 }
 
 function updateStatus() {
@@ -169,58 +184,128 @@ function gigRowHTML(g) {
 
 // ── GIG ACTIONS ───────────────────────────────────────────────────────────
 
-window.freezeRow = async function(gigId, code) {
-  const reason = prompt(`Freeze ${code} — reason (optional):`)
-  if (reason === null) return   // cancelled
-
-  const { error } = await freezeGig(db, gigId, userId, reason.trim())
-  if (error) { showToast('Could not freeze — ' + error.message, 'err'); return }
-  showToast(`${code} frozen`, 'ok')
-  await load()
+window.freezeRow = function(gigId, code) {
+  openLcModal({ kind: 'freeze', id: gigId, code })
 }
 
 window.unfreezeRow = async function(gigId, code) {
+  // No reason needed here — fully reversible, no modal required.
   const { error } = await unfreezeGig(db, gigId)
   if (error) { showToast('Could not unfreeze — ' + error.message, 'err'); return }
   showToast(`${code} unfrozen`, 'ok')
   await load()
 }
 
-window.killRow = async function(gigId, code) {
-  if (!confirm(`Kill ${code}? This sets it to Completed and cannot be undone from here.`)) return
-
-  const reason = prompt(`Reason for killing ${code} (required):`)
-  if (!reason || !reason.trim()) { showToast('A reason is required to kill a gig', 'err'); return }
-
-  const { error } = await killGig(db, gigId, userId, reason.trim())
-  if (error) { showToast('Could not kill — ' + error.message, 'err'); return }
-  showToast(`${code} killed`, 'ok')
-  await load()
+window.killRow = function(gigId, code) {
+  openLcModal({ kind: 'kill', id: gigId, code })
 }
 
 // ── PROJECT ACTIONS ───────────────────────────────────────────────────────
 
-window.freezeProjectRow = async function(projectId, code, openCount) {
-  if (!confirm(`Freeze all ${openCount} open gig${openCount !== 1 ? 's' : ''} in ${code}?`)) return
-  const reason = prompt(`Reason for freezing ${code} (optional):`)
-  if (reason === null) return
+window.freezeProjectRow = function(projectId, code, openCount) {
+  openLcModal({ kind: 'freezeProject', id: projectId, code, openCount })
+}
 
-  const { count, error } = await freezeProjectGigs(db, projectId, userId, reason.trim())
-  if (error) { showToast('Could not freeze project — ' + error.message, 'err'); return }
-  showToast(`${count} gig${count !== 1 ? 's' : ''} in ${code} frozen`, 'ok')
+window.killProjectRow = function(projectId, code, openCount) {
+  openLcModal({ kind: 'killProject', id: projectId, code, openCount })
+}
+
+// ── REASON PICKER MODAL ─────────────────────────────────────────────────
+// One modal, four use cases — the copy and required-ness of the reason
+// field change per `kind`, everything else is shared. The modal's own
+// sub-text carries the confirmation context (what's about to happen,
+// to how many gigs) rather than stacking a separate confirm() in front
+// of it — two dialogs in a row for the same decision felt like one too
+// many.
+
+function openLcModal({ kind, id, code, openCount }) {
+  pendingAction = { kind, id, code }
+
+  const title      = document.getElementById('lcModalTitle')
+  const sub        = document.getElementById('lcModalSub')
+  const input      = document.getElementById('lcModalReasonInput')
+  const err        = document.getElementById('lcModalError')
+  const confirmBtn = document.getElementById('lcModalConfirmBtn')
+
+  input.value = ''
+  err.classList.remove('visible')
+  sub.classList.remove('danger')
+
+  if (kind === 'freeze') {
+    title.textContent      = `Freeze ${code}`
+    sub.textContent        = 'Fully reversible — reason is optional.'
+    confirmBtn.textContent = 'Freeze'
+  } else if (kind === 'kill') {
+    title.textContent      = `Kill ${code}`
+    sub.textContent        = 'Sets this gig to Completed. No undo button — reason is required.'
+    sub.classList.add('danger')
+    confirmBtn.textContent = 'Kill'
+  } else if (kind === 'freezeProject') {
+    title.textContent      = `Freeze ${code}`
+    sub.textContent        = `Freezes all ${openCount} open gig${openCount !== 1 ? 's' : ''} in this project. Reason is optional.`
+    confirmBtn.textContent = 'Freeze Project'
+  } else if (kind === 'killProject') {
+    title.textContent      = `Kill ${code}`
+    sub.textContent        = `Sets all ${openCount} open gig${openCount !== 1 ? 's' : ''} in this project to Completed. No undo button — reason is required.`
+    sub.classList.add('danger')
+    confirmBtn.textContent = 'Kill Project'
+  }
+
+  document.getElementById('lcModalOverlay').classList.add('open')
+  input.focus()
+}
+
+window.closeLcModal = function() {
+  document.getElementById('lcModalOverlay').classList.remove('open')
+  pendingAction = null
+}
+
+window.confirmLcModal = async function() {
+  if (!pendingAction) return
+
+  const input  = document.getElementById('lcModalReasonInput')
+  const err    = document.getElementById('lcModalError')
+  const reason = input.value.trim()
+
+  const { kind, id, code } = pendingAction
+  const isKill = kind === 'kill' || kind === 'killProject'
+
+  if (isKill && !reason) {
+    err.classList.add('visible')
+    input.focus()
+    return
+  }
+
+  window.closeLcModal()
+
+  if (kind === 'freeze') {
+    const { error } = await freezeGig(db, id, userId, reason)
+    if (error) { showToast('Could not freeze — ' + error.message, 'err'); return }
+    showToast(`${code} frozen`, 'ok')
+  } else if (kind === 'kill') {
+    const { error } = await killGig(db, id, userId, reason)
+    if (error) { showToast('Could not kill — ' + error.message, 'err'); return }
+    showToast(`${code} killed`, 'ok')
+  } else if (kind === 'freezeProject') {
+    const { count, error } = await freezeProjectGigs(db, id, userId, reason)
+    if (error) { showToast('Could not freeze project — ' + error.message, 'err'); return }
+    showToast(`${count} gig${count !== 1 ? 's' : ''} in ${code} frozen`, 'ok')
+  } else if (kind === 'killProject') {
+    const { count, error } = await killProjectGigs(db, id, userId, reason)
+    if (error) { showToast('Could not kill project — ' + error.message, 'err'); return }
+    showToast(`${count} gig${count !== 1 ? 's' : ''} in ${code} killed`, 'ok')
+  }
+
   await load()
 }
 
-window.killProjectRow = async function(projectId, code, openCount) {
-  if (!confirm(`Kill all ${openCount} open gig${openCount !== 1 ? 's' : ''} in ${code}? This cannot be undone from here.`)) return
-  const reason = prompt(`Reason for killing ${code} (required):`)
-  if (!reason || !reason.trim()) { showToast('A reason is required to kill a project\'s gigs', 'err'); return }
+document.getElementById('lcModalReasonInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') window.confirmLcModal()
+})
 
-  const { count, error } = await killProjectGigs(db, projectId, userId, reason.trim())
-  if (error) { showToast('Could not kill project — ' + error.message, 'err'); return }
-  showToast(`${count} gig${count !== 1 ? 's' : ''} in ${code} killed`, 'ok')
-  await load()
-}
+document.getElementById('lcModalOverlay').addEventListener('click', e => {
+  if (e.target.id === 'lcModalOverlay') window.closeLcModal()
+})
 
 // ── SEARCH ────────────────────────────────────────────────────────────────
 
@@ -238,3 +323,4 @@ function fmtStatus(s) {
 // ── INIT ──────────────────────────────────────────────────────────────────
 
 load()
+loadReasons()

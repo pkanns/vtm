@@ -83,6 +83,12 @@ def run():
     schedules = res.data or []
     print(f'Found {len(schedules)} due schedule(s)')
 
+    # Lifecycle state (frozen/killed) for every gig with a gig_lifecycle
+    # row — see the FREEZE/KILL check below. Fetched once here rather
+    # than per-schedule.
+    lifecycle_res = db.from_('gig_lifecycle').select('gig_id, state').execute()
+    lifecycle_by_gig = {row['gig_id']: row['state'] for row in (lifecycle_res.data or [])}
+
     created = 0
     skipped = 0
 
@@ -121,6 +127,23 @@ def run():
                 .update({'is_active': False}) \
                 .eq('schedule_id', sched['schedule_id']) \
                 .execute()
+            skipped += 1
+            continue
+
+        # Check FREEZE/KILL on parent. Deliberately does NOT deactivate
+        # the schedule, unlike the three checks above — Freeze is meant
+        # to be fully reversible, and this check runs fresh every day
+        # rather than syncing to a stored flag, so unfreezing the master
+        # resumes spawning automatically the next time this script runs,
+        # with no separate "reactivate the schedule" step needed anywhere
+        # (in the app or here). A killed master stays skipped forever in
+        # practice since nothing in the app ever un-kills it, but the
+        # schedule itself is left alone on the off chance an admin
+        # reverses a kill directly in the database (see gig_lifecycle
+        # design doc — "unkill is a deliberate manual SQL operation").
+        lifecycle_state = lifecycle_by_gig.get(parent['gig_id'])
+        if lifecycle_state in ('frozen', 'killed'):
+            print(f'  SKIP {parent["gig_code"]} — master is {lifecycle_state}')
             skipped += 1
             continue
 

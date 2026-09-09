@@ -277,7 +277,8 @@ function renderGigCard(g) {
 
   const codeTag    = isTemplate ? ' · Template' : g.isFrozen ? ' · Frozen' : g.isKilled ? ' · Killed' : ''
   const statusText = g.isKilled ? 'Killed' : fmtStatus(g.status)
-  const reasonTip  = (g.isFrozen || g.isKilled) && g.lifecycleReason ? ` title="${esc(g.lifecycleReason)}"` : ''
+  const lifecycleTipText = lifecycleTip(g)
+  const reasonTip  = lifecycleTipText ? ` title="${esc(lifecycleTipText)}"` : ''
 
   return `
     <div class="vtm-picker-card status-${g.status || 'placed'}" onclick="${primaryClick}">
@@ -369,6 +370,18 @@ window.addEventListener('vtm:gig-status-changed', () => loadGigs())
 
 function fmtStatus(s) {
   return (s || 'placed').replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
+// Builds "reason · by Name · 8 Sep 2026" from whatever pieces are
+// actually present — used for the Frozen/Killed hover tooltip. Reused
+// as-is by project_index.js for its Killed badge.
+function lifecycleTip(g) {
+  if (!g.isFrozen && !g.isKilled) return ''
+  const parts = []
+  if (g.lifecycleReason) parts.push(g.lifecycleReason)
+  if (g.lifecycleBy)     parts.push(`by ${g.lifecycleBy}`)
+  if (g.lifecycleAt)     parts.push(fmtDate(g.lifecycleAt))
+  return parts.join(' · ')
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────

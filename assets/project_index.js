@@ -108,7 +108,11 @@ function renderProjects() {
 
 function renderProjectCard(p) {
   const visibleGigs = p.gigs.filter(g => !g.isFrozen)
-  const frozenCount = p.gigs.length - visibleGigs.length
+  const frozenGigs  = p.gigs.filter(g => g.isFrozen)
+  const frozenCount = frozenGigs.length
+  const frozenTip   = frozenGigs
+    .map(g => `${g.gig_code}${g.lifecycleReason ? ' — ' + g.lifecycleReason : ''}`)
+    .join('\n')
 
   const catCodes  = [...new Set(visibleGigs.map(g =>
     g.project_categories?.category_code).filter(Boolean))]
@@ -132,7 +136,7 @@ function renderProjectCard(p) {
           ${catPills ? `<div class="cat-list">${catPills}</div>` : ''}
         </div>
         <div class="project-meta">
-          <span class="project-gig-count">${gigCount} gig${gigCount !== 1 ? 's' : ''}${frozenCount ? ` · +${frozenCount} frozen` : ''}</span>
+          <span class="project-gig-count"${frozenCount ? ` title="${esc(frozenTip)}"` : ''}>${gigCount} gig${gigCount !== 1 ? 's' : ''}${frozenCount ? ` · +${frozenCount} frozen` : ''}</span>
           ${editBtn}
           ${deleteBtn}
           <span class="expand-arrow">›</span>
@@ -208,8 +212,9 @@ function renderGigRow(g, isInstance) {
         ? `<span class="gig-type-badge R">Recurring</span>`
         : `<span class="gig-type-badge O">One-off</span>`
 
+  const killedTipParts = [g.lifecycleReason, g.lifecycleBy && `by ${g.lifecycleBy}`, g.lifecycleAt && fmtDate(g.lifecycleAt)].filter(Boolean)
   const statusCell = g.isKilled
-    ? `<span class="status-pill completed" title="${g.lifecycleReason ? esc(g.lifecycleReason) : 'Killed'}">Killed</span>`
+    ? `<span class="status-pill completed" title="${esc(killedTipParts.join(' · ') || 'Killed')}">Killed</span>`
     : `<span class="status-pill ${g.status || 'placed'}">${fmtStatus(g.status)}</span>`
 
   return `

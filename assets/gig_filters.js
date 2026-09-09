@@ -33,7 +33,12 @@ export function enrichGig(g, lifecycleMap = {}) {
   const isFrozen  = lifecycle?.state === 'frozen'
   const isKilled  = lifecycle?.state === 'killed'
 
-  return { ...g, isOverdue, isMaster, isFrozen, isKilled, lifecycleReason: lifecycle?.reason || null }
+  return {
+    ...g, isOverdue, isMaster, isFrozen, isKilled,
+    lifecycleReason: lifecycle?.reason || null,
+    lifecycleBy:     lifecycle?.changed_by_name || null,
+    lifecycleAt:     lifecycle?.changed_at || null,
+  }
 }
 
 // ── SCOPE (Status: Open / Complete / All / Masters / Frozen / Killed) ───

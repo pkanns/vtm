@@ -27,7 +27,7 @@
 
 import { db } from './vtm_db.js'
 import { fetchLifecycleGigs, freezeGig, unfreezeGig, killGig,
-         freezeProjectGigs, killProjectGigs, fetchLifecycleReasons, esc } from './vtm_api.js'
+         freezeProjectGigs, killProjectGigs, fetchLifecycleReasons, fmtDate, esc } from './vtm_api.js'
 
 // ── SESSION ───────────────────────────────────────────────────────────────
 
@@ -155,12 +155,14 @@ function renderGigs() {
 function gigRowHTML(g) {
   const state    = g.lifecycle?.state || 'active'
   const reason   = g.lifecycle?.reason || ''
-  const badge    = `<span class="lifecycle-badge ${state}"${reason ? ` title="${esc(reason)}"` : ''}>${state}</span>`
+  const byWhen   = lifecycleByWhen(g.lifecycle)
+  const tipText  = [reason, byWhen].filter(Boolean).join(' · ')
+  const badge    = `<span class="lifecycle-badge ${state}"${tipText ? ` title="${esc(tipText)}"` : ''}>${state}</span>`
   const projCode = g.projects?.project_code || '—'
 
   let actions
   if (state === 'killed') {
-    actions = `<span class="killed-note">${esc(reason || 'No reason recorded')}</span>`
+    actions = `<span class="killed-note">${esc(reason || 'No reason recorded')}${byWhen ? ` <span class="killed-meta">— ${esc(byWhen)}</span>` : ''}</span>`
   } else if (state === 'frozen') {
     actions = `
       <button type="button" class="lc-btn" onclick="unfreezeRow('${g.gig_id}','${esc(g.gig_code)}')">Unfreeze</button>
@@ -180,6 +182,15 @@ function gigRowHTML(g) {
       <td>${badge}</td>
       <td>${actions}</td>
     </tr>`
+}
+
+// "by Name · 8 Sep 2026" from whatever's actually present on the row.
+function lifecycleByWhen(lifecycle) {
+  if (!lifecycle) return ''
+  const parts = []
+  if (lifecycle.changed_by_name) parts.push(`by ${lifecycle.changed_by_name}`)
+  if (lifecycle.changed_at)      parts.push(fmtDate(lifecycle.changed_at))
+  return parts.join(' · ')
 }
 
 // ── GIG ACTIONS ───────────────────────────────────────────────────────────

@@ -398,12 +398,28 @@ export async function fetchClockableGigs(db, role, userId) {
 // gig query and filter client-side; reporting consumers simply don't
 // call this at all.
 
+// Shared by fetchLifecycleMap() and fetchLifecycleGigs() — resolves each
+// row's changed_by (a user_id) to a display name in one batched query,
+// rather than duplicating the join logic in both places.
+async function _attachChangedByNames(db, rows) {
+  const userIds = [...new Set(rows.map(r => r.changed_by).filter(Boolean))]
+  if (!userIds.length) return rows
+
+  const { data: users } = await db.from('vtm_users').select('user_id, name').in('user_id', userIds)
+  const nameById = {}
+  ;(users || []).forEach(u => { nameById[u.user_id] = u.name })
+
+  return rows.map(r => ({ ...r, changed_by_name: nameById[r.changed_by] || null }))
+}
+
 export async function fetchLifecycleMap(db) {
-  const { data, error } = await db.from('gig_lifecycle').select('gig_id, state, reason')
+  const { data, error } = await db.from('gig_lifecycle').select('gig_id, state, reason, changed_by, changed_at')
   if (error) return { data: {}, error }
 
+  const withNames = await _attachChangedByNames(db, data || [])
+
   const map = {}
-  ;(data || []).forEach(r => { map[r.gig_id] = r })
+  withNames.forEach(r => { map[r.gig_id] = r })
   return { data: map, error: null }
 }
 
@@ -453,8 +469,10 @@ export async function fetchLifecycleGigs(db) {
     .in('gig_id', merged.map(g => g.gig_id))
   if (lcErr) return { data: null, error: lcErr }
 
+  const withNames = await _attachChangedByNames(db, lifecycleRows || [])
+
   const lifecycleByGig = {}
-  ;(lifecycleRows || []).forEach(r => { lifecycleByGig[r.gig_id] = r })
+  withNames.forEach(r => { lifecycleByGig[r.gig_id] = r })
 
   return { data: merged.map(g => ({ ...g, lifecycle: lifecycleByGig[g.gig_id] || null })), error: null }
 }

@@ -80,7 +80,7 @@ export function renderActionsMenu(gig, session, { variant = 'row' } = {}) {
     items.push(`<button type="button" class="gaction-item" onclick="goToEval('${gig.gig_id}')">Evaluate →</button>`)
   }
 
-  if (isTemplate && role !== 'rover') {
+  if (isTemplate && role !== 'rover' && !gig.isFrozen && !gig.isKilled) {
     items.push(`<button type="button" class="gaction-item" onclick="createFromTemplate(this,'${gig.gig_id}','${esc(gig.gig_code)}')">Create Instance</button>`)
   }
 

@@ -289,6 +289,16 @@ export async function spawnAdhocInstance(db, templateGigId) {
   const { data: template, error: tErr } = await fetchGigById(db, templateGigId)
   if (tErr || !template) return { data: null, error: tErr || new Error('Template not found') }
 
+  // Same intent as create_recurrences.py's cron check — freezing/killing
+  // a master should stop it spawning new instances, whether that spawn
+  // is automatic (the cron) or manual (this function, triggered by the
+  // "Create Instance" action). Checked live, not a synced flag — see
+  // the cron script's comment on the same check for why.
+  const { data: lifecycle } = await db.from('gig_lifecycle').select('state').eq('gig_id', templateGigId).maybeSingle()
+  if (lifecycle?.state === 'frozen' || lifecycle?.state === 'killed') {
+    return { data: null, error: new Error(`This template is ${lifecycle.state} — unfreeze it before creating a new instance`) }
+  }
+
   const { code: instanceCode, error: codeErr } =
     await generateGigCode(db, null, null, null, template.gig_code)
   if (codeErr || !instanceCode) return { data: null, error: codeErr || new Error('Could not generate instance code') }

@@ -22,6 +22,7 @@
  *  9b. TIMESHEET PINNED GIGS
  * 10. COUNTS (dashboard)
  * 11. SHARED HELPERS
+ * 12. SKILLS (skills_matrix.html)
  */
 
 // ── 1. PROJECTS ───────────────────────────────────────────────────────────
@@ -804,4 +805,159 @@ export function esc(s) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
+}
+
+// ── 12. SKILLS (skills_matrix.html) ───────────────────────────────────────
+// Tables: skill_functions > skill_themes > skills (the library),
+// skill_ratings (one row per person per skill, level 1-5), kingdomality_types,
+// strengths_themes, user_profiles (one Kingdomality type per person) and
+// user_strengths (top 5, ranked). See skills_01_schema.sql.
+//
+// Skills are retired with active:false, never deleted, so old ratings survive.
+// Clearing a rating deletes its row. No role filtering here, same convention
+// as fetchGigs(): any signed-in person can read and edit everything on the
+// Skills page; who gets to open the page is handled by dashboard_pages.
+
+/**
+ * The whole library in one call: functions, each with its themes, each with
+ * its skills (retired ones included, flagged active:false). Children come back
+ * unsorted — the page sorts by sort_order.
+ */
+export async function fetchSkillLibrary(db) {
+  return db
+    .from('skill_functions')
+    .select(`
+      function_id, name, sort_order,
+      skill_themes (
+        theme_id, name, sort_order,
+        skills ( skill_id, name, description, sort_order, active )
+      )
+    `)
+    .order('sort_order', { ascending: true })
+}
+
+/** Everyone who appears as a column in the matrix: all active users. */
+export async function fetchSkillPeople(db) {
+  return db
+    .from('vtm_users')
+    .select('user_id, name, role')
+    .eq('active', true)
+    .order('role')
+    .order('name')
+}
+
+/**
+ * Every rating, paged. The API returns at most 1000 rows per request, and
+ * people x skills will outgrow that, so this walks through in pages rather
+ * than silently cutting the matrix off.
+ */
+export async function fetchSkillRatings(db) {
+  const PAGE = 1000
+  const rows = []
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await db
+      .from('skill_ratings')
+      .select('user_id, skill_id, level')
+      .order('user_id')
+      .order('skill_id')
+      .range(from, from + PAGE - 1)
+    if (error) return { data: null, error }
+    rows.push(...(data || []))
+    if (!data || data.length < PAGE) break
+  }
+  return { data: rows, error: null }
+}
+
+export async function upsertSkillRating(db, userId, skillId, level, updatedBy) {
+  return db
+    .from('skill_ratings')
+    .upsert(
+      { user_id: userId, skill_id: skillId, level, updated_by: updatedBy || null },
+      { onConflict: 'user_id,skill_id' }
+    )
+}
+
+export async function deleteSkillRating(db, userId, skillId) {
+  return db
+    .from('skill_ratings')
+    .delete()
+    .eq('user_id', userId)
+    .eq('skill_id', skillId)
+}
+
+export async function saveSkillFunction(db, payload, id = null) {
+  if (id) return db.from('skill_functions').update(payload).eq('function_id', id).select()
+  return db.from('skill_functions').insert(payload).select()
+}
+
+export async function saveSkillTheme(db, payload, id = null) {
+  if (id) return db.from('skill_themes').update(payload).eq('theme_id', id).select()
+  return db.from('skill_themes').insert(payload).select()
+}
+
+export async function saveSkill(db, payload, id = null) {
+  if (id) return db.from('skills').update(payload).eq('skill_id', id).select()
+  return db.from('skills').insert(payload).select()
+}
+
+// Profile: Kingdomality (one type) and CliftonStrengths (top 5, ranked)
+
+export async function fetchKingdomalityTypes(db) {
+  return db
+    .from('kingdomality_types')
+    .select('type_id, name, description, sort_order')
+    .order('sort_order', { ascending: true })
+}
+
+export async function fetchStrengthsThemes(db) {
+  return db
+    .from('strengths_themes')
+    .select('theme_id, name, domain, sort_order')
+    .order('sort_order', { ascending: true })
+}
+
+export async function fetchUserProfiles(db) {
+  return db.from('user_profiles').select('user_id, kingdomality_type_id')
+}
+
+export async function fetchUserStrengths(db) {
+  return db
+    .from('user_strengths')
+    .select('user_id, theme_id, rank')
+    .order('user_id')
+    .order('rank')
+}
+
+/** typeId null clears the Kingdomality type (the row stays). */
+export async function saveUserKingdomality(db, userId, typeId) {
+  return db
+    .from('user_profiles')
+    .upsert({ user_id: userId, kingdomality_type_id: typeId || null }, { onConflict: 'user_id' })
+    .select()
+}
+
+/**
+ * Replace one person's strengths. picks = [{ theme_id, rank }, ...] with 0 to 5
+ * entries, distinct themes and distinct ranks (ranks may have gaps).
+ *
+ * Two requests, in this order on purpose: first remove themes no longer picked,
+ * then upsert the picks. Removing first frees their ranks, so a new theme can
+ * take a dropped theme's rank; the rank constraint is deferred, so picks can
+ * also swap ranks inside the single upsert statement.
+ */
+export async function saveUserStrengths(db, userId, picks) {
+  const keep = (picks || []).map(p => p.theme_id)
+
+  let del = db.from('user_strengths').delete().eq('user_id', userId)
+  if (keep.length) del = del.not('theme_id', 'in', `(${keep.join(',')})`)
+  const { error: delError } = await del
+  if (delError) return { data: null, error: delError }
+
+  if (!keep.length) return { data: [], error: null }
+
+  const rows = picks.map(p => ({ user_id: userId, theme_id: p.theme_id, rank: p.rank }))
+  return db
+    .from('user_strengths')
+    .upsert(rows, { onConflict: 'user_id,theme_id' })
+    .select()
 }

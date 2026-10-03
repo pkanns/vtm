@@ -917,7 +917,19 @@ export async function fetchStrengthsThemes(db) {
 }
 
 export async function fetchUserProfiles(db) {
-  return db.from('user_profiles').select('user_id, kingdomality_type_id')
+  return db.from('user_profiles').select('user_id, kingdomality_type_id, hidden')
+}
+
+/**
+ * Admin only (the page enforces it): hide a person from the Skills page for
+ * everyone. Only the hidden flag is sent, so an existing Kingdomality type on
+ * the same row is left alone; a person with no profile row gets one.
+ */
+export async function saveUserHidden(db, userId, hidden) {
+  return db
+    .from('user_profiles')
+    .upsert({ user_id: userId, hidden: !!hidden }, { onConflict: 'user_id' })
+    .select()
 }
 
 export async function fetchUserStrengths(db) {

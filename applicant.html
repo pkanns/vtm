@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apply · MULAI</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" href="data:image/png;base64,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">
+<link rel="apple-touch-icon" href="data:image/png;base64,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">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+<style>
+/* ============================================================
+   THEME TOKENS — fonts and colours live here
+   ============================================================ */
+:root {
+  --page:     #e8e1cb;   /* page background */
+  --card:     #f1ebda;   /* form card */
+  --field:    #e8e1cb;   /* input fill */
+  --field-line:#b5ad98;  /* input bottom border */
+  --ink:      #1c1511;   /* headlines, card border */
+  --text:     #4a4238;   /* labels */
+  --muted:    #6b6354;   /* subtitle, hints */
+  --rule:     #c9c1aa;   /* thin dividers */
+  --red:      #b02a1e;   /* accent, progress, button */
+  --red-soft: #f8ece6;
+  --green:    #2e7d32;   /* success popup */
+
+  --font-display: "Bebas Neue", Impact, "Arial Narrow", sans-serif;
+  --font-mono:    "Space Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-heading: var(--font-display);
+  --font-input:   "Space Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;  /* text typed or chosen in fields */
+}
+
+input, select, button, textarea { font-family: var(--font-mono); }
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100vh;
+  padding: 44px 20px 90px;
+  display: flex;
+  justify-content: center;
+}
+.wrap { width: 100%; max-width: 760px; }
+
+.brand {
+  font-family: var(--font-display);
+  font-size: 26px;
+  letter-spacing: .3em;
+  color: var(--ink);
+  margin: 0 0 30px;
+}
+
+h1 {
+  font-family: var(--font-heading);
+  font-weight: 400;
+  color: var(--ink);
+  font-size: clamp(46px, 9vw, 78px);
+  line-height: .95;
+  margin: 0 0 18px;
+  max-width: 11em;
+  text-transform: none;
+  font-weight: 400;
+}
+.lede {
+  font-style: italic;
+  color: var(--muted);
+  margin: 0 0 30px;
+  max-width: 46ch;
+}
+
+/* live progress rule */
+.rule { height: 3px; background: var(--rule); margin-bottom: 26px; }
+.rule span { display: block; height: 100%; width: 0; background: var(--red); transition: width .35s ease; }
+
+.card {
+  border: 2px solid var(--ink);
+  background: var(--card);
+  padding: 38px 36px 36px;
+}
+.eyebrow {
+  font-size: 12.5px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--red);
+  margin: 0 0 14px;
+}
+h2 {
+  font-family: var(--font-heading);
+  font-weight: 400;
+  color: var(--ink);
+  font-size: 34px;
+  line-height: 1.05;
+  margin: 0 0 30px;
+  text-transform: none;
+  font-weight: 400;
+}
+
+.field { margin-bottom: 28px; }
+label, .label {
+  display: block;
+  font-size: 14px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text);
+  margin-bottom: 10px;
+  line-height: 1.55;
+}
+.req { color: var(--red); }
+
+select, input[type="email"], input[type="text"]#fullName {
+  width: 100%;
+  background: var(--field);
+  color: var(--ink);
+  border: 0;
+  border-bottom: 2px solid var(--field-line);
+  border-radius: 0;
+  padding: 15px 14px;
+  font: inherit;
+  font-family: var(--font-input);
+  font-size: 16px;
+  appearance: none;
+  -webkit-appearance: none;
+}
+select {
+  padding-right: 44px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%231c1511' stroke-width='1.8' stroke-linecap='square'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  cursor: pointer;
+}
+select:invalid { color: var(--muted); }
+select option { color: #000; background: #fff; }
+input::placeholder { color: #8d8570; }
+
+select:focus-visible, input:focus-visible, .drop:focus-within, button:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 2px;
+}
+select:focus, input[type="email"]:focus, input#fullName:focus { border-bottom-color: var(--red); }
+.is-invalid { border-bottom-color: var(--red) !important; background-color: var(--red-soft) !important; }
+.drop.is-invalid { border-color: var(--red) !important; }
+
+.error { color: var(--red); font-size: 13px; margin: 8px 0 0; }
+.error:empty { display: none; }
+
+.suggest { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+.suggest button {
+  background: none; border: 0; padding: 0; color: var(--red);
+  font: inherit; text-decoration: underline; cursor: pointer;
+}
+
+/* CV upload */
+.drop {
+  display: flex; align-items: center; gap: 16px;
+  border: 1px dashed #9c937c;
+  background: var(--field);
+  padding: 16px;
+  cursor: pointer;
+}
+.drop.dragging { border-color: var(--red); background: var(--red-soft); }
+.drop input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.drop .pick {
+  flex: none;
+  border: 1px solid var(--ink);
+  color: var(--ink);
+  padding: 8px 14px;
+  font-size: 12px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.drop .name { font-family: var(--font-input); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 13.5px; }
+.drop .name.has-file { color: var(--ink); }
+
+/* shown instead of the CV box */
+.blocked {
+  border-left: 4px solid var(--red);
+  background: var(--field);
+  padding: 18px 20px;
+  margin-bottom: 28px;
+  font-style: italic;
+  color: var(--ink);
+  line-height: 1.55;
+}
+
+[hidden] { display: none !important; }
+
+button.submit {
+  width: 100%;
+  background: var(--red);
+  color: #f7efe0;
+  border: 2px solid var(--red);
+  border-radius: 0;
+  padding: 17px 18px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+button.submit:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); }
+button.submit:disabled { background: var(--rule); border-color: var(--rule); color: var(--muted); cursor: not-allowed; }
+
+.form-error { color: var(--red); font-size: 13.5px; margin: 14px 0 0; text-align: center; }
+.form-error:empty { display: none; }
+
+.done h2 { margin-bottom: 14px; }
+.done p { margin: 0 0 8px; color: var(--muted); }
+.done strong { color: var(--ink); font-weight: 700; }
+
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+.foot { margin-top: 26px; font-size: 12px; letter-spacing: .08em; color: var(--muted); }
+
+/* green success popup, bottom of the screen */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translate(-50%, 140%);
+  width: calc(100% - 32px);
+  max-width: 460px;
+  background: var(--green);
+  color: #fff;
+  padding: 18px 52px 18px 22px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+  transition: transform .4s ease;
+  z-index: 50;
+}
+.toast.show { transform: translate(-50%, 0); }
+.toast b { display: block; font-size: 16px; letter-spacing: .02em; }
+.toast span { display: block; font-size: 13.5px; opacity: .92; margin-top: 2px; }
+.toast button {
+  position: absolute; top: 10px; right: 12px;
+  background: none; border: 0; color: #fff; font-size: 22px; line-height: 1; cursor: pointer; padding: 4px 6px;
+}
+
+@media (max-width: 520px) {
+  .card { padding: 26px 18px 26px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+
+<body>
+<main class="wrap">
+  <p class="brand">MULAI</p>
+
+  <h1>Let's see if we are a fit.</h1>
+  <p class="lede">Five short questions about you and the gig-based internship. It takes about two minutes.</p>
+
+  <div class="rule" aria-hidden="true"><span id="bar"></span></div>
+
+  <section class="card">
+    <div id="formView">
+      <p class="eyebrow">Application · Gig internship</p>
+      <h2>Tell us about you</h2>
+
+      <form id="applyForm" novalidate>
+        <!-- 0 -->
+        <div class="field">
+          <label for="fullName">Full name <span class="req" aria-hidden="true">*</span></label>
+          <input type="text" id="fullName" name="full_name" autocomplete="name" maxlength="120" placeholder="Your full name" required>
+          <p class="error" id="err-name" role="alert"></p>
+        </div>
+
+        <!-- 5 -->
+        <div class="field">
+          <label for="email">Enter your email address <span class="req" aria-hidden="true">*</span></label>
+          <input type="email" id="email" name="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="254" placeholder="name@example.com" required>
+          <p class="suggest" id="emailSuggest" hidden></p>
+          <p class="error" id="err-email" role="alert"></p>
+        </div>
+
+        <!-- 1 -->
+        <div class="field">
+          <label for="location">Are you located in or willing to relocate to Coimbatore? <span class="req" aria-hidden="true">*</span></label>
+          <select id="location" name="location" required>
+            <option value="" selected disabled>Select an option</option>
+            <option value="Yes">Yes</option>
+            <option value="No">No</option>
+          </select>
+          <p class="error" id="err-location" role="alert"></p>
+        </div>
+
+        <!-- 2 -->
+        <div class="field">
+          <label for="gig">Are you willing to work on a Gig Based Model of Internship (6 months)? <span class="req" aria-hidden="true">*</span></label>
+          <select id="gig" name="gig" required>
+            <option value="" selected disabled>Select an option</option>
+            <option value="Yes">Yes</option>
+            <option value="No">No</option>
+          </select>
+          <p class="error" id="err-gig" role="alert"></p>
+        </div>
+
+        <!-- 3 -->
+        <div class="field">
+          <label for="qualification">What is your highest qualification? <span class="req" aria-hidden="true">*</span></label>
+          <select id="qualification" name="qualification" required>
+            <option value="" selected disabled>Select an option</option>
+            <option>Masters</option>
+            <option>Bachelors</option>
+            <option>Diploma</option>
+            <option>Vocational Training</option>
+            <option>None of the above</option>
+          </select>
+          <p class="error" id="err-qualification" role="alert"></p>
+        </div>
+
+        <!-- 4: CV, or the "not accepting" message -->
+        <div class="field" id="cvField" hidden>
+          <span class="label" id="cvLabel">Upload your CV <span class="req" aria-hidden="true">*</span></span>
+          <label class="drop" id="drop" style="text-transform:none;letter-spacing:0;margin-bottom:0">
+            <input type="file" id="cv" name="cv" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" aria-labelledby="cvLabel">
+            <span class="pick">Choose file</span>
+            <span class="name" id="fileName">PDF, DOC or DOCX, up to 2 MB</span>
+          </label>
+          <p class="error" id="err-cv" role="alert"></p>
+        </div>
+
+        <div class="blocked" id="blockedMsg" role="status" hidden>
+          We are not accepting CV's without certain Interest, Thanks
+        </div>
+
+        <!-- spam trap: real people never see or fill this -->
+        <div class="hp" aria-hidden="true">
+          <label for="company_website">Leave this field empty</label>
+          <input type="text" id="company_website" name="company_website" tabindex="-1" autocomplete="off">
+        </div>
+
+        <button type="submit" class="submit" id="submitBtn">Submit application</button>
+        <p class="form-error" id="formError" role="alert"></p>
+      </form>
+    </div>
+
+    <div class="done" id="doneView" hidden>
+      <p class="eyebrow">Application · Received</p>
+      <h2>Under review</h2>
+      <p>Your application is with us. We will write to <strong id="sentTo"></strong> if we would like to take it forward.</p>
+      <p>Each email address can apply only once.</p>
+    </div>
+  </section>
+
+  <p class="foot">MULAI · mulai.ch</p>
+</main>
+
+<!-- green popup -->
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <b>Submitted Successfully!</b>
+  <span>Under Review</span>
+  <button type="button" id="toastClose" aria-label="Close message">×</button>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ==========================================================
+     SETTINGS — edit SUPABASE_URL and SUPABASE_ANON_KEY (anon key only!)
+     ========================================================== */
+  var CONFIG = {
+    SUPABASE_URL: "http://localhost:8000",
+    SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzg5NDQ4MjQ4LCJleHAiOjIxMDQ4MDgyNDh9.yAdx3NRWECrx-mvMUedQ1RqwMw8cRObROJjgYp2wRGc",
+    BUCKET: "mulai-cvs",
+    MAX_MB: 2,
+    TIMEOUT_MS: 60000
+  };
+  var DUP_MSG = "This email address has already applied. Each email can apply only once.";
+  var STORE_KEY = "mulai_applied_emails";
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    form: $("applyForm"), name: $("fullName"), location: $("location"), gig: $("gig"),
+    qualification: $("qualification"), cvField: $("cvField"), cv: $("cv"),
+    fileName: $("fileName"), drop: $("drop"), blocked: $("blockedMsg"),
+    email: $("email"), suggest: $("emailSuggest"), submit: $("submitBtn"),
+    formError: $("formError"), hp: $("company_website"), bar: $("bar"),
+    formView: $("formView"), doneView: $("doneView"), sentTo: $("sentTo"),
+    toast: $("toast"), toastClose: $("toastClose")
+  };
+
+  /* ---------- eligibility ---------- */
+  function isBlocked() { return els.location.value === "No" || els.gig.value === "No"; }
+  function isEligible() { return els.location.value === "Yes" && els.gig.value === "Yes"; }
+
+  function refreshState() {
+    var blocked = isBlocked();
+    els.blocked.hidden = !blocked;
+    els.cvField.hidden = !isEligible();
+    els.submit.disabled = blocked;
+    els.submit.textContent = blocked ? "Cannot submit with this answer" : "Submit application";
+    if (blocked) {
+      els.cv.value = "";
+      setFileLabel(null);
+      showError("cv", "");
+      els.formError.textContent = "";
+    }
+    updateProgress();
+  }
+
+  function updateProgress() {
+    var total = 1, done = els.name.value.trim().length >= 2 ? 1 : 0;
+    ["location", "gig", "qualification"].forEach(function (k) { total++; if (els[k].value) done++; });
+    total++; if (els.email.value.trim() && !checkEmail(els.email.value)) done++;
+    if (isEligible()) { total++; if (els.cv.files && els.cv.files[0]) done++; }
+    els.bar.style.width = Math.round((done / total) * 100) + "%";
+  }
+
+  /* ---------- helpers ---------- */
+  function showError(key, msg) {
+    var p = $("err-" + key);
+    var input = key === "cv" ? els.drop : els[key];
+    if (p) p.textContent = msg;
+    if (input) input.classList.toggle("is-invalid", !!msg);
+  }
+  function setFileLabel(file) {
+    if (file) { els.fileName.textContent = file.name; els.fileName.classList.add("has-file"); }
+    else { els.fileName.textContent = "PDF, DOC or DOCX, up to " + CONFIG.MAX_MB + " MB"; els.fileName.classList.remove("has-file"); }
+  }
+
+  function appliedList() {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY) || "[]"); } catch (e) { return []; }
+  }
+  function rememberEmail(email) {
+    try { var l = appliedList(); if (l.indexOf(email) === -1) { l.push(email); localStorage.setItem(STORE_KEY, JSON.stringify(l)); } } catch (e) {}
+  }
+
+  /* ---------- email ---------- */
+  var EMAIL_RE = /^[A-Za-z0-9.!#$%&'*+\/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$/;
+  var TYPOS = {
+    "gmial.com": "gmail.com", "gmal.com": "gmail.com", "gamil.com": "gmail.com", "gmail.con": "gmail.com",
+    "gmail.co": "gmail.com", "gmai.com": "gmail.com", "gnail.com": "gmail.com", "gmail.cm": "gmail.com",
+    "gmail.om": "gmail.com", "gmaill.com": "gmail.com", "gmail.in": "gmail.com",
+    "yahooo.com": "yahoo.com", "yaho.com": "yahoo.com", "yahoo.con": "yahoo.com", "yahho.com": "yahoo.com",
+    "hotmial.com": "hotmail.com", "hotmal.com": "hotmail.com", "hotmail.con": "hotmail.com",
+    "outlok.com": "outlook.com", "outlook.con": "outlook.com", "outllok.com": "outlook.com",
+    "icloud.con": "icloud.com", "iclod.com": "icloud.com"
+  };
+
+  function checkEmail(raw) {
+    var v = (raw || "").trim();
+    if (!v) return "Enter your email address.";
+    if (v.length > 254) return "This email address is too long.";
+    if (/\s/.test(v)) return "Remove the spaces from the email address.";
+    var at = v.lastIndexOf("@");
+    if (at < 1) return "Add an @ and a domain, like name@example.com.";
+    var local = v.slice(0, at), domain = v.slice(at + 1);
+    if (local.length > 64) return "The part before @ is too long.";
+    if (local.charAt(0) === "." || local.charAt(local.length - 1) === "." || v.indexOf("..") !== -1) {
+      return "Remove the extra or leading/trailing dots.";
+    }
+    if (!EMAIL_RE.test(v)) return "This doesn't look like a valid email address.";
+    var tld = domain.split(".").pop();
+    if (!/^(?:[A-Za-z]{2,}|xn--[A-Za-z0-9-]+)$/.test(tld)) return "The ending of the domain (like .com) looks wrong.";
+    return "";
+  }
+
+  function updateSuggestion() {
+    var v = els.email.value.trim().toLowerCase(), at = v.lastIndexOf("@"), s = "";
+    if (at > 0 && TYPOS[v.slice(at + 1)]) s = v.slice(0, at) + "@" + TYPOS[v.slice(at + 1)];
+    if (!s) { els.suggest.hidden = true; els.suggest.textContent = ""; return; }
+    els.suggest.textContent = "Did you mean ";
+    var btn = document.createElement("button");
+    btn.type = "button"; btn.textContent = s;
+    btn.addEventListener("click", function () {
+      els.email.value = s; els.suggest.hidden = true; showError("email", ""); updateProgress();
+    });
+    els.suggest.appendChild(btn);
+    els.suggest.appendChild(document.createTextNode("?"));
+    els.suggest.hidden = false;
+  }
+
+  /* ---------- CV ---------- */
+  var ALLOWED_EXT = ["pdf", "doc", "docx"];
+  function ext(name) { var i = name.lastIndexOf("."); return i < 0 ? "" : name.slice(i + 1).toLowerCase(); }
+
+  function signatureOk(file) {
+    return new Promise(function (resolve) {
+      var r = new FileReader();
+      r.onload = function () {
+        var b = new Uint8Array(r.result), e = ext(file.name);
+        var pdf = b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46;
+        var zip = b[0] === 0x50 && b[1] === 0x4B;
+        var ole = b[0] === 0xD0 && b[1] === 0xCF && b[2] === 0x11 && b[3] === 0xE0;
+        resolve((e === "pdf" && pdf) || (e === "docx" && zip) || (e === "doc" && ole));
+      };
+      r.onerror = function () { resolve(false); };
+      r.readAsArrayBuffer(file.slice(0, 8));
+    });
+  }
+
+  function validateCv() {
+    var file = els.cv.files && els.cv.files[0];
+    if (!file) return Promise.resolve("Upload your CV.");
+    if (ALLOWED_EXT.indexOf(ext(file.name)) === -1) return Promise.resolve("Upload a PDF, DOC or DOCX file.");
+    if (file.size === 0) return Promise.resolve("This file is empty. Choose another one.");
+    if (file.size > CONFIG.MAX_MB * 1024 * 1024) return Promise.resolve("This file is over " + CONFIG.MAX_MB + " MB. Upload a smaller one.");
+    return signatureOk(file).then(function (ok) {
+      return ok ? "" : "This file looks damaged or isn't a real " + ext(file.name).toUpperCase() + ". Choose another one.";
+    });
+  }
+
+  function toBase64(file) {
+    return new Promise(function (resolve, reject) {
+      var r = new FileReader();
+      r.onload = function () { resolve(String(r.result).split(",")[1] || ""); };
+      r.onerror = function () { reject(new Error("read-failed")); };
+      r.readAsDataURL(file);
+    });
+  }
+
+  /* ---------- events ---------- */
+  els.name.addEventListener("input", function () { showError("name", ""); updateProgress(); });
+  els.location.addEventListener("change", function () { showError("location", ""); refreshState(); });
+  els.gig.addEventListener("change", function () { showError("gig", ""); refreshState(); });
+  els.qualification.addEventListener("change", function () { showError("qualification", ""); updateProgress(); });
+
+  els.email.addEventListener("input", function () { showError("email", ""); updateSuggestion(); updateProgress(); });
+  els.email.addEventListener("blur", function () {
+    els.email.value = els.email.value.trim();
+    var m = els.email.value ? checkEmail(els.email.value) : "";
+    if (els.email.value) showError("email", m);
+    updateSuggestion();
+    // live duplicate check as soon as the email is entered
+    if (els.email.value && !m && CONFIG.SUPABASE_URL.indexOf("PASTE_YOUR") === -1) {
+      var em = els.email.value.toLowerCase();
+      fetch(CONFIG.SUPABASE_URL.replace(/\/+$/, "") + "/rest/v1/rpc/mulai_email_exists", {
+        method: "POST", headers: sbHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ p_email: em })
+      }).then(function (r) { return r.ok ? r.json() : false; })
+        .then(function (x) { if (x === true && els.email.value.toLowerCase() === em) showError("email", DUP_MSG); })
+        .catch(function () {});
+    }
+  });
+
+  els.cv.addEventListener("change", function () {
+    var f = els.cv.files && els.cv.files[0];
+    setFileLabel(f || null);
+    if (!f) { showError("cv", ""); updateProgress(); return; }
+    validateCv().then(function (msg) {
+      showError("cv", msg);
+      if (msg) { els.cv.value = ""; setFileLabel(null); }
+      updateProgress();
+    });
+  });
+
+  ["dragenter", "dragover"].forEach(function (t) {
+    els.drop.addEventListener(t, function (e) { e.preventDefault(); els.drop.classList.add("dragging"); });
+  });
+  ["dragleave", "drop"].forEach(function (t) {
+    els.drop.addEventListener(t, function (e) { e.preventDefault(); els.drop.classList.remove("dragging"); });
+  });
+  els.drop.addEventListener("drop", function (e) {
+    var files = e.dataTransfer && e.dataTransfer.files;
+    if (!files || !files.length) return;
+    try {
+      var dt = new DataTransfer();
+      dt.items.add(files[0]);
+      els.cv.files = dt.files;
+      els.cv.dispatchEvent(new Event("change"));
+    } catch (err) { /* the Choose file button still works */ }
+  });
+
+  els.toastClose.addEventListener("click", function () { els.toast.classList.remove("show"); });
+
+  /* ---------- submit ---------- */
+  var sending = false;
+
+  els.form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (sending || isBlocked()) return;
+    els.formError.textContent = "";
+
+    var firstBad = null;
+    function bad(key, msg) { showError(key, msg); if (!firstBad) firstBad = key; }
+
+    ["location", "gig", "qualification"].forEach(function (k) {
+      if (!els[k].value) bad(k, "Select an option."); else showError(k, "");
+    });
+
+    var nm = els.name.value.trim().replace(/\s+/g, " ");
+    if (nm.length < 2) bad("name", "Enter your full name."); else showError("name", "");
+
+    var emailMsg = checkEmail(els.email.value);
+    if (emailMsg) bad("email", emailMsg);
+    else if (appliedList().indexOf(els.email.value.trim().toLowerCase()) !== -1) bad("email", DUP_MSG);
+    else showError("email", "");
+
+    validateCv().then(function (cvMsg) {
+      if (cvMsg) bad("cv", cvMsg); else showError("cv", "");
+
+      if (firstBad) {
+        var target = firstBad === "cv" ? els.drop : els[firstBad];
+        if (target && target.scrollIntoView) target.scrollIntoView({ block: "center" });
+        var focusEl = firstBad === "cv" ? els.cv : els[firstBad];
+        if (focusEl && focusEl.focus) focusEl.focus({ preventScroll: true });
+        return;
+      }
+
+      // Spam trap: bots fill the hidden field. Pretend success, send nothing.
+      if (els.hp.value) { showSuccess(els.email.value.trim()); return; }
+
+      if (CONFIG.SUPABASE_URL.indexOf("PASTE_YOUR") !== -1 || CONFIG.SUPABASE_ANON_KEY.indexOf("PASTE_YOUR") !== -1) {
+        els.formError.textContent = "This form is not connected yet. Please email us instead.";
+        return;
+      }
+      send();
+    });
+  });
+
+  function setSending(on) {
+    sending = on;
+    els.submit.disabled = on;
+    els.submit.textContent = on ? "Sending…" : "Submit application";
+  }
+
+  function sbHeaders(extra) {
+    var h = { apikey: CONFIG.SUPABASE_ANON_KEY, Authorization: "Bearer " + CONFIG.SUPABASE_ANON_KEY };
+    for (var k in extra) h[k] = extra[k];
+    return h;
+  }
+  function dupError() { var e = new Error("duplicate"); e.duplicate = true; return e; }
+  var MIME = { pdf: "application/pdf", doc: "application/msword",
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" };
+
+  function send() {
+    setSending(true);
+    var file = els.cv.files[0];
+    var email = els.email.value.trim().toLowerCase();
+    var fullName = els.name.value.trim().replace(/\s+/g, " ");
+    var cvPath = (window.crypto && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2)) + "." + ext(file.name);
+
+    var ctrl = new AbortController();
+    var timer = setTimeout(function () { ctrl.abort(); }, CONFIG.TIMEOUT_MS);
+    var base = CONFIG.SUPABASE_URL.replace(/\/+$/, "");
+
+    // 1) check the email first, so no CV is uploaded for a duplicate
+    fetch(base + "/rest/v1/rpc/mulai_email_exists", {
+      method: "POST", headers: sbHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ p_email: email }), signal: ctrl.signal
+    }).then(function (res) {
+      if (!res.ok) throw new Error("check-" + res.status);
+      return res.json();
+    }).then(function (exists) {
+      if (exists === true) throw dupError();
+      // 2) upload the CV
+      return fetch(base + "/storage/v1/object/" + CONFIG.BUCKET + "/" + cvPath, {
+        method: "POST", headers: sbHeaders({ "Content-Type": MIME[ext(file.name)], "x-upsert": "false" }),
+        body: file, signal: ctrl.signal
+      }).then(function (res) { if (!res.ok) throw new Error("upload-" + res.status); });
+    }).then(function () {
+      // 3) save the application (unique email index is the final guard)
+      return fetch(base + "/rest/v1/mulai_applications", {
+        method: "POST", headers: sbHeaders({ "Content-Type": "application/json", Prefer: "return=minimal" }),
+        body: JSON.stringify({
+          full_name: fullName, email: email, location: els.location.value,
+          gig: els.gig.value, qualification: els.qualification.value, cv_path: cvPath
+        }), signal: ctrl.signal
+      }).then(function (res) {
+        if (res.status === 409) throw dupError();
+        if (!res.ok) throw new Error("insert-" + res.status);
+      });
+    }).then(function () {
+      clearTimeout(timer);
+      rememberEmail(email);
+      showSuccess(email);
+    }).catch(function (err) {
+      clearTimeout(timer);
+      setSending(false);
+      refreshState();
+      if (err && err.duplicate) {
+        rememberEmail(email);
+        showError("email", DUP_MSG);
+        els.email.focus();
+        return;
+      }
+      els.formError.textContent = "We could not send your application. Check your connection and try again.";
+    });
+  }
+
+  var toastTimer;
+  function showSuccess(email) {
+    els.sentTo.textContent = email;
+    els.formView.hidden = true;
+    els.doneView.hidden = false;
+    els.bar.style.width = "100%";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    els.toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { els.toast.classList.remove("show"); }, 9000);
+  }
+
+  refreshState();
+})();
+</script>
+</body>
+</html>

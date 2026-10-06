@@ -1,155 +1,165 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="robots" content="noindex">
-  <title>Join us · Mulai</title>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Special+Elite&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/vtm_2.css">
-  <style>
-    nav { background: var(--black); border-bottom: 3px solid var(--red); display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 52px; }
-    .nav-brand { font-family: var(--font-display); font-size: 22px; color: var(--white); letter-spacing: 0.12em; text-decoration: none; }
-    .nav-back { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(240,234,216,0.45); text-decoration: none; }
-    .nav-back:hover { color: var(--white); }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Join us · Mulai</title>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&family=Special+Elite&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root { --card:#f0ead8; --card2:#e8e0c8; --ink:#1a1410; --red:#b5201a; --faded:#6b5f4e; --hole:#c8bfa8; --green:#1e4d2b; }
+body { background: var(--card); color: var(--ink); font-family: 'Courier Prime', monospace; font-size: 15px; line-height: 1.6; min-height: 100vh; display: flex; flex-direction: column; }
 
-    .ap-wrap { max-width: 720px; margin: 0 auto; padding: 40px 24px 80px; }
-    .ap-h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(2.8rem, 8vw, 4.6rem); line-height: 0.92; letter-spacing: 0.03em; }
-    .ap-lede { font-style: italic; color: var(--stone); font-size: 13px; max-width: 52ch; margin: 12px 0 28px; line-height: 1.8; }
+/* NAV, PUNCH STRIP, FOOTER: identical to login.html */
+nav { background: var(--ink); border-bottom: 3px solid var(--red); display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 52px; }
+.nav-brand { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--card); letter-spacing: 0.12em; text-decoration: none; }
+.nav-back { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(240,234,216,0.35); text-decoration: none; transition: color 0.2s; }
+.nav-back:hover { color: var(--card); }
+.punch-strip { background: var(--card2); border-bottom: 2px solid var(--ink); padding: 10px 0; display: flex; align-items: center; overflow: hidden; position: relative; }
+.punch-strip::before, .punch-strip::after { content: ''; position: absolute; top: 0; bottom: 0; width: 48px; z-index: 2; }
+.punch-strip::before { left: 0; background: linear-gradient(to right, var(--card2), transparent); }
+.punch-strip::after { right: 0; background: linear-gradient(to left, var(--card2), transparent); }
+.punch-holes { display: flex; gap: 18px; padding: 0 24px; animation: scroll-holes 45s linear infinite; white-space: nowrap; flex-shrink: 0; }
+.punch-holes-2 { animation-delay: -22.5s; }
+@keyframes scroll-holes { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+.hole { width: 18px; height: 28px; border-radius: 3px; border: 1.5px solid rgba(26,20,16,0.25); flex-shrink: 0; position: relative; }
+.hole.punched { background: var(--ink); border-color: var(--ink); }
+.hole.punched::after { content: ''; position: absolute; inset: 2px; background: rgba(255,255,255,0.06); border-radius: 1px; }
+footer { background: var(--ink); border-top: 3px solid var(--red); padding: 16px 48px; display: flex; align-items: center; justify-content: space-between; }
+.footer-brand { font-family: 'Bebas Neue', sans-serif; font-size: 16px; color: rgba(240,234,216,0.4); letter-spacing: 0.1em; }
+.footer-note { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(240,234,216,0.15); }
 
-    .ap-body { padding: 28px 32px 32px; }
-    .ap-title { font-family: var(--font-display); font-size: 1.7rem; letter-spacing: 0.03em; margin-bottom: 22px; }
-    .ap-field { margin-bottom: 22px; }
-    .ap-field > label, .ap-label { display: block; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--stone); margin-bottom: 7px; line-height: 1.5; }
-    .ap-req { color: var(--red); }
-    .ap-field input[type=text], .ap-field input[type=email], .ap-field select {
-      width: 100%; padding: 11px 12px; background: var(--light); color: var(--black); border: none;
-      border-bottom: 2px solid var(--hole); border-radius: 0; font-family: var(--font-body); font-size: 14px; outline: none; transition: border-color 0.2s;
-    }
-    .ap-field input:focus, .ap-field select:focus { border-bottom-color: var(--red); }
-    .ap-field .invalid { border-bottom-color: var(--red); background: #f3ddd0; }
-    .ap-error { color: var(--red); font-size: 12px; margin-top: 6px; }
-    .ap-error:empty, .ap-status:empty { display: none; }
-    .ap-suggest { font-size: 12px; color: var(--stone); margin-top: 6px; }
-    .ap-suggest button { background: none; border: 0; padding: 0; color: var(--red); font: inherit; text-decoration: underline; cursor: pointer; }
+main { flex: 1; max-width: 620px; width: 100%; margin: 0 auto; padding: 40px 24px 60px; }
+.id-status { display: flex; align-items: center; gap: 8px; font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--faded); margin-bottom: 18px; }
+.id-status .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--red); }
+.id-headline { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2.4rem, 7vw, 3.6rem); line-height: 0.96; letter-spacing: 0.02em; margin-bottom: 14px; }
+.id-headline .red { color: var(--red); }
+.id-sub { font-style: italic; font-size: 13px; line-height: 1.85; color: var(--faded); max-width: 46ch; margin-bottom: 26px; }
 
-    .ap-drop { display: flex; align-items: center; gap: 14px; border: 1px dashed var(--stone); background: var(--light); padding: 14px; cursor: pointer; }
-    .ap-drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
-    .ap-drop:focus-within { outline: 2px solid var(--red); outline-offset: 2px; }
-    .ap-drop.invalid { border-color: var(--red); }
-    .ap-pick { flex: none; border: 1px solid var(--black); padding: 6px 12px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; }
-    #fileName { font-size: 13px; color: var(--stone); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    #fileName.has-file { color: var(--black); }
+/* CARD: same as login's auth-card */
+.auth-card { background: var(--card2); border: 2px solid var(--ink); border-top: 3px solid var(--red); padding: 32px; }
+.auth-title { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; letter-spacing: 0.03em; line-height: 1; margin-bottom: 6px; }
+.auth-sub { font-style: italic; font-size: 12px; color: var(--faded); margin-bottom: 24px; line-height: 1.6; }
+.ap-field { margin-bottom: 18px; }
+.ap-field > label, .ap-label { display: block; font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--faded); border-bottom: 1px solid var(--faded); padding-bottom: 4px; margin-bottom: 8px; line-height: 1.6; }
+.ap-req { color: var(--red); }
+.ap-field input[type=text], .ap-field input[type=email], .ap-field select { width: 100%; padding: 11px 12px; background: var(--card); border: 1.5px solid var(--ink); border-radius: 0; font-family: 'Courier Prime', monospace; font-size: 14px; color: var(--ink); outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
+.ap-field select { cursor: pointer; }
+.ap-field input:focus, .ap-field select:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(181,32,26,0.12); }
+.ap-field input::placeholder { color: var(--hole); }
+.ap-field .invalid { border-color: var(--red); background: #f3ddd0; }
+.ap-error { color: var(--red); font-size: 12px; margin-top: 6px; }
+.ap-error:empty, .ap-status:empty { display: none; }
+.ap-suggest { font-size: 12px; color: var(--faded); margin-top: 6px; }
+.ap-suggest button { background: none; border: 0; padding: 0; color: var(--red); font: inherit; text-decoration: underline; cursor: pointer; }
 
-    .ap-blocked { border-left: 4px solid var(--red); background: var(--light); padding: 16px 18px; margin-bottom: 22px; font-style: italic; }
+.ap-drop { display: flex; align-items: center; gap: 14px; border: 1.5px dashed var(--faded); background: var(--card); padding: 12px; cursor: pointer; text-transform: none; letter-spacing: 0; border-bottom: 1.5px dashed var(--faded); font-family: 'Courier Prime', monospace; font-size: 13px; color: inherit; margin: 0; }
+.ap-drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.ap-drop:focus-within { outline: 2px solid var(--red); outline-offset: 2px; }
+.ap-drop.invalid { border-color: var(--red); }
+.ap-pick { flex: none; border: 1.5px solid var(--ink); padding: 6px 12px; font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; }
+#fileName { color: var(--faded); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#fileName.has-file { color: var(--ink); }
+.ap-blocked { border-left: 3px solid var(--red); background: var(--card); padding: 14px 16px; margin-bottom: 18px; font-style: italic; font-size: 13px; }
 
-    .ap-submit { width: 100%; background: var(--red); color: var(--white); border: none; padding: 14px; font-family: var(--font-display); font-size: 1.15rem; letter-spacing: 0.1em; cursor: pointer; transition: background 0.2s; }
-    .ap-submit:hover:not(:disabled) { background: var(--black); }
-    .ap-submit:disabled { background: var(--hole); color: var(--stone); cursor: not-allowed; }
-    .ap-status { margin-top: 12px; font-size: 13px; text-align: center; }
-    .ap-status.err { color: var(--red); }
-
-    .ap-done p { color: var(--stone); margin-top: 10px; font-size: 14px; }
-    .ap-done strong { color: var(--black); }
-    .ap-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
-    [hidden] { display: none !important; }
-    button:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
-
-    @media (max-width: 640px) { nav { padding: 0 20px; } .ap-body { padding: 22px 18px 26px; } }
-    @media (prefers-reduced-motion: reduce) { .punch-holes { animation: none; } }
-  </style>
+.ap-submit { width: 100%; font-family: 'Bebas Neue', sans-serif; font-size: 1.05rem; letter-spacing: 0.08em; color: var(--card); background: var(--ink); border: 2px solid var(--ink); padding: 12px 24px; cursor: pointer; margin-top: 6px; transition: background 0.2s, border-color 0.2s; }
+.ap-submit:hover:not(:disabled) { background: var(--red); border-color: var(--red); }
+.ap-submit:disabled { opacity: 0.55; cursor: not-allowed; }
+.ap-status { margin-top: 12px; font-size: 13px; text-align: center; }
+.ap-status.err { color: var(--red); }
+.ap-done p { color: var(--faded); font-size: 14px; margin-top: 10px; }
+.ap-done strong { color: var(--ink); }
+.ap-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+[hidden] { display: none !important; }
+button:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+@media (max-width: 640px) { nav { padding: 0 20px; } footer { flex-direction: column; gap: 8px; padding: 16px 20px; text-align: center; } .auth-card { padding: 24px 18px; } }
+@media (prefers-reduced-motion: reduce) { .punch-holes { animation: none; } }
+</style>
 </head>
 <body>
 
 <nav>
   <a href="index.html" class="nav-brand">MULAI</a>
-  <a href="index.html" class="nav-back">&larr; Home</a>
+  <a href="index.html" class="nav-back">← Home</a>
 </nav>
 <div class="punch-strip" id="topStrip"></div>
 
-<main class="ap-wrap">
-  <h1 class="ap-h1">Let's see if we are a fit.</h1>
-  <p class="ap-lede">Five short questions about you and the gig-based internship, then your CV. It takes about two minutes.</p>
+<main>
+  <div class="id-status"><span class="dot"></span> Awaiting application · <span id="apClock">——:——</span></div>
+  <h1 class="id-headline">Let's see if<br>we are a <span class="red">fit.</span></h1>
+  <p class="id-sub">Five short questions about you and the gig-based internship, then your CV. It takes about two minutes.</p>
 
-  <div class="punch-card">
-    <div class="entry-card-header">
-      <div class="pc-field"><div class="pc-label">Applicant</div><div class="pc-val typed">You</div></div>
-      <div class="pc-field"><div class="pc-label">Gig</div><div class="pc-val typed">Internship, 6 months</div></div>
-      <div class="pc-field"><div class="pc-label">Time In</div><div class="pc-val red typed" id="apClock">——:——</div></div>
+  <div class="auth-card">
+    <div id="formView">
+      <div class="auth-title">Join Us</div>
+      <div class="auth-sub">Tell us a little about you.</div>
+
+      <form id="applyForm" novalidate>
+        <div class="ap-field">
+          <label for="fullName">Full name <span class="ap-req">*</span></label>
+          <input type="text" id="fullName" autocomplete="name" maxlength="120" placeholder="Your full name">
+          <p class="ap-error" id="err-name" role="alert"></p>
+        </div>
+        <div class="ap-field">
+          <label for="email">Email address <span class="ap-req">*</span></label>
+          <input type="email" id="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="254" placeholder="name@example.com">
+          <p class="ap-suggest" id="emailSuggest" hidden></p>
+          <p class="ap-error" id="err-email" role="alert"></p>
+        </div>
+        <div class="ap-field">
+          <label for="location">Are you located in, or willing to relocate to, Coimbatore? <span class="ap-req">*</span></label>
+          <select id="location"><option value="" selected disabled>Select an option</option><option>Yes</option><option>No</option></select>
+          <p class="ap-error" id="err-location" role="alert"></p>
+        </div>
+        <div class="ap-field">
+          <label for="gig">Are you willing to work on a gig-based model of internship (6 months)? <span class="ap-req">*</span></label>
+          <select id="gig"><option value="" selected disabled>Select an option</option><option>Yes</option><option>No</option></select>
+          <p class="ap-error" id="err-gig" role="alert"></p>
+        </div>
+        <div class="ap-field">
+          <label for="qualification">What is your highest qualification? <span class="ap-req">*</span></label>
+          <select id="qualification">
+            <option value="" selected disabled>Select an option</option>
+            <option>Masters</option><option>Bachelors</option><option>Diploma</option>
+            <option>Vocational Training</option><option>None of the above</option>
+          </select>
+          <p class="ap-error" id="err-qualification" role="alert"></p>
+        </div>
+        <div class="ap-field" id="cvField" hidden>
+          <span class="ap-label" id="cvLabel">Your CV <span class="ap-req">*</span></span>
+          <label class="ap-drop" id="drop">
+            <input type="file" id="cv" accept=".pdf,.doc,.docx" aria-labelledby="cvLabel">
+            <span class="ap-pick">Choose file</span>
+            <span id="fileName">PDF, DOC or DOCX, up to 2 MB</span>
+          </label>
+          <p class="ap-error" id="err-cv" role="alert"></p>
+        </div>
+
+        <div class="ap-blocked" id="blockedMsg" role="status" hidden></div>
+
+        <div class="ap-hp" aria-hidden="true">
+          <label for="company_website">Leave this field empty</label>
+          <input type="text" id="company_website" tabindex="-1" autocomplete="off">
+        </div>
+
+        <button type="submit" class="ap-submit" id="submitBtn">Send application →</button>
+        <p class="ap-status" id="formStatus" role="status"></p>
+      </form>
     </div>
 
-    <div class="ap-body">
-      <div id="formView">
-        <div class="ap-title">Tell us about you</div>
-
-        <form id="applyForm" novalidate>
-          <div class="ap-field">
-            <label for="fullName">Full name <span class="ap-req">*</span></label>
-            <input type="text" id="fullName" autocomplete="name" maxlength="120" placeholder="Your full name">
-            <p class="ap-error" id="err-name" role="alert"></p>
-          </div>
-
-          <div class="ap-field">
-            <label for="email">Email address <span class="ap-req">*</span></label>
-            <input type="email" id="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="254" placeholder="name@example.com">
-            <p class="ap-suggest" id="emailSuggest" hidden></p>
-            <p class="ap-error" id="err-email" role="alert"></p>
-          </div>
-
-          <div class="ap-field">
-            <label for="location">Are you located in, or willing to relocate to, Coimbatore? <span class="ap-req">*</span></label>
-            <select id="location"><option value="" selected disabled>Select an option</option><option>Yes</option><option>No</option></select>
-            <p class="ap-error" id="err-location" role="alert"></p>
-          </div>
-
-          <div class="ap-field">
-            <label for="gig">Are you willing to work on a gig-based model of internship (6 months)? <span class="ap-req">*</span></label>
-            <select id="gig"><option value="" selected disabled>Select an option</option><option>Yes</option><option>No</option></select>
-            <p class="ap-error" id="err-gig" role="alert"></p>
-          </div>
-
-          <div class="ap-field">
-            <label for="qualification">What is your highest qualification? <span class="ap-req">*</span></label>
-            <select id="qualification">
-              <option value="" selected disabled>Select an option</option>
-              <option>Masters</option><option>Bachelors</option><option>Diploma</option>
-              <option>Vocational Training</option><option>None of the above</option>
-            </select>
-            <p class="ap-error" id="err-qualification" role="alert"></p>
-          </div>
-
-          <div class="ap-field" id="cvField" hidden>
-            <span class="ap-label" id="cvLabel">Your CV <span class="ap-req">*</span></span>
-            <label class="ap-drop" id="drop" style="text-transform:none;letter-spacing:0;font-family:var(--font-body);font-size:inherit;margin:0;color:inherit">
-              <input type="file" id="cv" accept=".pdf,.doc,.docx" aria-labelledby="cvLabel">
-              <span class="ap-pick">Choose file</span>
-              <span id="fileName">PDF, DOC or DOCX, up to 2 MB</span>
-            </label>
-            <p class="ap-error" id="err-cv" role="alert"></p>
-          </div>
-
-          <div class="ap-blocked" id="blockedMsg" role="status" hidden>
-            We are not accepting CVs without a certain interest. Thanks for looking.
-          </div>
-
-          <div class="ap-hp" aria-hidden="true">
-            <label for="company_website">Leave this field empty</label>
-            <input type="text" id="company_website" tabindex="-1" autocomplete="off">
-          </div>
-
-          <button type="submit" class="ap-submit" id="submitBtn">Send application</button>
-          <p class="ap-status" id="formStatus" role="status"></p>
-        </form>
-      </div>
-
-      <div class="ap-done" id="doneView" hidden>
-        <div class="ap-title">Application received</div>
-        <p>It is with us now. We will write to <strong id="sentTo"></strong> if we would like to take it forward.</p>
-        <p>Each email address can apply only once.</p>
-      </div>
+    <div class="ap-done" id="doneView" hidden>
+      <div class="auth-title">Application received</div>
+      <p>It is with us now. We will write to <strong id="sentTo"></strong> if we would like to take it forward.</p>
+      <p>Each email address can apply only once.</p>
     </div>
   </div>
 </main>
+
+<footer>
+  <div class="footer-brand">MULAI</div>
+  <div class="footer-note">Mulai · Built with intention · Early access</div>
+</footer>
 
 <script type="module" src="assets/applicant.js"></script>
 </body>

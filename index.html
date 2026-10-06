@@ -4,1200 +4,312 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mulai · Work, kept honestly</title>
-  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&family=Special+Elite&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <meta name="description" content="Mulai runs gig work from project to weekly reflection: gigs, tasks, timesheets, plans, reports and skills in one place.">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Special+Elite&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/vtm_2.css">
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --card:    #f0ead8;
-      --card2:   #e8e0c8;
-      --ink:     #1a1410;
-      --red:     #b5201a;
-      --faded:   #6b5f4e;
-      --hole:    #c8bfa8;
-      --punch:   rgba(26,20,16,0.85);
-      --green:   #1e4d2b;
-    }
-
     html { scroll-behavior: smooth; }
+    body { background: var(--white); overflow-x: hidden; }
+    .wrap { max-width: 1100px; margin: 0 auto; }
+    .label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--stone); margin-bottom: 6px; }
+    .h2 { font-family: var(--font-display); font-size: clamp(1.9rem, 3.6vw, 3rem); letter-spacing: 0.05em; line-height: 1; margin-bottom: 24px; }
+    .btn { display: inline-block; font-family: var(--font-display); font-size: 1.1rem; letter-spacing: 0.1em; padding: 13px 32px; text-decoration: none; border: 2px solid var(--black); transition: background 0.2s, color 0.2s, border-color 0.2s; }
+    .btn.solid { background: var(--black); color: var(--white); }
+    .btn.solid:hover { background: var(--red); border-color: var(--red); }
+    .btn.line { color: var(--black); }
+    .btn.line:hover { background: var(--black); color: var(--white); }
+    a:focus-visible { outline: 2px solid var(--red); outline-offset: 3px; }
 
-    body {
-      background: var(--card);
-      color: var(--ink);
-      font-family: 'Courier Prime', monospace;
-      font-size: 15px;
-      line-height: 1.6;
-      overflow-x: hidden;
-    }
+    nav { background: var(--black); border-bottom: 3px solid var(--red); display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 52px; position: sticky; top: 0; z-index: 100; }
+    .nav-brand { font-family: var(--font-display); font-size: 22px; color: var(--white); letter-spacing: 0.12em; text-decoration: none; }
+    .nav-links { display: flex; gap: 26px; list-style: none; }
+    .nav-links a { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(240,234,216,0.45); text-decoration: none; }
+    .nav-links a:hover { color: var(--white); }
+    .nav-right { display: flex; gap: 10px; }
+    .nav-btn { font-family: var(--font-mono); font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; padding: 7px 16px; text-decoration: none; border: 1px solid var(--white); color: var(--white); }
+    .nav-btn.fill { background: var(--white); color: var(--black); }
+    .nav-btn:hover { background: var(--red); border-color: var(--red); color: var(--white); }
 
-    /* ── PUNCH HOLES ROW ────────────────────────────────────────────── */
-    .punch-strip {
-      background: var(--card2);
-      border-top: 2px solid var(--ink);
-      border-bottom: 2px solid var(--ink);
-      padding: 10px 0;
-      display: flex;
-      align-items: center;
-      gap: 0;
-      overflow: hidden;
-      position: relative;
-    }
-    .punch-strip::before,
-    .punch-strip::after {
-      content: '';
-      position: absolute;
-      top: 0; bottom: 0;
-      width: 48px;
-      z-index: 2;
-    }
-    .punch-strip::before { left: 0;  background: linear-gradient(to right, var(--card2), transparent); }
-    .punch-strip::after  { right: 0; background: linear-gradient(to left,  var(--card2), transparent); }
+    /* HERO */
+    .hero { position: relative; overflow: hidden; border-bottom: 3px solid var(--black); }
+    .hero-stamp { position: absolute; top: 30px; right: 50px; font-family: var(--font-display); font-size: clamp(120px, 18vw, 240px); line-height: 0.85; color: transparent; -webkit-text-stroke: 2px rgba(181,32,26,0.12); pointer-events: none; user-select: none; }
+    .hero-form { position: relative; padding: 48px 60px 0; }
+    .card-header { display: flex; gap: 40px; flex-wrap: wrap; margin-bottom: 34px; }
+    .card-field-label { font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--stone); border-bottom: 1px solid var(--stone); padding-bottom: 2px; margin-bottom: 4px; }
+    .card-field-val { font-weight: 700; font-size: 13px; }
+    .card-field-val.typed { font-family: 'Special Elite', cursive; font-weight: 400; font-size: 14px; color: var(--red); }
+    .hero h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(3.8rem, 9vw, 9rem); line-height: 0.88; letter-spacing: 0.04em; margin-bottom: 14px; }
+    .hero h1 .ghost { color: transparent; -webkit-text-stroke: 2px var(--black); }
+    .hero h1 .red { color: var(--red); }
+    .hero-sub { font-style: italic; font-size: 13px; color: var(--stone); max-width: 560px; line-height: 1.9; margin-bottom: 26px; }
+    .hero-cta { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 44px; }
+    .hero .register-grid { margin: 0 -60px; border-left: 2px solid var(--black); }
+    .register-cell .blank { display: block; height: 22px; border-bottom: 1px solid rgba(107,95,78,0.35); }
 
-    .punch-holes {
-      display: flex;
-      gap: 18px;
-      padding: 0 24px;
-      animation: drift-left 70s linear infinite;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-    .punch-holes-2 {
-      animation: drift-left 70s linear infinite;
-      animation-delay: -35s;
-    }
-    .punch-strip.reverse .punch-holes   { animation-name: drift-right; }
-    .punch-strip.reverse .punch-holes-2 { animation-name: drift-right; animation-delay: -35s; }
-    @keyframes drift-left  { from { transform: translateX(0); }    to { transform: translateX(-100%); } }
-    @keyframes drift-right { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+    /* ARGUMENT */
+    .argument { background: var(--black); padding: 80px 60px; color: var(--white); }
+    .argument .label { color: rgba(240,234,216,0.3); }
+    .argument-in { display: grid; grid-template-columns: 1fr 1fr; gap: 70px; align-items: start; }
+    .arg-p { font-size: 14px; line-height: 2; color: rgba(240,234,216,0.55); margin-bottom: 18px; }
+    .arg-p strong { color: var(--white); }
+    .chain { margin-top: 30px; border: 1px solid rgba(240,234,216,0.12); padding: 22px; }
+    .chain div { display: flex; align-items: center; gap: 14px; font-size: 12px; color: rgba(240,234,216,0.45); font-style: italic; padding: 5px 0; }
+    .chain div::before { content: ''; width: 10px; height: 18px; border-radius: 2px; background: rgba(240,234,216,0.75); flex-shrink: 0; }
+    .chain div:last-child::before { background: var(--red); }
 
-    .hole {
-      width: 18px; height: 28px;
-      border-radius: 3px;
-      border: 1.5px solid rgba(26,20,16,0.25);
-      flex-shrink: 0;
-      position: relative;
-    }
-    .hole.punched {
-      background: var(--ink);
-      border-color: var(--ink);
-    }
-    .hole.punched::after {
-      content: '';
-      position: absolute;
-      inset: 2px;
-      background: rgba(255,255,255,0.06);
-      border-radius: 1px;
-    }
+    /* ROLES */
+    .roles { background: var(--light); padding: 80px 60px; border-bottom: 3px solid var(--black); }
+    .roles-grid { display: grid; grid-template-columns: repeat(3, 1fr); border: 2px solid var(--black); background: var(--white); margin-top: 30px; }
+    .role { padding: 28px 24px; border-right: 2px solid var(--black); display: flex; flex-direction: column; }
+    .role:last-child { border-right: none; background: var(--light); }
+    .role-name { font-family: var(--font-display); font-size: 2rem; letter-spacing: 0.08em; }
+    .role-name.red { color: var(--red); } .role-name.grn { color: var(--green); }
+    .role-who { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--stone); margin-bottom: 16px; }
+    .role p { font-size: 13px; color: var(--stone); line-height: 1.85; margin-bottom: 14px; }
+    .role ul { list-style: none; margin-bottom: 18px; }
+    .role li { font-family: var(--font-mono); font-size: 10px; color: var(--stone); padding: 2px 0; display: flex; gap: 8px; }
+    .role li::before { content: '▪'; color: var(--hole); }
+    .role .btn { margin-top: auto; align-self: flex-start; padding: 10px 24px; font-size: 1rem; }
 
-    /* ── NAV ───────────────────────────────────────────────────────── */
-    nav {
-      background: var(--ink);
-      border-bottom: 3px solid var(--red);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 48px;
-      height: 52px;
-      position: sticky; top: 0; z-index: 100;
-    }
-    .nav-brand {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 22px;
-      color: var(--card);
-      letter-spacing: 0.12em;
-      text-decoration: none;
-    }
-    .nav-brand .sep { color: var(--red); }
-    .nav-links { display: flex; gap: 28px; list-style: none; }
-    .nav-links a {
-      font-family: 'DM Mono', monospace;
-      font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
-      color: rgba(240,234,216,0.35); text-decoration: none; transition: color 0.2s;
-    }
-    .nav-links a:hover { color: var(--card); }
-    .nav-login {
-      font-family: 'DM Mono', monospace;
-      font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase;
-      color: var(--ink); background: var(--card);
-      padding: 7px 18px; text-decoration: none; transition: background 0.2s;
-    }
-    .nav-login:hover { background: #fff; }
-
-    @media (max-width: 640px) {
-      nav { padding: 0 20px; }
-      .nav-links { display: none; }
-    }
-
-    /* ── HERO ──────────────────────────────────────────────────────── */
-    .hero {
-      background: var(--card);
-      border-bottom: 3px solid var(--ink);
-      padding: 0;
-      position: relative;
-      overflow: hidden;
-    }
-
-    /* Big stamp — IN */
-    .hero-stamp {
-      position: absolute;
-      top: 40px; right: 60px;
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(120px, 18vw, 240px);
-      color: transparent;
-      -webkit-text-stroke: 2px rgba(181,32,26,0.12);
-      letter-spacing: -0.02em;
-      line-height: 0.85;
-      pointer-events: none;
-      user-select: none;
-    }
-
-    .hero-form {
-      padding: 56px 60px 0;
-      position: relative;
-      z-index: 1;
-    }
-
-    /* The card header — like the top of a time register */
-    .card-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      margin-bottom: 40px;
-      gap: 40px;
-      flex-wrap: wrap;
-    }
-
-    .card-field {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .card-field-label {
-      font-family: 'DM Mono', monospace;
-      font-size: 8px;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: var(--faded);
-      border-bottom: 1px solid var(--faded);
-      padding-bottom: 2px;
-      margin-bottom: 2px;
-    }
-    .card-field-val {
-      font-family: 'Courier Prime', monospace;
-      font-size: 13px;
-      color: var(--ink);
-      font-weight: 700;
-    }
-    .card-field-val.typed {
-      font-family: 'Special Elite', cursive;
-      font-size: 14px;
-      color: var(--red);
-    }
-
-    /* The big headline — typewriter stamped */
-    .hero-headline {
-      margin-bottom: 0;
-    }
-
-    .hero-h1 {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(3.8rem, 9vw, 9.5rem);
-      line-height: 0.88;
-      letter-spacing: 0.04em;
-      color: var(--ink);
-      margin-bottom: 12px;
-    }
-    .hero-h1 .red { color: var(--red); }
-    .hero-h1 .ghost {
-      color: transparent;
-      -webkit-text-stroke: 2px var(--ink);
-    }
-
-    .hero-sub {
-      font-family: 'Courier Prime', monospace;
-      font-size: 13px;
-      color: var(--faded);
-      max-width: 520px;
-      line-height: 1.9;
-      margin-bottom: 48px;
-      font-style: italic;
-    }
-
-    /* The time register grid */
-    .register-grid {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      border-top: 2px solid var(--ink);
-      border-left: 2px solid var(--ink);
-      margin: 0 -60px;
-    }
-    .register-cell {
-      border-right: 2px solid var(--ink);
-      border-bottom: 2px solid var(--ink);
-      padding: 16px 20px;
-    }
-    .register-cell.wide { grid-column: span 2; }
-    .register-cell-label {
-      font-family: 'DM Mono', monospace;
-      font-size: 8px;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--faded);
-      margin-bottom: 8px;
-    }
-    .register-cell-val {
-      font-family: 'Special Elite', cursive;
-      font-size: 15px;
-      color: var(--ink);
-      line-height: 1.4;
-    }
-    .register-cell-val.red { color: var(--red); }
-    .register-cell-val.live {
-      color: var(--green);
-      font-family: 'DM Mono', monospace;
-      font-size: 11px;
-      letter-spacing: 0.06em;
-    }
-    .register-cell-val.blank {
-      color: transparent;
-      border-bottom: 1px solid rgba(107,95,78,0.3);
-      display: block;
-      height: 22px;
-    }
-
-    @media (max-width: 900px) {
-      .register-grid { grid-template-columns: repeat(2, 1fr); margin: 0 -24px; }
-      .register-cell.wide { grid-column: span 1; }
-    }
-    @media (max-width: 640px) {
-      .hero-form { padding: 40px 24px 0; }
-      .hero-h1 { font-size: 3.5rem; }
-    }
-
-    /* ── SECTION COMMON ─────────────────────────────────────────────── */
-    .section-label {
-      font-family: 'DM Mono', monospace;
-      font-size: 8px;
-      letter-spacing: 0.24em;
-      text-transform: uppercase;
-      color: var(--faded);
-      margin-bottom: 6px;
-    }
-    .section-h {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(1.8rem, 3.5vw, 3rem);
-      letter-spacing: 0.06em;
-      color: var(--ink);
-      line-height: 1;
-      margin-bottom: 24px;
-    }
-
-    /* ── THE ARGUMENT ───────────────────────────────────────────────── */
-    .argument {
-      background: var(--ink);
-      padding: 80px 60px;
-      position: relative;
-      overflow: hidden;
-    }
-    .argument::before {
-      content: 'TIME';
-      position: absolute;
-      right: -20px; top: -30px;
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 28vw;
-      color: rgba(240,234,216,0.03);
-      line-height: 1;
-      pointer-events: none;
-    }
-
-    .argument-inner {
-      max-width: 1100px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 80px;
-      align-items: start;
-      position: relative;
-      z-index: 1;
-    }
-
-    .argument .section-label { color: rgba(240,234,216,0.25); }
-    .argument .section-h { color: var(--card); }
-
-    .argument-left {}
-
-    .argument-right {}
-    .argument-para {
-      font-family: 'Courier Prime', monospace;
-      font-size: 14px;
-      color: rgba(240,234,216,0.5);
-      line-height: 2;
-      margin-bottom: 20px;
-    }
-    .argument-para strong { color: var(--card); font-weight: 700; }
-
-    /* The old punch card legend */
-    .punch-legend {
-      margin-top: 40px;
-      border: 1px solid rgba(240,234,216,0.1);
-      padding: 24px;
-    }
-    .punch-legend-title {
-      font-family: 'DM Mono', monospace;
-      font-size: 8px;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: rgba(240,234,216,0.2);
-      margin-bottom: 16px;
-    }
-    .punch-legend-row {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 12px;
-    }
-    .punch-legend-row:last-child { margin-bottom: 0; }
-    .mini-holes {
-      display: flex;
-      gap: 4px;
-      flex-shrink: 0;
-    }
-    .mini-hole {
-      width: 8px; height: 14px;
-      border-radius: 1px;
-      border: 1px solid rgba(240,234,216,0.2);
-    }
-    .mini-hole.p { background: rgba(240,234,216,0.7); border-color: rgba(240,234,216,0.7); }
-    .punch-legend-text {
-      font-family: 'Courier Prime', monospace;
-      font-size: 12px;
-      color: rgba(240,234,216,0.35);
-      font-style: italic;
-    }
-
-    @media (max-width: 768px) {
-      .argument { padding: 64px 24px; }
-      .argument-inner { grid-template-columns: 1fr; gap: 40px; }
-    }
-
-    /* ── THREE ROLES ────────────────────────────────────────────────── */
-    .roles {
-      background: var(--card2);
-      border-top: 3px solid var(--ink);
-      border-bottom: 3px solid var(--ink);
-      padding: 80px 60px;
-    }
-    .roles-inner { max-width: 1100px; margin: 0 auto; }
-
-    /* Columnar layout like a form */
-    .roles-form {
-      margin-top: 48px;
-      border: 2px solid var(--ink);
-    }
-    .roles-form-header {
-      display: grid;
-      grid-template-columns: 48px 1fr 1fr 1fr;
-      background: var(--ink);
-      color: var(--card);
-    }
-    .rfh-cell {
-      font-family: 'DM Mono', monospace;
-      font-size: 9px;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      padding: 10px 20px;
-      border-right: 1px solid rgba(240,234,216,0.1);
-    }
-    .rfh-cell:last-child { border-right: none; }
-
-    .roles-form-body {
-      display: grid;
-      grid-template-columns: 48px 1fr 1fr 1fr;
-    }
-    .rfc-num {
-      border-right: 2px solid var(--ink);
-      border-bottom: 2px solid var(--ink);
-      padding: 28px 0;
-      display: flex;
-      align-items: flex-start;
-      justify-content: center;
-      padding-top: 32px;
-    }
-    .rfc-num span {
-      font-family: 'DM Mono', monospace;
-      font-size: 9px;
-      letter-spacing: 0.1em;
-      color: var(--faded);
-      writing-mode: vertical-rl;
-      transform: rotate(180deg);
-    }
-    .rfc {
-      padding: 28px 24px;
-      border-right: 2px solid var(--ink);
-      border-bottom: 2px solid var(--ink);
-    }
-    .rfc:last-child { border-right: none; }
-    .rfc-role {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 2rem;
-      letter-spacing: 0.08em;
-      color: var(--ink);
-      margin-bottom: 4px;
-    }
-    .rfc-role.red { color: var(--red); }
-    .rfc-role.grn { color: var(--green); }
-    .rfc-who {
-      font-family: 'DM Mono', monospace;
-      font-size: 9px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--faded);
-      margin-bottom: 20px;
-    }
-    .rfc-body {
-      font-family: 'Courier Prime', monospace;
-      font-size: 13px;
-      color: var(--faded);
-      line-height: 1.85;
-      margin-bottom: 20px;
-    }
-    .rfc-list {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .rfc-list li {
-      font-family: 'DM Mono', monospace;
-      font-size: 10px;
-      letter-spacing: 0.06em;
-      color: var(--faded);
-      display: flex; gap: 8px; align-items: flex-start;
-    }
-    .rfc-list li::before { content: '▪'; color: var(--hole); flex-shrink: 0; }
-
-    @media (max-width: 900px) {
-      .roles { padding: 64px 24px; }
-      .roles-form-header,
-      .roles-form-body { grid-template-columns: 1fr; }
-      .rfh-cell:not(:first-child) { display: none; }
-      .rfc-num { display: none; }
-      .rfc { border-right: none; }
-    }
-
-    /* ── THE FLOW ───────────────────────────────────────────────────── */
-    .flow {
-      background: var(--card);
-      padding: 80px 60px;
-      border-bottom: 3px solid var(--ink);
-    }
-    .flow-inner { max-width: 1100px; margin: 0 auto; }
-
-    /* Time register strip */
-    .flow-register {
-      margin-top: 56px;
-      border: 2px solid var(--ink);
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-    }
-    .flow-col {
-      border-right: 2px solid var(--ink);
-      padding: 0;
-    }
+    /* FLOW */
+    .flow { padding: 80px 60px; border-bottom: 3px solid var(--black); }
+    .flow-grid { display: grid; grid-template-columns: repeat(4, 1fr); border: 2px solid var(--black); margin-top: 30px; }
+    .flow-col { border-right: 2px solid var(--black); }
     .flow-col:last-child { border-right: none; }
-    .flow-col-head {
-      background: var(--ink);
-      padding: 10px 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .flow-col-num {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.6rem;
-      color: var(--red);
-      letter-spacing: 0.06em;
-    }
-    .flow-col-tag {
-      font-family: 'DM Mono', monospace;
-      font-size: 8px;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: rgba(240,234,216,0.3);
-    }
-    .flow-col-body { padding: 28px 24px; }
-    .flow-col-name {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 2.2rem;
-      letter-spacing: 0.06em;
-      color: var(--ink);
-      line-height: 1;
-      margin-bottom: 16px;
-    }
-    .flow-col-desc {
-      font-family: 'Courier Prime', monospace;
-      font-size: 13px;
-      color: var(--faded);
-      line-height: 1.9;
-    }
-    /* Punch marks on the right edge of each column */
-    .flow-punches {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      padding: 16px 0 16px 24px;
-      border-top: 1px solid rgba(26,20,16,0.1);
-      margin: 0 24px;
-    }
-    .flow-punch-row {
-      display: flex; gap: 5px;
-    }
-    .fp {
-      width: 10px; height: 16px;
-      border-radius: 2px;
-      border: 1px solid rgba(26,20,16,0.15);
-    }
-    .fp.in { background: var(--ink); border-color: var(--ink); }
-    .fp.red { background: var(--red); border-color: var(--red); }
+    .flow-head { background: var(--black); padding: 8px 20px; font-family: var(--font-display); font-size: 1.5rem; letter-spacing: 0.06em; color: var(--red); }
+    .flow-body { padding: 22px 20px; }
+    .flow-name { font-family: var(--font-display); font-size: 2rem; letter-spacing: 0.06em; line-height: 1; margin-bottom: 12px; }
+    .flow-body p { font-size: 13px; color: var(--stone); line-height: 1.85; }
 
-    @media (max-width: 768px) {
-      .flow { padding: 64px 24px; }
-      .flow-register { grid-template-columns: 1fr; }
-      .flow-col { border-right: none; border-bottom: 2px solid var(--ink); }
-      .flow-col:last-child { border-bottom: none; }
-    }
+    /* CAPABILITIES */
+    .cap { background: var(--black); padding: 80px 60px; color: var(--white); }
+    .cap .label { color: rgba(240,234,216,0.3); }
+    .cap-note { font-size: 13px; color: rgba(240,234,216,0.4); }
+    .cap-grid { margin-top: 36px; display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid rgba(240,234,216,0.12); border-left: 1px solid rgba(240,234,216,0.12); }
+    .cap-card { position: relative; padding: 26px 24px; border-right: 1px solid rgba(240,234,216,0.12); border-bottom: 1px solid rgba(240,234,216,0.12); }
+    .cap-card::before { content: ''; position: absolute; top: 12px; right: 14px; width: 8px; height: 14px; border-radius: 2px; background: var(--red); }
+    .cap-tag { font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--red); margin-bottom: 10px; }
+    .cap-title { font-family: var(--font-display); font-size: 1.3rem; letter-spacing: 0.05em; line-height: 1.1; margin-bottom: 10px; }
+    .cap-card p { font-size: 12px; color: rgba(240,234,216,0.45); line-height: 1.85; }
 
-    /* ── CAPABILITIES ───────────────────────────────────────────────── */
-    .cap {
-      background: var(--ink);
-      padding: 80px 60px;
-    }
-    .cap-inner { max-width: 1100px; margin: 0 auto; }
-    .cap .section-label { color: rgba(240,234,216,0.2); }
-    .cap .section-h { color: var(--card); }
+    /* JOIN */
+    .join { display: grid; grid-template-columns: 1fr 2fr; padding: 0 60px; background: var(--light); }
+    .join-left { padding: 80px 50px 80px 0; border-right: 2px solid var(--black); }
+    .join-mark { font-family: var(--font-display); font-size: clamp(5rem, 12vw, 9rem); line-height: 0.85; color: transparent; -webkit-text-stroke: 2px rgba(26,20,16,0.16); margin-bottom: 20px; }
+    .join-right { padding: 80px 0 80px 50px; }
+    .join-right > p { font-size: 14px; color: var(--stone); line-height: 2; max-width: 60ch; margin-bottom: 24px; }
+    .ways { border: 2px solid var(--black); background: var(--white); }
+    .way { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--hole); }
+    .way:last-child { border-bottom: none; }
+    .way-name { font-family: var(--font-display); font-size: 1.35rem; letter-spacing: 0.05em; }
+    .way-desc { font-size: 12px; color: var(--stone); }
+    .way .btn { padding: 8px 22px; font-size: 0.95rem; }
+    .soon { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--stone); border: 1px dashed var(--stone); padding: 6px 12px; }
 
-    /* Card-reader grid */
-    .cap-grid {
-      margin-top: 48px;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      border-top: 1px solid rgba(240,234,216,0.1);
-      border-left: 1px solid rgba(240,234,216,0.1);
-    }
-    .cap-card {
-      border-right: 1px solid rgba(240,234,216,0.1);
-      border-bottom: 1px solid rgba(240,234,216,0.1);
-      padding: 28px 24px;
-      position: relative;
-    }
-    /* The punched corner */
-    .cap-card::before {
-      content: '';
-      position: absolute;
-      top: 12px; right: 14px;
-      width: 8px; height: 14px;
-      border-radius: 2px;
-      background: rgba(240,234,216,0.08);
-      border: 1px solid rgba(240,234,216,0.12);
-    }
-    .cap-card.active::before { background: var(--red); border-color: var(--red); }
-
-    .cap-marker {
-      font-family: 'DM Mono', monospace;
-      font-size: 8px;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--red);
-      margin-bottom: 12px;
-    }
-    .cap-title {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.3rem;
-      letter-spacing: 0.06em;
-      color: var(--card);
-      margin-bottom: 12px;
-      line-height: 1.1;
-    }
-    .cap-desc {
-      font-family: 'Courier Prime', monospace;
-      font-size: 12px;
-      color: rgba(240,234,216,0.35);
-      line-height: 1.85;
-    }
+    footer { background: var(--black); border-top: 3px solid var(--red); padding: 20px 60px; display: flex; justify-content: space-between; align-items: center; }
+    .foot-brand { font-family: var(--font-display); font-size: 18px; letter-spacing: 0.1em; color: rgba(240,234,216,0.45); }
+    .foot-note { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(240,234,216,0.3); }
 
     @media (max-width: 900px) {
-      .cap { padding: 64px 24px; }
-      .cap-grid { grid-template-columns: 1fr 1fr; }
-    }
-    @media (max-width: 560px) {
-      .cap-grid { grid-template-columns: 1fr; }
-    }
-
-    /* ── CLOSING ────────────────────────────────────────────────────── */
-    .closing {
-      background: var(--card2);
-      border-top: 3px solid var(--ink);
-      padding: 0 60px;
-      display: grid;
-      grid-template-columns: 1fr 2fr;
-    }
-
-    .closing-left {
-      border-right: 2px solid var(--ink);
-      padding: 80px 60px 80px 0;
-    }
-    .closing-number {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(5rem, 12vw, 10rem);
-      color: transparent;
-      -webkit-text-stroke: 2px rgba(26,20,16,0.15);
-      line-height: 0.85;
-      margin-bottom: 24px;
-      letter-spacing: -0.02em;
-    }
-    .closing .section-h { font-size: clamp(1.8rem, 3vw, 2.6rem); }
-
-    .closing-right {
-      padding: 80px 0 80px 60px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      gap: 40px;
-    }
-    .closing-para {
-      font-family: 'Courier Prime', monospace;
-      font-size: 14px;
-      color: var(--faded);
-      line-height: 2;
-    }
-    .closing-para strong { color: var(--ink); }
-
-    /* The time-in / time-out stamp */
-    .closing-stamps {
-      display: flex;
-      gap: 32px;
-      align-items: flex-end;
-      flex-wrap: wrap;
-    }
-    .stamp {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .stamp-label {
-      font-family: 'DM Mono', monospace;
-      font-size: 8px;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--faded);
-    }
-    .stamp-val {
-      font-family: 'Special Elite', cursive;
-      font-size: 22px;
-      color: var(--red);
-      line-height: 1;
-    }
-    .stamp-val.out { color: var(--ink); }
-
-    .closing-cta {
-      display: inline-block;
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.1rem;
-      letter-spacing: 0.1em;
-      color: var(--card);
-      background: var(--ink);
-      padding: 14px 36px;
-      text-decoration: none;
-      border: 2px solid var(--ink);
-      transition: background 0.2s, color 0.2s;
-      align-self: flex-start;
-    }
-    .closing-cta:hover { background: var(--red); border-color: var(--red); }
-
-    @media (max-width: 768px) {
-      .closing { grid-template-columns: 1fr; padding: 0 24px; }
-      .closing-left { border-right: none; border-bottom: 2px solid var(--ink); padding: 56px 0 40px; }
-      .closing-right { padding: 40px 0 64px; }
-    }
-
-    /* ── FOOTER ─────────────────────────────────────────────────────── */
-    footer {
-      background: var(--ink);
-      border-top: 3px solid var(--red);
-      padding: 20px 60px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .footer-brand {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 18px;
-      color: rgba(240,234,216,0.4);
-      letter-spacing: 0.1em;
-    }
-    .footer-brand .sep { color: var(--red); }
-    .footer-note {
-      font-family: 'DM Mono', monospace;
-      font-size: 9px;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: rgba(240,234,216,0.15);
+      .argument-in, .join { grid-template-columns: 1fr; gap: 36px; }
+      .roles-grid, .cap-grid { grid-template-columns: 1fr; }
+      .flow-grid { grid-template-columns: 1fr 1fr; }
+      .flow-col:nth-child(2) { border-right: none; } .flow-col:nth-child(-n+2) { border-bottom: 2px solid var(--black); }
+      .role { border-right: none; border-bottom: 2px solid var(--black); } .role:last-child { border-bottom: none; }
+      .join-left { border-right: none; border-bottom: 2px solid var(--black); padding: 56px 0 30px; } .join-right { padding: 36px 0 56px; }
+      .hero .register-grid { margin: 0 -24px; }
     }
     @media (max-width: 640px) {
-      footer { flex-direction: column; gap: 12px; padding: 20px 24px; text-align: center; }
+      nav { padding: 0 18px; } .nav-links { display: none; }
+      .hero-form { padding: 36px 24px 0; } .argument, .roles, .flow, .cap { padding: 56px 24px; } .join { padding: 0 24px; }
+      .flow-grid { grid-template-columns: 1fr; } .flow-col { border-right: none; border-bottom: 2px solid var(--black); } .flow-col:last-child { border-bottom: none; }
+      .way { grid-template-columns: 1fr; } footer { flex-direction: column; gap: 10px; padding: 20px 24px; text-align: center; }
     }
+    @media (prefers-reduced-motion: reduce) { .punch-holes { animation: none; } html { scroll-behavior: auto; } }
   </style>
 </head>
 <body>
 
-<!-- NAV -->
 <nav>
   <a href="index.html" class="nav-brand">MULAI</a>
   <ul class="nav-links">
-    <li><a href="#argument">Why</a></li>
-    <li><a href="#roles">Who</a></li>
-    <li><a href="#flow">How</a></li>
-    <li><a href="#cap">Built</a></li>
+    <li><a href="#why">Why</a></li><li><a href="#who">Who</a></li><li><a href="#how">How</a></li>
+    <li><a href="#built">Built</a></li><li><a href="#join">Join</a></li>
   </ul>
-  <a href="login.html" id="navLogin" class="nav-login">Login →</a>
+  <div class="nav-right">
+    <a href="applicant.html" class="nav-btn">Join us</a>
+    <a href="login.html" id="navLogin" class="nav-btn fill">Log in</a>
+  </div>
 </nav>
 
-<!-- PUNCH STRIP TOP -->
-<div class="punch-strip" id="topStrip"></div>
+<div class="punch-strip" data-strip="0"></div>
 
-<!-- HERO -->
-<section class="hero">
-  <div class="hero-stamp">IN</div>
+<header class="hero">
+  <div class="hero-stamp" aria-hidden="true">IN</div>
   <div class="hero-form">
-
     <div class="card-header">
-      <div class="card-field">
-        <div class="card-field-label">Employee / Worker</div>
-        <div class="card-field-val typed">You</div>
-      </div>
-      <div class="card-field">
-        <div class="card-field-label">Department / Gig</div>
-        <div class="card-field-val typed">To be assigned</div>
-      </div>
-      <div class="card-field">
-        <div class="card-field-label">Date</div>
-        <div class="card-field-val" id="heroDate">—</div>
-      </div>
-      <div class="card-field">
-        <div class="card-field-label">Card No.</div>
-        <div class="card-field-val">MLI-001</div>
-      </div>
-      <div class="card-field">
-        <div class="card-field-label">Status</div>
-        <div class="card-field-val typed" style="color:var(--green)">● Active</div>
-      </div>
+      <div><div class="card-field-label">Worker</div><div class="card-field-val typed">You</div></div>
+      <div><div class="card-field-label">Gig</div><div class="card-field-val typed">To be assigned</div></div>
+      <div><div class="card-field-label">Date</div><div class="card-field-val" id="heroDate">—</div></div>
+      <div><div class="card-field-label">Card No.</div><div class="card-field-val">MLI-001</div></div>
+      <div><div class="card-field-label">Status</div><div class="card-field-val typed" style="color:var(--green)">● In daily use</div></div>
     </div>
-
-    <div class="hero-headline">
-      <h1 class="hero-h1">
-        <span class="ghost">WORK</span><br>
-        KEPT<br>
-        <span class="red">HONEST.</span>
-      </h1>
-      <p class="hero-sub">
-        The punch card was invented to count you.<br>
-        Every hole was a minute owned by someone else.<br>
-        We start from the same gesture — and try to do something different with it.
-      </p>
-    </div>
-
-  </div>
-
-  <!-- THE REGISTER ROW -->
-  <div class="register-grid">
-    <div class="register-cell">
-      <div class="register-cell-label">Time In</div>
-      <div class="register-cell-val red" id="heroTimeIn">——:——</div>
-    </div>
-    <div class="register-cell">
-      <div class="register-cell-label">Time Out</div>
-      <div class="register-cell-val"><span class="register-cell-val blank"></span></div>
-    </div>
-    <div class="register-cell">
-      <div class="register-cell-label">Duration</div>
-      <div class="register-cell-val"><span class="register-cell-val blank"></span></div>
-    </div>
-    <div class="register-cell">
-      <div class="register-cell-label">Supervisor</div>
-      <div class="register-cell-val">You decide.</div>
-    </div>
-    <div class="register-cell">
-      <div class="register-cell-label">Remarks</div>
-      <div class="register-cell-val live">● Running</div>
-    </div>
-  </div>
-</section>
-
-<!-- PUNCH STRIP BETWEEN -->
-<div class="punch-strip" id="midStrip1"></div>
-
-<!-- THE ARGUMENT -->
-<section class="argument" id="argument">
-  <div class="argument-inner">
-    <div class="argument-left">
-      <div class="section-label">Why this exists</div>
-      <h2 class="section-h">THE CLOCK HAS BEEN COUNTING THE WRONG THING.</h2>
-
-      <div class="punch-legend">
-        <div class="punch-legend-title">How to read a punch card</div>
-        <div class="punch-legend-row">
-          <div class="mini-holes">
-            <div class="mini-hole p"></div>
-            <div class="mini-hole"></div>
-            <div class="mini-hole"></div>
-            <div class="mini-hole p"></div>
-          </div>
-          <div class="punch-legend-text">Arrived on time. Left on time. Nothing else recorded.</div>
-        </div>
-        <div class="punch-legend-row">
-          <div class="mini-holes">
-            <div class="mini-hole p"></div>
-            <div class="mini-hole p"></div>
-            <div class="mini-hole p"></div>
-            <div class="mini-hole p"></div>
-          </div>
-          <div class="punch-legend-text">Present. Productive. How would you know?</div>
-        </div>
-        <div class="punch-legend-row">
-          <div class="mini-holes">
-            <div class="mini-hole p"></div>
-            <div class="mini-hole"></div>
-            <div class="mini-hole p"></div>
-            <div class="mini-hole"></div>
-          </div>
-          <div class="punch-legend-text">There and gone. The work? Not in the card.</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="argument-right">
-      <p class="argument-para">
-        The time register was invented in the 1880s. A machine at the factory gate.
-        You put your card in, it punched a hole — <strong>you were counted.</strong>
-        You put it in again on the way out — <strong>you were released.</strong>
-        Everything in between was assumed.
-      </p>
-      <p class="argument-para">
-        Most software still works this way.
-        A ticket opened, a ticket closed.
-        Hours logged. A number at the bottom.
-        The person who did the work — what they felt,
-        how it actually went, whether it was worth it —
-        <strong>none of that makes it into the record.</strong>
-      </p>
-      <p class="argument-para">
-        Mulai starts the same way. Clock in. Clock out.
-        But then it asks: <strong>how was it?</strong>
-        One person who placed the work. One person who did it.
-        Both answering honestly. The final word with whoever
-        placed the gig. That reflection is where the value sits.
-        Most tools skip it entirely.
-      </p>
-    </div>
-  </div>
-</section>
-
-<!-- PUNCH STRIP -->
-<div class="punch-strip" id="midStrip2"></div>
-
-<!-- THREE ROLES -->
-<section class="roles" id="roles">
-  <div class="roles-inner">
-    <div class="section-label">Three ways to be here</div>
-    <h2 class="section-h">DEPARTMENT REGISTER</h2>
-
-    <div class="roles-form">
-      <div class="roles-form-header">
-        <div class="rfh-cell">#</div>
-        <div class="rfh-cell">THE CREATOR — those who place the work</div>
-        <div class="rfh-cell">THE DOER — those who do the work</div>
-        <div class="rfh-cell">THE BUILDER — those shaping what comes next</div>
-      </div>
-      <div class="roles-form-body">
-        <div class="rfc-num"><span>EMPLOYEE CLASS</span></div>
-
-        <div class="rfc">
-          <div class="rfc-role red">Creator</div>
-          <div class="rfc-who">Pacer · Lead · Placer</div>
-          <p class="rfc-body">
-            You see what needs doing before anyone else does.
-            You shape it, name it, hand it to the right person,
-            and hold the line on what good looks like.
-            Mulai gives you one place to see everything you have placed —
-            what is moving, what has gone quiet, what is finished.
-          </p>
-          <ul class="rfc-list">
-            <li>Projects and gigs, named clearly</li>
-            <li>Overdue work, visible at a glance</li>
-            <li>Recurring work that looks after itself</li>
-            <li>Final word on every evaluation</li>
-          </ul>
-        </div>
-
-        <div class="rfc">
-          <div class="rfc-role grn">Doer</div>
-          <div class="rfc-who">Rover · Worker · Executor</div>
-          <p class="rfc-body">
-            Your list is clear. When you start, you start —
-            one tap, your location noted, nothing to fill in.
-            When you stop, you stop. Later you sit with the finished work
-            and say honestly how it went. That honesty
-            becomes part of a record that is yours.
-          </p>
-          <ul class="rfc-list">
-            <li>A clear task list, nothing extra</li>
-            <li>Time logged live or after the fact</li>
-            <li>A personal record that grows with you</li>
-            <li>Your evaluation sits alongside the lead's</li>
-          </ul>
-        </div>
-
-        <div class="rfc">
-          <div class="rfc-role">Builder</div>
-          <div class="rfc-who">Contributor · Shaper · Planter</div>
-          <p class="rfc-body">
-            This is early, and it is meant to be seen that way.
-            Nothing here pretends to be finished.
-            If you are someone who notices a gap and wants to help close it —
-            with code, with an idea, with time —
-            there is room. Time is the currency here.
-          </p>
-          <ul class="rfc-list">
-            <li>An open build, still growing</li>
-            <li>Time over capital</li>
-            <li>Room for those willing to plant</li>
-            <li>Built with patience, not a roadmap</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- PUNCH STRIP -->
-<div class="punch-strip" id="midStrip3"></div>
-
-<!-- THE FLOW -->
-<section class="flow" id="flow">
-  <div class="flow-inner">
-    <div class="section-label">How a gig moves</div>
-    <h2 class="section-h">THE TIME REGISTER</h2>
-
-    <div class="flow-register">
-      <div class="flow-col">
-        <div class="flow-col-head">
-          <span class="flow-col-num">01</span>
-          <span class="flow-col-tag">Entry</span>
-        </div>
-        <div class="flow-col-body">
-          <div class="flow-col-name">PLACE</div>
-          <p class="flow-col-desc">
-            A gig is written down. A name, who placed it,
-            who will do it, when it starts and finishes.
-            If it repeats, set it once.
-            It takes care of itself from there.
-          </p>
-        </div>
-        <div class="flow-punches">
-          <div class="flow-punch-row">
-            <div class="fp in"></div><div class="fp"></div><div class="fp"></div><div class="fp in"></div><div class="fp"></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="flow-col">
-        <div class="flow-col-head">
-          <span class="flow-col-num">02</span>
-          <span class="flow-col-tag">Active</span>
-        </div>
-        <div class="flow-col-body">
-          <div class="flow-col-name">DO</div>
-          <p class="flow-col-desc">
-            The work happens. Time is logged as it goes
-            or added afterwards. The gig moves from waiting
-            to running to done. Nothing disappears
-            once it is finished.
-          </p>
-        </div>
-        <div class="flow-punches">
-          <div class="flow-punch-row">
-            <div class="fp in"></div><div class="fp in"></div><div class="fp"></div><div class="fp in"></div><div class="fp in"></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="flow-col">
-        <div class="flow-col-head">
-          <span class="flow-col-num">03</span>
-          <span class="flow-col-tag">Exit</span>
-        </div>
-        <div class="flow-col-body">
-          <div class="flow-col-name">REFLECT</div>
-          <p class="flow-col-desc">
-            Both people answer a few honest questions.
-            The final word belongs to whoever placed the work.
-            This is the part most tools skip entirely.
-            For us, it is where the value sits.
-          </p>
-        </div>
-        <div class="flow-punches">
-          <div class="flow-punch-row">
-            <div class="fp in"></div><div class="fp in"></div><div class="fp in"></div><div class="fp in"></div><div class="fp in"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- PUNCH STRIP -->
-<div class="punch-strip" id="midStrip4"></div>
-
-<!-- CAPABILITIES -->
-<section class="cap" id="cap">
-  <div class="cap-inner">
-    <div class="section-label">What is built</div>
-    <h2 class="section-h">FUNCTIONS INSTALLED</h2>
-    <p style="font-family:'Courier Prime',monospace;font-size:13px;color:rgba(240,234,216,0.3);margin-bottom:0">All of the below is live. Used today. On real work.</p>
-
-    <div class="cap-grid">
-      <div class="cap-card active">
-        <div class="cap-marker">Structure</div>
-        <div class="cap-title">EVERY GIG HAS A NAME AND A CODE</div>
-        <p class="cap-desc">Sits inside a project. Named simply. You always know what it is and where it belongs without opening it.</p>
-      </div>
-      <div class="cap-card active">
-        <div class="cap-marker">Accountability</div>
-        <div class="cap-title">ONE PLACED IT. ONE DID IT.</div>
-        <p class="cap-desc">Every gig has both. Each person sees what is theirs. Nobody guesses who is responsible for what.</p>
-      </div>
-      <div class="cap-card active">
-        <div class="cap-marker">Reflection</div>
-        <div class="cap-title">HONEST QUESTIONS, EVERY TIME</div>
-        <p class="cap-desc">How the work felt and how it went. Asked of both people. Final word rests with whoever placed the gig.</p>
-      </div>
-      <div class="cap-card active">
-        <div class="cap-marker">Time</div>
-        <div class="cap-title">THE CLOCK, KEPT HONESTLY</div>
-        <p class="cap-desc">Start with one tap. Your place and time noted without being asked. Stop the same way. Add it later if you forgot.</p>
-      </div>
-      <div class="cap-card active">
-        <div class="cap-marker">Recurrence</div>
-        <div class="cap-title">WORK THAT REPEATS WITHOUT REPEATING</div>
-        <p class="cap-desc">Set a gig once if it happens weekly or monthly. It takes care of itself from there.</p>
-      </div>
-      <div class="cap-card">
-        <div class="cap-marker">Care</div>
-        <div class="cap-title">LOOKED AFTER, QUIETLY</div>
-        <p class="cap-desc">Signed in, and signed out if you step away too long — with a gentle warning first. Nothing dramatic.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- PUNCH STRIP -->
-<div class="punch-strip" id="midStrip5"></div>
-
-<!-- CLOSING -->
-<section class="closing">
-  <div class="closing-left">
-    <div class="section-label">An open door</div>
-    <div class="closing-number">MLI</div>
-    <h2 class="section-h">YOUR TIME IS WELCOME HERE.</h2>
-  </div>
-  <div class="closing-right">
-    <p class="closing-para">
-      This is not finished, and it is not meant to be sold to you.
-      It is being built slowly, used daily, on real work.
-      <strong>If you place work, do work, or simply want to help something grow</strong>
-      the way a seed does — with patience, with care,
-      and without rushing toward an answer — there may be a place for you here.
+    <h1><span class="ghost">WORK</span><br>KEPT<br><span class="red">HONESTLY.</span></h1>
+    <p class="hero-sub">
+      The punch card was invented to count you. Every hole was a minute owned by someone else.<br>
+      Mulai starts from the same gesture and adds what the card left out: how the work went.
     </p>
-    <div class="closing-stamps">
-      <div class="stamp">
-        <div class="stamp-label">Time In</div>
-        <div class="stamp-val" id="closingTimeIn">——:——</div>
-      </div>
-      <div class="stamp">
-        <div class="stamp-label">Time Out</div>
-        <div class="stamp-val out">Your call.</div>
-      </div>
-      <div class="stamp">
-        <div class="stamp-label">Remarks</div>
-        <div class="stamp-val out" style="font-size:14px;font-family:'DM Mono',monospace;letter-spacing:0.06em">Still running.</div>
+    <div class="hero-cta">
+      <a href="login.html" class="btn solid" id="heroLogin">Log in</a>
+      <a href="applicant.html" class="btn line">We are hiring an intern</a>
+    </div>
+  </div>
+  <div class="register-grid">
+    <div class="register-cell"><div class="register-cell-label">Time In</div><div class="register-cell-val red" id="heroTimeIn">——:——</div></div>
+    <div class="register-cell"><div class="register-cell-label">Time Out</div><span class="blank"></span></div>
+    <div class="register-cell"><div class="register-cell-label">Duration</div><span class="blank"></span></div>
+    <div class="register-cell"><div class="register-cell-label">Supervisor</div><div class="register-cell-val">You decide.</div></div>
+    <div class="register-cell"><div class="register-cell-label">Remarks</div><div class="register-cell-val live">● Running</div></div>
+  </div>
+</header>
+
+<div class="punch-strip reverse" data-strip="1"></div>
+
+<section class="argument" id="why">
+  <div class="wrap argument-in">
+    <div>
+      <div class="label">Why this exists</div>
+      <h2 class="h2">TOOLS TRACK TASKS, OR HOURS. RARELY BOTH.</h2>
+      <div class="chain" aria-label="The chain Mulai keeps intact">
+        <div>Project</div><div>Gig</div><div>Task</div><div>Timesheet</div><div>Weekly reflection</div>
       </div>
     </div>
-    <a href="login.html" id="closingCta" class="closing-cta">Enter the register →</a>
+    <div>
+      <p class="arg-p">A time register punches a hole when you arrive and another when you leave. <strong>You were counted.</strong> Everything in between was assumed.</p>
+      <p class="arg-p">Most software still works that way: a ticket opened, a ticket closed, hours logged, a number at the bottom. How the work actually went <strong>never makes it into the record.</strong></p>
+      <p class="arg-p">Mulai ties every hour to the gig that spawned it, and every gig to the project it serves. When the chain is whole, the weekly report nearly writes itself, and planning stops being an argument about what happened. Then it asks the question the card never did: <strong>how was it?</strong></p>
+    </div>
   </div>
 </section>
 
-<!-- FOOTER -->
+<div class="punch-strip" data-strip="2"></div>
+
+<section class="roles" id="who">
+  <div class="wrap">
+    <div class="label">Three ways to be here</div>
+    <h2 class="h2">TWO ROLES TODAY. ROOM FOR A THIRD.</h2>
+    <div class="roles-grid">
+      <div class="role">
+        <div class="role-name red">Lead</div><div class="role-who">Places and decides</div>
+        <p>Turns projects into gigs, one-off or recurring, plans the week and holds the line on what good looks like. Has the final word on every evaluation.</p>
+        <ul><li>Gigs sized for a real week</li><li>Freeze or kill what is not working</li><li>Overdue work visible at a glance</li></ul>
+      </div>
+      <div class="role">
+        <div class="role-name grn">Doer</div><div class="role-who">Picks up and delivers</div>
+        <p>Works from a clear list of tasks, clocks in by dragging a gig onto the clock, and later says honestly how it went. That honesty becomes a record that is theirs.</p>
+        <ul><li>Tasks and checklists, nothing extra</li><li>Time logged live or after the fact</li><li>Skills that grow in the matrix</li></ul>
+      </div>
+      <div class="role">
+        <div class="role-name">You?</div><div class="role-who">Intern, 6 months, Coimbatore</div>
+        <p>We are adding one person to work on real gigs and real features, in the way Mulai itself is run. A few screening questions and your CV are all we ask for.</p>
+        <a href="applicant.html" class="btn solid">Join us</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="punch-strip reverse" data-strip="0"></div>
+
+<section class="flow" id="how">
+  <div class="wrap">
+    <div class="label">How a gig moves</div>
+    <h2 class="h2">PLACE. DO. TRACK. REFLECT.</h2>
+    <div class="flow-grid">
+      <div class="flow-col"><div class="flow-head">01</div><div class="flow-body"><div class="flow-name">PLACE</div><p>A gig gets a project, a code, a Lead and a Doer. If it repeats, set it once and it spawns its own instances.</p></div></div>
+      <div class="flow-col"><div class="flow-head">02</div><div class="flow-body"><div class="flow-name">DO</div><p>The Doer works through the task list. The gig moves from matched to aligned, in progress and delivered.</p></div></div>
+      <div class="flow-col"><div class="flow-head">03</div><div class="flow-body"><div class="flow-name">TRACK</div><p>Drag a gig onto the clock. Place and time are noted without being asked. Forgot? Add the entry later.</p></div></div>
+      <div class="flow-col"><div class="flow-head">04</div><div class="flow-body"><div class="flow-name">REFLECT</div><p>Both people rate the work. The Lead's word is final. Weekly reports show what to repeat and what to stop.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<div class="punch-strip" data-strip="1"></div>
+
+<section class="cap" id="built">
+  <div class="wrap">
+    <div class="label">What is built</div>
+    <h2 class="h2">FUNCTIONS INSTALLED</h2>
+    <p class="cap-note">All of it is live and used every day, on real work.</p>
+    <div class="cap-grid">
+      <div class="cap-card"><div class="cap-tag">Structure</div><div class="cap-title">PROJECTS, CATEGORIES, GIG CODES</div><p>Every gig sits in a project and carries a code that says what it is and where it belongs.</p></div>
+      <div class="cap-card"><div class="cap-tag">Lifecycle</div><div class="cap-title">FREEZE OR KILL, WITH A REASON</div><p>Pause a gig or a whole project without losing anything. Close one for good, with the reason on record.</p></div>
+      <div class="cap-card"><div class="cap-tag">Recurrence</div><div class="cap-title">WORK THAT REPEATS WITHOUT REPEATING</div><p>Weekly, fortnightly, monthly or on request. Instances and their checklists are created for you.</p></div>
+      <div class="cap-card"><div class="cap-tag">Tasks</div><div class="cap-title">ONE REGISTER FOR EVERY CHECKLIST</div><p>Tasks assigned to Lead or Doer, with stale and overdue work flagged across all gigs.</p></div>
+      <div class="cap-card"><div class="cap-tag">Time</div><div class="cap-title">DRAG TO CLOCK IN</div><p>Auto or manual entries, open timesheets, task check-off at clock-out and hours so far on each gig.</p></div>
+      <div class="cap-card"><div class="cap-tag">Reflection</div><div class="cap-title">HONEST RATINGS, EVERY TIME</div><p>Doer and Lead rate the same attributes. The Lead's average becomes the final score.</p></div>
+      <div class="cap-card"><div class="cap-tag">Planning</div><div class="cap-title">WEEK PLANNER AND PLAN VIEW</div><p>Drag gigs into next week's mornings and afternoons, then see who actually worked when.</p></div>
+      <div class="cap-card"><div class="cap-tag">Reports</div><div class="cap-title">WEEKLY REPORT AND DATA VIEW</div><p>Time, tasks and gigs for the week, plus three short written answers. Browse across people and weeks.</p></div>
+      <div class="cap-card"><div class="cap-tag">Skills</div><div class="cap-title">A SKILLS MATRIX THAT SHOWS GAPS</div><p>Rate yourself from Seed to Grove, see coverage across the team and where fewer than two people are strong.</p></div>
+    </div>
+    <p class="cap-note" style="margin-top:22px">Sign in with email, Google or Microsoft. Signed out after 30 idle minutes, with a warning first.</p>
+  </div>
+</section>
+
+<div class="punch-strip reverse" data-strip="2"></div>
+
+<section class="join" id="join">
+  <div class="join-left">
+    <div class="label">An open door</div>
+    <div class="join-mark" aria-hidden="true">MLI</div>
+    <h2 class="h2" style="margin-bottom:0">YOUR TIME IS WELCOME HERE.</h2>
+  </div>
+  <div class="join-right">
+    <p>Mulai is built slowly, used daily and not sold to anyone. If you place work, do work, or want to help it grow with patience, there may be a place for you. Here is how to reach us.</p>
+    <div class="ways">
+      <div class="way"><div><div class="way-name">JOIN US</div><div class="way-desc">Apply for the six-month gig internship in Coimbatore.</div></div><a href="applicant.html" class="btn solid">Apply</a></div>
+      <div class="way"><div><div class="way-name">PLACE WORK WITH US</div><div class="way-desc">Bring a project that needs doing.</div></div><span class="soon">Opening soon</span></div>
+      <div class="way"><div><div class="way-name">BUILD WITH US</div><div class="way-desc">Code, ideas or time for the platform itself.</div></div><span class="soon">Opening soon</span></div>
+    </div>
+  </div>
+</section>
+
 <footer>
-  <div class="footer-brand">MULAI</div>
-  <div class="footer-note">Mulai · Built with intention · Early access</div>
+  <div class="foot-brand">MULAI</div>
+  <div class="foot-note">mulai.ch · Built with intention · Early access</div>
 </footer>
 
 <script>
-  // ── Punch strip generator ──────────────────────────────────────────
-  // Each strip has a random but repeating pattern of punched holes
-  const patterns = [
+  // Punch strips: same motif as before, one shared pattern set
+  var pats = [
     [1,0,0,1,0,1,1,0,1,0,0,1,1,0,0,1,0,1,0,1,1,0,1,0,1,0,0,1,0,1],
     [0,1,1,0,1,0,0,1,0,1,1,0,0,1,1,0,1,0,1,0,0,1,0,1,0,1,1,0,1,0],
-    [1,1,0,1,0,0,1,0,1,1,0,1,0,1,0,0,1,1,0,0,1,0,1,0,1,1,0,1,0,0],
-  ]
-
-  function buildStrip(id, patternIdx, reverse) {
-    const strip = document.getElementById(id)
-    if (!strip) return
-    if (reverse) strip.classList.add('reverse')
-    const pat = patterns[patternIdx % patterns.length]
-    for (let s = 0; s < 2; s++) {
-      const div = document.createElement('div')
-      div.className = 'punch-holes' + (s === 1 ? ' punch-holes-2' : '')
-      for (let r = 0; r < 6; r++) {
-        pat.forEach(p => {
-          const h = document.createElement('div')
-          h.className = 'hole' + (p ? ' punched' : '')
-          div.appendChild(h)
-        })
-      }
-      strip.appendChild(div)
+    [1,1,0,1,0,0,1,0,1,1,0,1,0,1,0,0,1,1,0,0,1,0,1,0,1,1,0,1,0,0]
+  ];
+  document.querySelectorAll('[data-strip]').forEach(function (strip) {
+    var pat = pats[+strip.dataset.strip];
+    for (var s = 0; s < 2; s++) {
+      var d = document.createElement('div');
+      d.className = 'punch-holes' + (s ? ' punch-holes-2' : '');
+      for (var r = 0; r < 6; r++) pat.forEach(function (p) {
+        var h = document.createElement('div'); h.className = 'hole' + (p ? ' punched' : ''); d.appendChild(h);
+      });
+      strip.appendChild(d);
     }
+  });
+
+  function tick() {
+    var n = new Date();
+    document.getElementById('heroTimeIn').textContent = n.toTimeString().slice(0, 5);
+    document.getElementById('heroDate').textContent = n.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   }
+  tick(); setInterval(tick, 30000);
 
-  buildStrip('topStrip',  0, false)
-  buildStrip('midStrip1', 1, true)
-  buildStrip('midStrip2', 2, false)
-  buildStrip('midStrip3', 0, true)
-  buildStrip('midStrip4', 1, false)
-  buildStrip('midStrip5', 2, true)
-
-  // ── Live clock in hero ─────────────────────────────────────────────
-  function updateClock() {
-    const now = new Date()
-    const t = now.toTimeString().slice(0,5)
-    const d = now.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })
-    const el = document.getElementById('heroTimeIn')
-    const dt = document.getElementById('heroDate')
-    const ct = document.getElementById('closingTimeIn')
-    if (el) el.textContent = t
-    if (dt) dt.textContent = d
-    if (ct) ct.textContent = t
-  }
-  updateClock()
-  setInterval(updateClock, 30000)
-
-  // ── Already logged in ──────────────────────────────────────────────
+  // Already signed in: swap Log in for Dashboard
   if (sessionStorage.getItem('vtm_role')) {
-    ['navLogin','closingCta'].forEach(id => {
-      const el = document.getElementById(id)
-      if (el) { el.href = 'dashboard.html'; el.textContent = 'Dashboard →' }
-    })
+    ['navLogin', 'heroLogin'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) { el.href = 'dashboard.html'; el.textContent = 'Dashboard'; }
+    });
   }
 </script>
 </body>

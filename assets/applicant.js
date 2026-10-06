@@ -33,6 +33,11 @@ const f = {
 let sending = false
 
 const ext = n => (n.split('.').pop() || '').toLowerCase()
+const BLOCK_MSG = {
+  location: 'We are currently not hiring outside Kovai. Thank you for your interest.',
+  gig: 'This internship runs on a gig-based model, so we can only consider people who are open to it. Thank you for your interest.',
+}
+const blockReason = () => f.location.value === 'No' ? 'location' : f.gig.value === 'No' ? 'gig' : null
 const blocked  = () => f.location.value === 'No' || f.gig.value === 'No'
 const eligible = () => f.location.value === 'Yes' && f.gig.value === 'Yes'
 
@@ -45,9 +50,10 @@ function setError(key, msg) {
 
 function refresh() {
   f.blocked.hidden = !blocked()
+  if (blocked()) f.blocked.textContent = BLOCK_MSG[blockReason()]
   f.cvField.hidden = !eligible()
   f.submit.disabled = blocked() || sending
-  f.submit.textContent = blocked() ? 'Cannot apply with this answer' : 'Send application'
+  f.submit.textContent = blocked() ? 'Cannot apply with this answer' : 'Send application →'
   if (blocked()) { f.cv.value = ''; f.fileName.textContent = hint(); f.status.textContent = '' }
 }
 const hint = () => `PDF, DOC or DOCX, up to ${MAX_MB} MB`

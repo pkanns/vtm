@@ -10,7 +10,9 @@
  * Month (calendar), Custom (capped at 62 days so the matrix stays legible).
  *
  * Views:
- *   Matrix  person x day, decimal hours, row and column totals.
+ *   Calendar week = time-of-day grid with a block per entry (gig, person);
+ *            month/long range = day cells with a chip per entry.
+ *   Hours   person x day, decimal hours, row and column totals.
  *           Clicking a person jumps to the Log filtered to them.
  *   Log     every entry grouped by day, newest first.
  *
@@ -36,7 +38,8 @@ const PAGE_SIZE = 1000
 
 let period   = 'week'     // 'week' | 'month' | 'custom'
 let offset   = 0          // periods back from now (0 = current, negative = past)
-let view     = 'matrix'   // 'matrix' | 'log'
+let view     = 'calendar' // 'calendar' | 'matrix' | 'log'
+let expanded = new Set()  // month cells expanded to show every gig
 let userId   = ''
 let projectId = ''
 let users    = []         // [{ user_id, name, role, active }]
@@ -145,7 +148,7 @@ async function loadEntries() {
   for (let offsetRows = 0; ; offsetRows += PAGE_SIZE) {
     const { data, error } = await db
       .from('time_entries')
-      .select('entry_id, user_id, gig_id, entry_date, start_time, end_time, entry_type, is_active, duration_mins, notes, location_label, gigs ( gig_code, title, project_id, projects ( project_code ) )')
+      .select('entry_id, user_id, gig_id, entry_date, start_time, end_time, entry_type, is_active, duration_mins, notes, location_label, gigs ( gig_code, title, status, project_id, projects ( project_code ) )')
       .gte('entry_date', from)
       .lte('entry_date', to)
       .order('entry_date', { ascending: false })
@@ -206,7 +209,9 @@ function render() {
   statusEl.className = 'db-status ok'
 
   renderSummary(rows)
-  $('body').innerHTML = view === 'matrix' ? matrixHTML(rows) : logHTML(rows)
+  $('body').innerHTML = view === 'calendar' ? calendarHTML(rows)
+                    : view === 'matrix'   ? matrixHTML(rows)
+                    : logHTML(rows)
 }
 
 function renderSummary(rows) {
@@ -234,6 +239,154 @@ function renderSummary(rows) {
       </div>
     </div>`
 }
+
+
+// ── CALENDAR VIEW ─────────────────────────────────────────────────────────
+
+const USER_COLORS = ['#7b3fa0', '#2a5a8a', '#3a7a6b', '#8a6e3f', '#5a4a8a', '#a04a5c', '#4a7a8a', '#8a5a3f', '#4a6a2a', '#9a3a2a']
+const STATUS_COLORS = { placed: '#2a5a8a', matched: '#7b3fa0', aligned: '#8a6200', in_progress: '#b5201a', delivered: '#1e4d2b', completed: '#6b5f4e' }
+const HOUR_PX = 52
+const colorOf = id => USER_COLORS[Math.max(0, users.findIndex(u => u.user_id === id)) % USER_COLORS.length]
+const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m }
+const fmtStatus = s => (s || 'placed').replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())
+
+function calendarHTML(rows) {
+  if (!rows.length) return '<div class="empty-state">No timesheet entries in this period.</div>'
+  const legend = legendHTML(rows)
+  const grid = (period === 'week' || (period === 'custom' && daysInRange().length <= 7))
+    ? weekGridHTML(rows) : monthGridHTML(rows)
+  return legend + grid
+}
+
+function legendHTML(rows) {
+  const ids = [...new Set(rows.map(e => e.user_id))].sort((a, b) => nameOf(a).localeCompare(nameOf(b)))
+  const chips = ids.map(id => `<span class="lg-chip${userId === id ? ' on' : ''}" onclick="tsPick('${id}')"><i class="lg-sw" style="background:${colorOf(id)}"></i>${esc(nameOf(id))}</span>`).join('')
+  const stat = Object.entries(STATUS_COLORS).map(([k, c]) => `<span style="--c:${c}">${fmtStatus(k)}</span>`).join('')
+  return `<div class="legend">${chips}</div><div class="lg-status">${stat}</div>`
+}
+
+window.tsPick = function (id) {
+  userId = userId === id ? '' : id
+  $('userSelect').value = userId
+  render()
+}
+
+function blockTitle(e) {
+  const g = e.gigs || {}
+  const t = (e.start_time || '').slice(0, 5), en = (e.end_time || '').slice(0, 5) || (isRunning(e) ? 'now' : '?')
+  return `${nameOf(e.user_id)} \u00B7 ${g.gig_code || ''} \u00B7 ${g.title || ''} \u00B7 ${t}\u2013${en} \u00B7 ${entryMins(e) ? fmtHours(entryMins(e)) : 'no duration'}${e.notes ? ' \u00B7 ' + e.notes : ''}`
+}
+
+// Week: time-of-day grid, one block per entry, overlaps split into lanes.
+function weekGridHTML(rows) {
+  const days = daysInRange()
+  const timed = rows.filter(e => e.start_time)
+  const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes(), today = todayISO()
+
+  const spans = timed.map(e => {
+    const s = toMin(e.start_time)
+    let en = e.end_time ? toMin(e.end_time) : (isRunning(e) && e.entry_date === today ? nowMin : s + 30)
+    if (en <= s) en = e.end_time ? 24 * 60 : s + 30   // crossed midnight: clip to end of day
+    return { e, s, en }
+  })
+
+  let h0 = 8, h1 = 18
+  spans.forEach(x => { h0 = Math.min(h0, Math.floor(x.s / 60)); h1 = Math.max(h1, Math.ceil(x.en / 60)) })
+  h1 = Math.min(24, h1)
+  const base = h0 * 60
+
+  const hoursCol = Array.from({ length: h1 - h0 }, (_, i) => `<div>${String(h0 + i).padStart(2, '0')}:00</div>`).join('')
+
+  const cols = days.map(d => {
+    const iso = toISODate(d)
+    const list = spans.filter(x => x.e.entry_date === iso).sort((a, b) => a.s - b.s || a.en - b.en)
+
+    // lane assignment per overlap cluster
+    let cluster = [], clusterEnd = -1
+    const placed = []
+    const flush = () => { const n = Math.max(1, ...cluster.map(c => c.lane + 1)); cluster.forEach(c => c.lanes = n); placed.push(...cluster); cluster = [] }
+    list.forEach(x => {
+      if (cluster.length && x.s >= clusterEnd) { flush(); clusterEnd = -1 }
+      const used = new Set(cluster.filter(c => c.en > x.s).map(c => c.lane))
+      let lane = 0; while (used.has(lane)) lane++
+      x.lane = lane; cluster.push(x); clusterEnd = Math.max(clusterEnd, x.en)
+    })
+    if (cluster.length) flush()
+
+    const blocks = placed.map(x => {
+      const g = x.e.gigs || {}
+      const top = (x.s - base) / 60 * HOUR_PX
+      const height = Math.max(20, (x.en - x.s) / 60 * HOUR_PX - 1)
+      const w = 100 / x.lanes
+      return `<div class="cal-block s-${g.status || 'placed'}${isRunning(x.e) ? ' running' : ''}${isOpen(x.e) ? ' open' : ''}"
+        style="top:${top}px;height:${height}px;left:calc(${x.lane * w}% + 1px);width:calc(${w}% - 3px);border-left-color:${colorOf(x.e.user_id)}"
+        title="${esc(blockTitle(x.e))}">
+        <span class="c">${esc(g.gig_code || '\u2014')}</span>
+        <span class="w">${esc(nameOf(x.e.user_id))}</span>
+        ${height > 44 ? `<span class="t">${esc(g.title || '')}</span>` : ''}
+      </div>`
+    }).join('')
+
+    const nowLine = iso === today && nowMin >= base && nowMin <= h1 * 60
+      ? `<div class="cal-now" style="top:${(nowMin - base) / 60 * HOUR_PX}px"></div>` : ''
+    const wk = d.getDay() === 0 || d.getDay() === 6
+    return `<div class="cal-col${wk ? ' weekend' : ''}${iso === today ? ' today' : ''}" style="height:${(h1 - h0) * HOUR_PX}px">${nowLine}${blocks}</div>`
+  }).join('')
+
+  const heads = days.map(d => {
+    const iso = toISODate(d)
+    const m = rows.filter(e => e.entry_date === iso).reduce((s, e) => s + entryMins(e), 0)
+    const wk = d.getDay() === 0 || d.getDay() === 6
+    return `<div class="cal-head${iso === today ? ' today' : wk ? ' weekend' : ''}">
+      <div class="dn">${d.toLocaleDateString(undefined, { weekday: 'short' })}</div>
+      <div class="dd">${d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</div>
+      <div class="dt">${m ? fmtHours(m) : '\u00B7'}</div></div>`
+  }).join('')
+
+  const noTime = rows.length - timed.length
+  return `<div class="cal-wrap"><div class="cal-grid" style="grid-template-columns:52px repeat(${days.length},minmax(0,1fr))">
+      <div class="cal-head corner"></div>${heads}
+      <div class="cal-hours">${hoursCol}</div>${cols}
+    </div></div>
+    <div class="cal-note">Hover a block for full details. Dashed edge = open entry (no end time, shown as 30 min). Green ring = running now.${noTime ? ` ${noTime} entr${noTime > 1 ? 'ies have' : 'y has'} no start time and appear only in the Log.` : ''}</div>`
+}
+
+// Month / long custom range: one cell per day with a chip per gig worked.
+function monthGridHTML(rows) {
+  const first = new Date(range.start)
+  const lead = (first.getDay() + 6) % 7                 // Monday-first
+  const gridStart = addDays(first, -lead)
+  const last = new Date(range.end)
+  const trail = 6 - ((last.getDay() + 6) % 7)
+  const gridEnd = addDays(last, trail)
+  const today = todayISO()
+
+  const byDay = {}
+  rows.forEach(e => { (byDay[e.entry_date] ||= []).push(e) })
+
+  const heads = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => `<div class="mh">${d}</div>`).join('')
+  let cells = ''
+  for (let d = new Date(gridStart); d <= gridEnd; d = addDays(d, 1)) {
+    const iso = toISODate(d)
+    const inRange = d >= range.start && d <= range.end
+    const wk = d.getDay() === 0 || d.getDay() === 6
+    const list = (byDay[iso] || []).slice().sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''))
+    const total = list.reduce((s, e) => s + entryMins(e), 0)
+    const open = expanded.has(iso)
+    const shown = open ? list : list.slice(0, 4)
+    const chips = shown.map(e => {
+      const g = e.gigs || {}
+      return `<div class="chip" style="border-left-color:${colorOf(e.user_id)}" title="${esc(blockTitle(e))}"><span class="cc">${esc(g.gig_code || '\u2014')}</span>${esc(nameOf(e.user_id).split(' ')[0])}</div>`
+    }).join('')
+    const more = list.length > 4 ? `<div class="more" onclick="tsExpand('${iso}')">${open ? 'show less' : '+' + (list.length - 4) + ' more'}</div>` : ''
+    cells += `<div class="mc${inRange ? '' : ' out'}${wk ? ' weekend' : ''}${iso === today ? ' today' : ''}">
+      <div class="mn"><b>${d.getDate()}</b>${total ? `<span>${hoursDec(total)}h</span>` : ''}</div>${inRange ? chips + more : ''}</div>`
+  }
+  return `<div class="month-grid">${heads}${cells}</div>
+    <div class="cal-note">Each chip is one entry: gig code and first name, edge colour = person. Hover for details.</div>`
+}
+
+window.tsExpand = function (iso) { expanded.has(iso) ? expanded.delete(iso) : expanded.add(iso); render() }
 
 // ── MATRIX VIEW ───────────────────────────────────────────────────────────
 

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timesheet View · Mulai</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Special+Elite&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/vtm_2.css">
+  <script src="assets/vtm.js"></script>
+  <script src="assets/vtm_auth_guard.js"></script>
+  <style>
+    /* Page-specific layout only. Palette, header, punch-card, register-grid
+       and toggle-pair all come from assets/vtm_2.css. */
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 32px 32px 64px; }
+
+    .page-title { font-family: var(--font-display); font-size: 44px; letter-spacing: 0.06em; line-height: 1; color: var(--black); }
+    .page-sub { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--stone); margin: 8px 0 24px; }
+
+    .controls-row { display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: flex-end; margin-bottom: 20px; }
+    .ctl { display: flex; flex-direction: column; gap: 6px; }
+    .ctl-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--stone); font-weight: 500; }
+    .ctl-inline { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .ctl .toggle-pair { min-width: 150px; }
+    .ctl select, .ctl input[type="date"] {
+      background: var(--white); border: 1px solid var(--hole); padding: 7px 10px;
+      font-family: var(--font-mono); font-size: 12px; color: var(--black); outline: none; min-width: 120px;
+    }
+    .ctl select:focus, .ctl input:focus { border-color: var(--red); }
+    .ghost-btn {
+      background: none; border: 1px solid var(--hole); color: var(--stone); padding: 7px 12px;
+      font-family: var(--font-body); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; transition: all 0.2s;
+    }
+    .ghost-btn:hover:not(:disabled) { border-color: var(--charcoal); color: var(--black); }
+    .ghost-btn:disabled { opacity: 0.35; cursor: default; }
+    .nav-btn { width: 32px; padding: 7px 0; text-align: center; font-size: 14px; }
+    .range-label { font-family: var(--font-display); font-size: 20px; letter-spacing: 0.05em; color: var(--black); min-width: 190px; text-align: center; }
+
+    .db-status { font-size: 11px; font-family: var(--font-mono); color: var(--stone); margin: 0 0 14px; letter-spacing: 0.04em; }
+    .db-status.ok { color: var(--green); }
+    .db-status.err { color: var(--red); }
+
+    /* summary strip */
+    .answer-card .register-cell-val { font-size: 22px; }
+    .answer-card .register-cell-val .sub { display: block; font-family: var(--font-mono); font-size: 10px; color: var(--stone); letter-spacing: 0.04em; margin-top: 2px; }
+
+    h2.section { font-family: var(--font-display); font-size: 26px; letter-spacing: 0.08em; font-weight: 400; margin: 32px 0 10px; display: flex; align-items: center; gap: 12px; }
+    h2.section::after { content: ''; flex: 1; height: 2px; background: var(--black); }
+
+
+    /* calendar: legend */
+    .legend { display: flex; gap: 8px 14px; flex-wrap: wrap; margin: 0 0 12px; }
+    .lg-chip { display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.04em; color: var(--charcoal); background: var(--white); border: 1px solid var(--hole); padding: 3px 10px; cursor: pointer; }
+    .lg-chip:hover { border-color: var(--charcoal); }
+    .lg-chip.on { background: var(--black); color: var(--white); border-color: var(--black); }
+    .lg-sw { width: 10px; height: 10px; display: inline-block; }
+    .lg-status { display: flex; gap: 14px; flex-wrap: wrap; font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--stone); margin: -4px 0 12px; }
+    .lg-status span::before { content: ''; display: inline-block; width: 14px; height: 3px; margin-right: 6px; vertical-align: middle; background: var(--c); }
+
+    /* calendar: week time grid */
+    .cal-wrap { border: 2px solid var(--black); background: var(--white); overflow-x: auto; }
+    .cal-grid { display: grid; min-width: 880px; }
+    .cal-head { background: var(--black); color: var(--white); text-align: center; padding: 8px 6px; border-right: 1px solid rgba(240,234,216,0.12); }
+    .cal-head.corner { background: var(--light); }
+    .cal-head.today { background: var(--red); }
+    .cal-head.weekend { background: var(--charcoal); }
+    .cal-head .dn { font-family: var(--font-display); font-size: 17px; letter-spacing: 0.08em; line-height: 1; }
+    .cal-head .dd { font-family: var(--font-mono); font-size: 9.5px; color: rgba(240,234,216,0.6); margin-top: 3px; }
+    .cal-head .dt { font-family: var(--font-mono); font-size: 10px; color: rgba(240,234,216,0.85); margin-top: 2px; }
+    .cal-hours { border-right: 2px solid var(--black); background: var(--light); }
+    .cal-hours div { height: 52px; border-bottom: 1px solid var(--hole); font-family: var(--font-mono); font-size: 9.5px; color: var(--stone); text-align: right; padding: 2px 6px 0; box-sizing: border-box; }
+    .cal-col { position: relative; border-right: 1px solid var(--hole); background-image: repeating-linear-gradient(to bottom, var(--light) 0, var(--light) 1px, transparent 1px, transparent 52px); }
+    .cal-col.weekend { background-color: rgba(26,20,16,0.035); }
+    .cal-col.today { background-color: rgba(181,32,26,0.04); }
+    .cal-now { position: absolute; left: 0; right: 0; height: 2px; background: var(--red); z-index: 3; pointer-events: none; }
+    .cal-block { position: absolute; background: var(--white); border: 1px solid var(--hole); border-top: 3px solid var(--stone); border-left-width: 4px; padding: 2px 5px 1px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); box-sizing: border-box; z-index: 1; }
+    .cal-block:hover { z-index: 4; overflow: visible; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    .cal-block.s-placed { border-top-color: #2a5a8a; } .cal-block.s-matched { border-top-color: #7b3fa0; }
+    .cal-block.s-aligned { border-top-color: #8a6200; } .cal-block.s-in_progress { border-top-color: var(--red); }
+    .cal-block.s-delivered { border-top-color: var(--green); } .cal-block.s-completed { border-top-color: var(--stone); }
+    .cal-block .c { font-family: var(--font-mono); font-size: 9px; font-weight: 700; letter-spacing: 0.04em; color: var(--red); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cal-block .w { font-family: var(--font-display); font-size: 12px; letter-spacing: 0.03em; color: var(--black); display: block; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cal-block .t { font-size: 9.5px; color: var(--charcoal); display: block; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cal-block.running { box-shadow: 0 0 0 2px var(--green); }
+    .cal-block.open { border-style: dashed; }
+    .cal-note { font-family: var(--font-mono); font-size: 10.5px; color: var(--stone); margin-top: 10px; line-height: 1.6; }
+
+    /* calendar: month grid */
+    .month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border: 2px solid var(--black); background: var(--white); }
+    .mh { text-align: center; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; background: var(--black); color: var(--white); padding: 8px 0; }
+    .mc { min-height: 112px; padding: 5px 6px; border-right: 1px solid var(--light); border-bottom: 1px solid var(--light); min-width: 0; background: var(--white); }
+    .mc:nth-child(7n) { border-right: none; }
+    .mc.out { background: var(--light); opacity: 0.55; }
+    .mc.weekend { background: rgba(26,20,16,0.035); }
+    .mc.today { box-shadow: inset 0 0 0 3px var(--red); }
+    .mc .mn { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 11px; color: var(--charcoal); margin-bottom: 3px; }
+    .mc .mn b { font-weight: 500; } .mc .mn span { font-size: 9.5px; color: var(--stone); }
+    .chip { background: var(--light); padding: 1px 5px; margin-top: 2px; font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 3px solid var(--black); }
+    .chip .cc { font-family: var(--font-mono); font-weight: 700; color: var(--red); margin-right: 4px; }
+    .more { font-family: var(--font-mono); font-size: 9.5px; color: var(--red); cursor: pointer; margin-top: 3px; text-decoration: underline; }
+    @media (max-width: 860px) { .mc { min-height: 70px; padding: 3px; } .chip { font-size: 8.5px; padding: 0 3px; } }
+
+    /* matrix */
+    .tt-scroll { overflow-x: auto; border: 2px solid var(--black); background: var(--white); }
+    table.tt { width: 100%; border-collapse: collapse; }
+    table.tt th { background: var(--black); color: var(--white); font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; padding: 8px 8px; text-align: center; font-weight: 500; border-right: 1px solid rgba(240,234,216,0.12); white-space: nowrap; }
+    table.tt th.name-col { text-align: left; position: sticky; left: 0; z-index: 2; min-width: 180px; }
+    table.tt th .d { display: block; font-size: 9px; color: rgba(240,234,216,0.5); letter-spacing: 0.06em; margin-top: 1px; }
+    table.tt th.today { background: var(--red); }
+    table.tt th.weekend { background: var(--charcoal); }
+    table.tt td { padding: 8px; text-align: center; border-right: 1px solid var(--light); border-bottom: 1px solid var(--light); font-family: var(--font-mono); font-size: 12px; color: var(--charcoal); }
+    table.tt td.name-col { text-align: left; position: sticky; left: 0; background: var(--white); font-family: var(--font-body); font-weight: 700; font-size: 13px; color: var(--black); cursor: pointer; z-index: 1; }
+    table.tt td.name-col small { display: block; font-family: var(--font-mono); font-weight: 400; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--stone); }
+    table.tt tr.person:hover td { background: var(--light); }
+    table.tt tr.person:hover td.name-col { background: var(--light); }
+    table.tt td.weekend { background: rgba(26,20,16,0.04); }
+    table.tt td.zero { color: var(--hole); }
+    table.tt td.total { font-weight: 700; color: var(--black); background: var(--light); }
+    table.tt tr.foot td { background: var(--black); color: var(--white); font-weight: 500; border-color: rgba(240,234,216,0.12); }
+    table.tt tr.foot td.name-col { background: var(--black); color: var(--white); cursor: default; }
+    .hint { font-family: var(--font-mono); font-size: 10.5px; color: var(--stone); letter-spacing: 0.03em; margin-top: 10px; line-height: 1.6; }
+
+    /* log */
+    .day-block { margin-bottom: 18px; border: 2px solid var(--black); background: var(--white); }
+    .day-head { display: flex; justify-content: space-between; align-items: baseline; background: var(--black); color: var(--white); padding: 8px 16px; }
+    .day-head .dn { font-family: var(--font-display); font-size: 18px; letter-spacing: 0.08em; }
+    .day-head .dt { font-family: var(--font-mono); font-size: 11px; color: rgba(240,234,216,0.7); letter-spacing: 0.04em; }
+    .log-row { display: grid; grid-template-columns: 150px 120px 1fr 80px 72px; gap: 14px; align-items: start; padding: 10px 16px; border-bottom: 1px solid var(--light); font-size: 13px; }
+    .log-row:last-child { border-bottom: none; }
+    .log-row:hover { background: var(--light); }
+    .lr-person { font-weight: 700; color: var(--black); }
+    .lr-time { font-family: var(--font-mono); font-size: 11px; color: var(--stone); line-height: 1.5; }
+    .lr-gig .code { font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; color: var(--red); margin-right: 6px; }
+    .lr-notes { display: block; font-size: 11.5px; font-style: italic; color: var(--stone); margin-top: 3px; }
+    .lr-loc { display: block; font-family: var(--font-mono); font-size: 9.5px; color: var(--hole); margin-top: 2px; }
+    .lr-dur { font-weight: 700; color: var(--red); text-align: right; white-space: nowrap; }
+    .badge { display: inline-block; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 7px; font-weight: 600; }
+    .badge.live { background: #e8f5ee; color: var(--green); }
+    .badge.manual { background: var(--light); color: var(--stone); }
+    .badge.open { background: #fdf5e0; color: #8a6200; }
+    .badge.running { background: var(--green); color: var(--white); }
+
+    .empty-state { text-align: center; padding: 48px 0; color: var(--stone); font-size: 13px; background: var(--white); border: 2px solid var(--black); }
+
+    .note { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--black); font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.04em; color: var(--stone); line-height: 1.7; }
+    .note b { color: var(--charcoal); font-weight: 500; }
+
+    @media (max-width: 860px) {
+      .wrap { padding: 20px 16px 48px; }
+      .page-title { font-size: 34px; }
+      .log-row { grid-template-columns: 1fr auto; gap: 4px 12px; }
+      .lr-time { grid-column: 1 / -1; }
+      .lr-gig { grid-column: 1 / -1; }
+    }
+  </style>
+</head>
+<body data-page="ts_view">
+
+<div id="vtmHeader"></div>
+<script src="assets/vtm_header.js"></script>
+<script type="module" src="assets/vtm_admin_guard.js"></script>
+
+<div class="punch-strip" id="topPunchStrip"></div>
+
+<main class="wrap">
+  <h1 class="page-title">Timesheet View</h1>
+  <div class="page-sub">Everything reported by everyone · Admin only</div>
+
+  <div class="controls-row">
+    <div class="ctl">
+      <span class="ctl-label">Period</span>
+      <div class="toggle-pair">
+        <input type="radio" name="period" id="per-week" value="week" checked><label for="per-week">Week</label>
+        <input type="radio" name="period" id="per-month" value="month"><label for="per-month">Month</label>
+        <input type="radio" name="period" id="per-custom" value="custom"><label for="per-custom">Custom</label>
+      </div>
+    </div>
+
+    <div class="ctl" id="navCtl">
+      <span class="ctl-label">Navigate</span>
+      <div class="ctl-inline">
+        <button class="ghost-btn nav-btn" id="prevBtn" type="button">&#8249;</button>
+        <div class="range-label" id="rangeLabel">&mdash;</div>
+        <button class="ghost-btn nav-btn" id="nextBtn" type="button">&#8250;</button>
+        <button class="ghost-btn" id="todayBtn" type="button">This period</button>
+      </div>
+    </div>
+
+    <div class="ctl" id="customCtl" style="display:none;">
+      <span class="ctl-label">From / To (max 62 days)</span>
+      <div class="ctl-inline">
+        <input type="date" id="fromInput">
+        <input type="date" id="toInput">
+      </div>
+    </div>
+
+    <div class="ctl">
+      <span class="ctl-label">Person</span>
+      <select id="userSelect"><option value="">All people</option></select>
+    </div>
+
+    <div class="ctl">
+      <span class="ctl-label">Project</span>
+      <select id="projectSelect"><option value="">All projects</option></select>
+    </div>
+
+    <div class="ctl">
+      <span class="ctl-label">View</span>
+      <div class="toggle-pair">
+        <input type="radio" name="view" id="view-cal" value="calendar" checked><label for="view-cal">Calendar</label>
+        <input type="radio" name="view" id="view-matrix" value="matrix"><label for="view-matrix">Hours</label>
+        <input type="radio" name="view" id="view-log" value="log"><label for="view-log">Log</label>
+      </div>
+    </div>
+
+    <div class="ctl">
+      <span class="ctl-label">&nbsp;</span>
+      <button class="add-row-btn" id="csvBtn" type="button" style="margin:0;padding:8px 16px;">Export CSV</button>
+    </div>
+  </div>
+
+  <div class="db-status" id="dbStatus">Loading&hellip;</div>
+
+  <div id="summary"></div>
+  <div id="body"></div>
+
+  <p class="note">
+    <b>Calendar.</b> Week shows each entry as a block at the time it was worked; month shows gigs per day. Block colour edge = person, top edge = gig stage. <b>Hours.</b> Person x day totals. <b>Log.</b> Every entry, newest first.<br>
+    <b>Weeks</b> run Saturday to Friday, same as the Weekly Report. <b>Open</b> = entry saved without an end time, so it counts as 0 until completed. <b>Running</b> = clocked in right now.
+  </p>
+</main>
+
+<script type="module" src="assets/ts_view.js"></script>
+</body>
+</html>

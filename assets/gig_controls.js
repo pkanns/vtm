@@ -1,33 +1,42 @@
 /**
  * gig_controls.js · Vidai to Mulai · Gig Controls
- * Replaces gig_lifecycle.html (freeze / kill) and time_recording_gigs.html
- * (pin) with one sheet and a checkbox column per category.
+ * One sheet for Pinned / Frozen / Killed. Replaces gig_lifecycle.html and
+ * time_recording_gigs.html.
+ *
+ * VIEWS
+ *   Gigs (default)  filterable sheet with a checkbox column per control,
+ *                   row selection and bulk actions.
+ *   Projects        admin only. Per project counts plus the rare
+ *                   "Freeze / Kill whole project" cascade.
+ *
+ * FILTERS (Gigs view): search, Project, Lead, Doer, Control state
+ * (Live / Any / Pinned / Not pinned / Frozen / Killed), Period, Type
+ * (admin: real gigs / masters / both) and a Stage strip with live counts.
+ *
+ * PERIOD (the dead wood finder)
+ *   Window = today +/- N days (30, 60, 90, 180).
+ *   Current   dates overlap the window, or the gig has no dates at all.
+ *   Inactive  has dates, and they sit entirely outside the window.
+ *   A gig's span is start..due; if only one date exists it is used for both.
+ *   Filter to Inactive, tick the header box, then Freeze or Kill in bulk.
  *
  * WHO SEES WHAT
- *   Everyone  -> Pinned column. Pinning is per person and self-managed,
- *                auto-saves on toggle, over the gigs that person can
- *                clock time to (fetchClockableGigs, same as Timesheet).
- *   Admin     -> also Frozen + Killed columns, the Projects block with
- *                bulk Freeze/Kill, and masters/frozen/killed rows.
+ *   Everyone  Pinned column and Pin/Unpin bulk, over their own live gigs.
+ *   Admin     everything: all gigs incl. masters, completed and killed,
+ *             Frozen/Killed columns, Projects view, bulk Freeze/Kill.
  *
- * RULES (unchanged from the two old pages)
- *   Pinned  Only on live gigs: not a master, not frozen, not killed.
- *   Frozen  Reversible. Check = freeze (reason optional), uncheck =
- *           unfreeze. Never touches gigs.status.
- *   Killed  One way through the UI. Check = reason required, sets
- *           gigs.status = 'completed' and writes a 'killed' lifecycle
- *           row. The box then locks. Un-killing is a manual SQL job.
- *   A killed gig can't also be frozen, so its Frozen box locks too.
- *
- * A cancelled modal simply re-renders, which puts the checkbox back to
- * its real saved state.
+ * RULES (unchanged)
+ *   Pinned  live gigs only: not a master, not frozen, not killed, not completed.
+ *   Frozen  reversible, never touches gigs.status.
+ *   Killed  one way here: sets gigs.status='completed' plus a 'killed' row,
+ *           reason required. Un-killing is a manual SQL job.
  */
 
 import { db } from './vtm_db.js'
-import { fetchLifecycleGigs, freezeGig, unfreezeGig, killGig,
-         freezeProjectGigs, killProjectGigs, fetchLifecycleReasons,
-         fetchClockableGigs, fetchPinnedGigIds, pinGig, unpinGig,
-         fetchProjects, fmtDate, esc } from './vtm_api.js'
+import { fetchGigs, fetchLifecycleMap, fetchLifecycleReasons,
+         fetchPinnedGigIds, pinGig, unpinGig, freezeGig, unfreezeGig, killGig,
+         freezeProjectGigs, killProjectGigs, fetchProjects,
+         fetchActiveLeads, fetchActiveDoers, esc } from './vtm_api.js'
 
 // ── SESSION ───────────────────────────────────────────────────────────────
 
@@ -39,274 +48,487 @@ const userId  = session.user_id
 const isAdmin = role === 'admin'
 if (isAdmin) document.body.classList.add('is-admin')
 
-// ── STATE (declared before init, see timesheet.js history on why) ────────
+// ── STATE (declared before init) ──────────────────────────────────────────
 
-let allGigs       = []     // every row shown: { ...gig, lifecycle: row|null }
-let pinnedIds     = new Set()
-let projectCodes  = {}     // project_id -> project_code
-let searchTerm    = ''
-let filterId      = 'open'
-let pendingAction = null   // { kind: 'freeze'|'kill'|'freezeProject'|'killProject', id, code, openCount? }
+const STAGES = ['placed', 'matched', 'aligned', 'in_progress', 'delivered', 'completed']
+const DEFAULTS = { search: '', project: '', lead: '', doer: '', control: 'live', period: 'current', windowDays: 30, type: 'real', stage: '' }
 
-// ── DERIVED FLAGS ─────────────────────────────────────────────────────────
+let view      = 'gigs'
+let f         = { ...DEFAULTS }
+let allGigs   = []             // enriched rows
+let pinnedIds = new Set()
+let nameById  = {}
+let projects  = []             // [{ project_id, project_code, project_name }]
+let selected  = new Set()
+let shownIds  = []             // gig ids currently displayed (for select-all)
+let pending   = null           // modal action
 
-const isMaster = g => g.cadence === 'recurring' && !g.parent_gig_id
-const isFrozen = g => g.lifecycle?.state === 'frozen'
-const isKilled = g => g.lifecycle?.state === 'killed'
-const isPinned = g => pinnedIds.has(g.gig_id)
-// Same definition as fetchClockableGigs(): live, not a master, not frozen/killed
-const isPinnable = g => g.status !== 'completed' && !isMaster(g) && !isFrozen(g) && !isKilled(g)
+const $ = id => document.getElementById(id)
+
+// ── DATE HELPERS ──────────────────────────────────────────────────────────
+
+const toISO = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+const isoPlus = n => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + n); return toISO(d) }
+const daysBetween = (aISO, bISO) => Math.round((new Date(bISO + 'T00:00:00') - new Date(aISO + 'T00:00:00')) / 86400000)
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+function fmtShort(iso, withYear) {
+  if (!iso) return '·'
+  const [y, m, d] = iso.split('-')
+  return `${parseInt(d)} ${MONTHS[parseInt(m) - 1]}${withYear ? ' ' + y : ''}`
+}
+
+// ── ENRICHMENT ────────────────────────────────────────────────────────────
+
+function enrich(g, lcMap) {
+  const lifecycle = lcMap[g.gig_id] || null
+  return {
+    ...g,
+    lifecycle,
+    isMaster: g.cadence === 'recurring' && !g.parent_gig_id,
+    isFrozen: lifecycle?.state === 'frozen',
+    isKilled: lifecycle?.state === 'killed',
+  }
+}
+
+const isPinned   = g => pinnedIds.has(g.gig_id)
+const isPinnable = g => g.status !== 'completed' && !g.isMaster && !g.isFrozen && !g.isKilled
+
+// 'current' | 'inactive'. Relies on f.windowDays.
+function periodOf(g) {
+  const s = g.date_start || g.date_due
+  const e = g.date_due || g.date_start
+  if (!s && !e) return 'current'                      // undated: can't be called dead
+  const wStart = isoPlus(-f.windowDays), wEnd = isoPlus(f.windowDays)
+  return (s <= wEnd && e >= wStart) ? 'current' : 'inactive'
+}
 
 // ── LOAD ──────────────────────────────────────────────────────────────────
 
 async function load() {
-  const statusEl = $id('dbStatus')
-  statusEl.textContent = 'Loading…'
-  statusEl.className = 'db-status'
+  const st = $('dbStatus')
+  st.textContent = 'Loading…'; st.className = ''
 
-  const [gigsRes, pinsRes, projRes] = await Promise.all([
-    isAdmin
-      ? fetchLifecycleGigs(db)   // admin: every open gig, masters included, plus killed
-      : fetchClockableGigs(db, role, userId).then(r => ({ data: (r.data || []).map(g => ({ ...g, lifecycle: null })), error: r.error })),
+  const [gigsRes, lcRes, pinsRes, projRes, leadsRes, doersRes, usersRes] = await Promise.all([
+    fetchGigs(db),
+    fetchLifecycleMap(db),
     fetchPinnedGigIds(db, userId),
     fetchProjects(db),
+    fetchActiveLeads(db),
+    fetchActiveDoers(db),
+    db.from('vtm_users').select('user_id, name'),
   ])
 
-  if (gigsRes.error) {
-    statusEl.textContent = 'Could not load gigs: ' + gigsRes.error.message
-    statusEl.className = 'db-status err'
-    return
-  }
+  if (gigsRes.error) { st.textContent = 'Could not load gigs: ' + gigsRes.error.message; st.className = 'err'; return }
 
-  allGigs   = gigsRes.data || []
+  nameById = {}
+  ;(usersRes.data || []).forEach(u => { nameById[u.user_id] = u.name })
+  projects  = projRes.data || []
   pinnedIds = new Set((pinsRes.data || []).map(r => r.gig_id))
-  projectCodes = {}
-  ;(projRes.data || []).forEach(p => { projectCodes[p.project_id] = p.project_code })
 
+  let gigs = (gigsRes.data || []).map(g => enrich(g, lcRes.data || {}))
+
+  if (!isAdmin) {
+    // Same set the Timesheet pool uses: own, live, clockable
+    gigs = gigs.filter(g => isPinnable(g) &&
+      (role === 'pacer' ? g.pacer_id === userId : role === 'rover' ? g.rover_id === userId : true))
+  }
+  allGigs = gigs
+
+  fillSelect('fProject', projects.map(p => [p.project_id, p.project_code]), 'All projects')
+  fillSelect('fLead', (leadsRes.data || []).map(u => [u.user_id, u.name]), 'All leads')
+  fillSelect('fDoer', (doersRes.data || []).map(u => [u.user_id, u.name]), 'All doers')
+  if (role === 'pacer') { $('fLeadWrap').style.display = 'none' }
+  if (role === 'rover') { $('fDoerWrap').style.display = 'none' }
+
+  syncControls()
   render()
 }
 
+function fillSelect(id, pairs, allLabel) {
+  const el = $(id), cur = el.value
+  el.innerHTML = `<option value="">${allLabel}</option>` + pairs.map(([v, t]) => `<option value="${v}">${esc(t)}</option>`).join('')
+  el.value = cur
+}
+
 async function loadReasons() {
-  const { data, error } = await fetchLifecycleReasons(db)
-  if (error) return   // suggestions are a nicety; free text still works
-  $id('lcReasonSuggestions').innerHTML = (data || []).map(r => `<option value="${esc(r.reason)}"></option>`).join('')
+  const { data } = await fetchLifecycleReasons(db)
+  $('lcReasonSuggestions').innerHTML = (data || []).map(r => `<option value="${esc(r.reason)}"></option>`).join('')
+}
+
+// ── FILTERING ─────────────────────────────────────────────────────────────
+
+const CONTROL = {
+  all:      () => true,
+  live:     g => !g.isFrozen && !g.isKilled,
+  pinned:   g => isPinned(g),
+  unpinned: g => !isPinned(g),
+  frozen:   g => g.isFrozen,
+  killed:   g => g.isKilled,
+}
+
+// Everything except Period and Stage; the counts on those two are
+// computed against this base so each shows what choosing it would give.
+function baseFiltered() {
+  const term = f.search.trim().toLowerCase()
+  return allGigs.filter(g =>
+    (!f.project || g.project_id === f.project) &&
+    (!f.lead    || g.pacer_id === f.lead) &&
+    (!f.doer    || g.rover_id === f.doer) &&
+    (CONTROL[f.control] || CONTROL.live)(g) &&
+    (f.type === 'both' || (f.type === 'masters' ? g.isMaster : !g.isMaster)) &&
+    (!term || g.gig_code.toLowerCase().includes(term) || (g.title || '').toLowerCase().includes(term))
+  )
+}
+
+const periodPass = g => f.period === 'all' || periodOf(g) === f.period
+
+function dueSort(a, b) {
+  const da = a.date_due || a.date_start, db_ = b.date_due || b.date_start
+  if (!da && !db_) return a.gig_code.localeCompare(b.gig_code)
+  if (!da) return 1
+  if (!db_) return -1
+  return da.localeCompare(db_) || a.gig_code.localeCompare(b.gig_code)
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────
 
 function render() {
-  updateStatus()
-  if (isAdmin) renderProjects()
-  renderGigs()
+  if (view === 'projects') { renderProjects(); return }
+
+  const base = baseFiltered()
+  const inPeriod = base.filter(periodPass)
+  const rows = inPeriod.filter(g => !f.stage || g.status === f.stage).sort(dueSort)
+  shownIds = rows.map(g => g.gig_id)
+  // drop selections that are no longer visible
+  selected = new Set([...selected].filter(id => shownIds.includes(id)))
+
+  renderStages(inPeriod)
+  renderPeriodCounts(base)
+  renderSummary(rows, base)
+  renderRows(rows)
+  renderBulk()
+  markActiveFilters()
 }
 
-function updateStatus() {
-  const pinned = allGigs.filter(isPinned).length
-  const pinnable = allGigs.filter(isPinnable).length
-  let txt = `● ${pinned} pinned of ${pinnable} clockable`
-  if (isAdmin) {
-    txt += ` · ${allGigs.filter(isFrozen).length} frozen · ${allGigs.filter(isKilled).length} killed · ${allGigs.length} gigs total`
+function renderStages(inPeriod) {
+  const count = s => inPeriod.filter(g => g.status === s).length
+  const label = s => s.replace('_', ' ')
+  $('stages').innerHTML =
+    `<button type="button" class="stg${!f.stage ? ' on' : ''}" onclick="setStage('')">All <b>${inPeriod.length}</b></button>` +
+    STAGES.map(s => `<button type="button" class="stg s-${s}${f.stage === s ? ' on' : ''}" onclick="setStage('${s}')">${label(s)} <b>${count(s)}</b></button>`).join('') +
+    `<button type="button" class="clear-link" onclick="clearFilters()">Clear filters</button>`
+}
+
+function renderPeriodCounts(base) {
+  const cur = base.filter(g => periodOf(g) === 'current').length
+  const ina = base.length - cur
+  const sel = $('fPeriod')
+  sel.options[0].textContent = `Current (${cur})`
+  sel.options[1].textContent = `Inactive (${ina})`
+  sel.options[2].textContent = `All (${base.length})`
+
+  const dw = $('deadwood')
+  if (f.period === 'current' && ina > 0) {
+    dw.innerHTML = `${ina} gig${ina !== 1 ? 's' : ''} outside the ±${f.windowDays} day window are hidden. <button type="button" onclick="setPeriod('inactive')">Review dead wood</button>`
+    dw.classList.add('show')
+  } else if (f.period === 'inactive' && ina > 0) {
+    dw.innerHTML = `Showing ${ina} inactive gig${ina !== 1 ? 's' : ''}, sorted oldest first. Tick the header box to select all, then Freeze or Kill. <button type="button" onclick="setPeriod('current')">Back to current</button>`
+    dw.classList.add('show')
+  } else dw.classList.remove('show')
+}
+
+function renderSummary(rows, base) {
+  const st = $('dbStatus')
+  st.className = 'ok'
+  st.textContent = `● ${rows.length} gig${rows.length !== 1 ? 's' : ''} shown`
+  const pinned = rows.filter(isPinned).length
+  let line = `${pinned} pinned`
+  if (isAdmin) line += ` · ${rows.filter(g => g.isFrozen).length} frozen · ${rows.filter(g => g.isKilled).length} killed`
+  $('countLine').textContent = line
+}
+
+function datesCell(g) {
+  const s = g.date_start, e = g.date_due
+  if (!s && !e) return '<div class="dates">No dates</div>'
+  const span = s && e ? `${fmtShort(s)} → ${fmtShort(e, true)}` : fmtShort(e || s, true)
+  let note = ''
+  if (periodOf(g) === 'inactive') {
+    const end = e || s, start = s || e, t = isoPlus(0)
+    if (end < t) note = `<small class="warn">ended ${daysBetween(end, t)}d ago</small>`
+    else note = `<small>starts in ${daysBetween(t, start)}d</small>`
+  } else if (e && e < isoPlus(0) && g.status !== 'completed') {
+    note = `<small class="warn">overdue ${daysBetween(e, isoPlus(0))}d</small>`
   }
-  const el = $id('dbStatus')
-  el.textContent = txt
-  el.className = 'db-status ok'
+  return `<div class="dates">${span}${note}</div>`
 }
 
-function projectCode(g) { return g.projects?.project_code || projectCodes[g.project_id] || '—' }
+function renderRows(rows) {
+  const tbody = $('gigsBody')
+  const cols = isAdmin ? 9 : 7
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="${cols}"><div class="empty">${allGigs.length ? 'No gigs match these filters.' : 'No gigs available right now.'}</div></td></tr>`
+    $('selAll').checked = false
+    return
+  }
 
-// Projects block (admin): same cascade actions as before
-function renderProjects() {
-  const wrap = $id('projectsList')
-  const byProject = new Map()
+  tbody.innerHTML = rows.map(g => {
+    const sel = selected.has(g.gig_id)
+    const pinOff = !isPinnable(g)
+    const pinTip = g.isMaster ? 'Masters are never clockable' : g.isKilled ? 'Killed gig' : g.isFrozen ? 'Frozen gigs are not clockable' : g.status === 'completed' ? 'Completed gig' : ''
+    const by = [g.lifecycle?.changed_by_name && `by ${g.lifecycle.changed_by_name}`, g.lifecycle?.changed_at && fmtShort(g.lifecycle.changed_at.slice(0, 10), true)].filter(Boolean).join(' · ')
+    const why = (g.isFrozen || g.isKilled)
+      ? `<div class="why"><b>${g.isKilled ? 'Killed' : 'Frozen'}</b>${esc(g.lifecycle.reason || 'No reason recorded')}${by ? ` · ${esc(by)}` : ''}</div>` : ''
+    const tags = (g.isMaster ? '<span class="tag">Master</span>' : '') + (periodOf(g) === 'inactive' ? '<span class="tag stale">Inactive</span>' : '')
 
-  allGigs.forEach(g => {
-    if (!g.project_id) return
-    if (!byProject.has(g.project_id)) {
-      byProject.set(g.project_id, { id: g.project_id, code: projectCode(g), name: g.projects?.project_name || '', open: 0, frozen: 0, killed: 0 })
+    const adminCells = isAdmin ? `
+      <td class="c"><input type="checkbox" class="chk frz" ${g.isFrozen ? 'checked' : ''} ${g.isKilled ? 'disabled title="Killed gigs can\'t be frozen"' : ''} onchange="toggleFreeze('${g.gig_id}',this.checked)"></td>
+      <td class="c"><input type="checkbox" class="chk kill" ${g.isKilled ? 'checked disabled title="No undo here. Reverting a kill is a manual SQL operation."' : ''} onchange="toggleKill('${g.gig_id}',this.checked)"></td>` : ''
+
+    return `
+      <tr class="${sel ? 'sel ' : ''}${g.isKilled ? 'is-killed' : g.isFrozen ? 'is-frozen' : ''}">
+        <td class="c"><input type="checkbox" class="chk sel" ${sel ? 'checked' : ''} onchange="toggleSel('${g.gig_id}',this.checked)"></td>
+        <td class="gig"><div class="g-code">${esc(g.gig_code)}${tags}</div><div class="g-title">${esc(g.title)}</div>${why}</td>
+        <td class="hide-md" style="font-size:12px;color:var(--stone)">${esc(g.projects?.project_code || '·')}</td>
+        <td class="hide-md ppl"><span>Lead</span>${esc(nameById[g.pacer_id] || '·')}<br><span>Doer</span>${esc(nameById[g.rover_id] || '·')}</td>
+        <td><span class="status-pill ${g.status || 'placed'}">${(g.status || 'placed').replace('_', ' ')}</span></td>
+        <td>${datesCell(g)}</td>
+        <td class="c"><input type="checkbox" class="chk pin" ${isPinned(g) ? 'checked' : ''} ${pinOff ? `disabled title="${esc(pinTip)}"` : ''} onchange="togglePin('${g.gig_id}',this.checked)"></td>
+        ${adminCells}
+      </tr>`
+  }).join('')
+
+  const all = shownIds.length && shownIds.every(id => selected.has(id))
+  $('selAll').checked = !!all
+  $('selAll').indeterminate = !all && selected.size > 0
+}
+
+function markActiveFilters() {
+  const mark = (id, on) => $(id)?.closest('.f')?.classList.toggle('active', on)
+  mark('fSearch', !!f.search); mark('fProject', !!f.project); mark('fLead', !!f.lead); mark('fDoer', !!f.doer)
+  mark('fControl', f.control !== 'live'); mark('fPeriod', f.period !== 'current'); mark('fType', f.type !== 'real')
+}
+
+function syncControls() {
+  $('fSearch').value = f.search; $('fProject').value = f.project; $('fLead').value = f.lead; $('fDoer').value = f.doer
+  $('fControl').value = f.control; $('fPeriod').value = f.period; $('fWindow').value = String(f.windowDays)
+  if ($('fType')) $('fType').value = f.type
+}
+
+// ── FILTER EVENTS ─────────────────────────────────────────────────────────
+
+const bind = (id, key, num) => $(id)?.addEventListener(id === 'fSearch' ? 'input' : 'change', e => { f[key] = num ? Number(e.target.value) : e.target.value; selected.clear(); render() })
+bind('fSearch', 'search'); bind('fProject', 'project'); bind('fLead', 'lead'); bind('fDoer', 'doer')
+bind('fControl', 'control'); bind('fPeriod', 'period'); bind('fWindow', 'windowDays', true); bind('fType', 'type')
+
+window.setStage  = s => { f.stage = s; selected.clear(); render() }
+window.setPeriod = p => { f.period = p; selected.clear(); syncControls(); render() }
+window.clearFilters = () => { f = { ...DEFAULTS, windowDays: f.windowDays }; selected.clear(); syncControls(); render() }
+
+// ── SELECTION + BULK ──────────────────────────────────────────────────────
+
+window.toggleSel = (id, on) => { on ? selected.add(id) : selected.delete(id); renderRows(shownRows()); renderBulk() }
+window.clearSel  = () => { selected.clear(); renderRows(shownRows()); renderBulk() }
+$('selAll').addEventListener('change', e => {
+  selected = e.target.checked ? new Set(shownIds) : new Set()
+  renderRows(shownRows()); renderBulk()
+})
+
+const shownRows = () => shownIds.map(id => allGigs.find(g => g.gig_id === id)).filter(Boolean)
+const selectedGigs = () => allGigs.filter(g => selected.has(g.gig_id))
+
+function renderBulk() {
+  $('bulk').classList.toggle('show', selected.size > 0)
+  $('bulkN').textContent = `${selected.size} selected`
+}
+
+const chunk = (arr, n = 50) => Array.from({ length: Math.ceil(arr.length / n) }, (_, i) => arr.slice(i * n, i * n + n))
+
+window.bulkPin = async function (pin) {
+  const targets = selectedGigs().filter(g => pin ? (isPinnable(g) && !isPinned(g)) : isPinned(g)).map(g => g.gig_id)
+  if (!targets.length) { showToast(pin ? 'Nothing to pin: only live, unpinned gigs can be pinned' : 'None of the selected gigs are pinned', 'err'); return }
+
+  for (const ids of chunk(targets)) {
+    const { error } = pin
+      ? await db.from('timesheet_pinned_gigs').insert(ids.map(gig_id => ({ user_id: userId, gig_id })))
+      : await db.from('timesheet_pinned_gigs').delete().eq('user_id', userId).in('gig_id', ids)
+    if (error) { showToast('Could not update pins: ' + error.message, 'err'); await load(); return }
+  }
+  targets.forEach(id => pin ? pinnedIds.add(id) : pinnedIds.delete(id))
+  showToast(`${targets.length} gig${targets.length !== 1 ? 's' : ''} ${pin ? 'pinned' : 'unpinned'}`, 'ok')
+  selected.clear(); render()
+}
+
+window.bulkFreeze = function () {
+  if (!isAdmin) return
+  const ids = selectedGigs().filter(g => !g.isKilled && !g.isFrozen).map(g => g.gig_id)
+  if (!ids.length) { showToast('Nothing to freeze: selected gigs are already frozen or killed', 'err'); return }
+  openModal({ kind: 'freezeBulk', ids, label: `${ids.length} gig${ids.length !== 1 ? 's' : ''}` })
+}
+
+window.bulkKill = function () {
+  if (!isAdmin) return
+  const ids = selectedGigs().filter(g => !g.isKilled).map(g => g.gig_id)
+  if (!ids.length) { showToast('Nothing to kill: selected gigs are already killed', 'err'); return }
+  openModal({ kind: 'killBulk', ids, label: `${ids.length} gig${ids.length !== 1 ? 's' : ''}` })
+}
+
+async function bulkLifecycle(ids, state, reason) {
+  const now = new Date().toISOString()
+  for (const part of chunk(ids)) {
+    const rows = part.map(gig_id => ({ gig_id, state, reason: reason || null, changed_by: userId, changed_at: now }))
+    const { error } = await db.from('gig_lifecycle').upsert(rows)
+    if (error) return { error }
+    if (state === 'killed') {
+      const { error: e2 } = await db.from('gigs').update({ status: 'completed' }).in('gig_id', part)
+      if (e2) return { error: e2 }
     }
-    const p = byProject.get(g.project_id)
-    if (isKilled(g)) p.killed++
-    else { p.open++; if (isFrozen(g)) p.frozen++ }
+  }
+  return { error: null }
+}
+
+// ── SINGLE ROW ACTIONS ────────────────────────────────────────────────────
+
+window.togglePin = async function (gigId, checked) {
+  const { error } = checked ? await pinGig(db, userId, gigId) : await unpinGig(db, userId, gigId)
+  if (error) { showToast('Could not update: ' + error.message, 'err'); render(); return }
+  checked ? pinnedIds.add(gigId) : pinnedIds.delete(gigId)
+  showToast(checked ? 'Pinned' : 'Unpinned', 'ok')
+  render()
+}
+
+window.toggleFreeze = async function (gigId, checked) {
+  if (!isAdmin) return
+  const g = allGigs.find(x => x.gig_id === gigId)
+  if (checked) { openModal({ kind: 'freeze', id: gigId, label: g?.gig_code }); return }
+  const { error } = await unfreezeGig(db, gigId)
+  if (error) { showToast('Could not unfreeze: ' + error.message, 'err'); render(); return }
+  showToast(`${g?.gig_code} unfrozen`, 'ok')
+  await load()
+}
+
+window.toggleKill = function (gigId, checked) {
+  if (!isAdmin) return
+  if (!checked) { render(); return }
+  const g = allGigs.find(x => x.gig_id === gigId)
+  openModal({ kind: 'kill', id: gigId, label: g?.gig_code })
+}
+
+// ── PROJECTS VIEW (admin) ─────────────────────────────────────────────────
+
+function renderProjects() {
+  const wrap = $('projectsList')
+  const by = new Map()
+  allGigs.filter(g => !g.isMaster || true).forEach(g => {
+    if (!g.project_id) return
+    if (!by.has(g.project_id)) by.set(g.project_id, { id: g.project_id, code: g.projects?.project_code || '·', name: g.projects?.project_name || '', open: 0, frozen: 0, killed: 0, inactive: 0 })
+    const p = by.get(g.project_id)
+    if (g.isKilled) { p.killed++; return }
+    if (g.status === 'completed') return
+    p.open++
+    if (g.isFrozen) p.frozen++
+    if (periodOf(g) === 'inactive') p.inactive++
   })
 
-  const projects = [...byProject.values()].sort((a, b) => a.code.localeCompare(b.code))
-  if (!projects.length) { wrap.innerHTML = '<div class="empty-state">No projects with manageable gigs.</div>'; return }
+  const list = [...by.values()].filter(p => p.open || p.frozen || p.killed).sort((a, b) => a.code.localeCompare(b.code))
+  if (!list.length) { wrap.innerHTML = '<div class="empty">No projects with open gigs.</div>'; return }
 
-  wrap.innerHTML = projects.map(p => `
-    <div class="project-row${p.frozen ? ' has-frozen' : ''}">
-      <div>
-        <div class="project-code">${esc(p.code)}</div>
-        <div class="project-name">${esc(p.name)}</div>
-        <div class="project-counts">${p.open} open${p.frozen ? ` (${p.frozen} frozen)` : ''} · ${p.killed} killed</div>
+  wrap.innerHTML = list.map(p => `
+    <div class="proj${p.frozen ? ' has-frozen' : ''}">
+      <div><div class="pc">${esc(p.code)}</div><div class="pn">${esc(p.name)}</div></div>
+      <div class="pk">
+        <div><b>${p.open}</b>open</div>
+        <div><b class="${p.inactive ? 'warn' : ''}">${p.inactive}</b>inactive</div>
+        <div><b>${p.frozen}</b>frozen</div>
+        <div><b>${p.killed}</b>killed</div>
       </div>
-      <div class="project-actions">
-        <button type="button" class="lc-btn" ${p.open ? '' : 'disabled'} onclick="freezeProjectRow('${p.id}','${esc(p.code)}',${p.open})">Freeze Project</button>
-        <button type="button" class="lc-btn danger" ${p.open ? '' : 'disabled'} onclick="killProjectRow('${p.id}','${esc(p.code)}',${p.open})">Kill Project</button>
+      <div class="pa">
+        <button type="button" class="lc-btn pri" onclick="viewProject('${p.id}')">View gigs</button>
+        <button type="button" class="lc-btn" ${p.open ? '' : 'disabled'} onclick="projectAction('freezeProject','${p.id}')">Freeze project</button>
+        <button type="button" class="lc-btn danger" ${p.open ? '' : 'disabled'} onclick="projectAction('killProject','${p.id}')">Kill project</button>
       </div>
     </div>`).join('')
 }
 
-const FILTERS = {
-  open:    g => !isKilled(g) && !isMaster(g),
-  all:     () => true,
-  pinned:  g => isPinned(g),
-  frozen:  g => isFrozen(g),
-  killed:  g => isKilled(g),
-  masters: g => isMaster(g),
+window.viewProject = function (id) {
+  f = { ...DEFAULTS, windowDays: f.windowDays, project: id, period: 'all' }
+  selected.clear(); syncControls(); setView('gigs')
 }
 
-function renderGigs() {
-  const tbody = $id('gigsTableBody')
-  const term = searchTerm.trim().toLowerCase()
-  const pass = FILTERS[filterId] || FILTERS.open
-
-  const visible = allGigs
-    .filter(pass)
-    .filter(g => !term || g.gig_code.toLowerCase().includes(term) || (g.title || '').toLowerCase().includes(term))
-    .sort((a, b) => a.gig_code.localeCompare(b.gig_code))
-
-  if (!visible.length) {
-    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">${allGigs.length ? 'No gigs match.' : 'No gigs available right now.'}</div></td></tr>`
-    return
-  }
-  tbody.innerHTML = visible.map(rowHTML).join('')
+window.projectAction = function (kind, id) {
+  const p = projects.find(x => x.project_id === id)
+  const openCount = allGigs.filter(g => g.project_id === id && g.status !== 'completed' && !g.isKilled).length
+  openModal({ kind, id, label: p?.project_code || 'project', openCount })
 }
 
-function rowHTML(g) {
-  const killed = isKilled(g), frozen = isFrozen(g), master = isMaster(g)
-  const reason = g.lifecycle?.reason || ''
-  const by = [g.lifecycle?.changed_by_name && `by ${g.lifecycle.changed_by_name}`, g.lifecycle?.changed_at && fmtDate(g.lifecycle.changed_at.slice(0, 10))].filter(Boolean).join(' · ')
-
-  const pinOff = !isPinnable(g)
-  const pinTip = master ? 'Masters are never clockable' : killed ? 'Killed gig' : frozen ? 'Frozen gigs are not clockable' : g.status === 'completed' ? 'Completed gig' : ''
-
-  const tags = (master ? '<span class="tag">Master</span>' : '') + (frozen ? '<span class="tag">Frozen</span>' : '') + (killed ? '<span class="tag">Killed</span>' : '')
-
-  const adminCells = isAdmin ? `
-      <td class="center admin-only"><input type="checkbox" class="chk frz" ${frozen ? 'checked' : ''} ${killed ? 'disabled title="Killed gigs can\'t be frozen"' : ''}
-          onchange="toggleFreeze('${g.gig_id}','${esc(g.gig_code)}',this.checked)"></td>
-      <td class="center admin-only"><input type="checkbox" class="chk kill" ${killed ? 'checked disabled title="No undo here. Reverting a kill is a manual SQL operation."' : ''}
-          onchange="toggleKill('${g.gig_id}','${esc(g.gig_code)}',this.checked)"></td>
-      <td class="admin-only hide-sm">${(frozen || killed) ? `<span class="why">${esc(reason || 'No reason recorded')}${by ? ` <span class="by">${esc(by)}</span>` : ''}</span>` : ''}</td>` : ''
-
-  return `
-    <tr class="${killed ? 'is-killed' : frozen ? 'is-frozen' : ''}">
-      <td class="code-cell">${esc(g.gig_code)}${tags}</td>
-      <td class="txt">${esc(g.title)}</td>
-      <td class="hide-sm" style="color:var(--stone);font-size:12px">${esc(projectCode(g))}</td>
-      <td><span class="status-pill ${g.status || 'placed'}">${fmtStatus(g.status)}</span></td>
-      <td class="center"><input type="checkbox" class="chk pin" ${isPinned(g) ? 'checked' : ''} ${pinOff ? `disabled title="${esc(pinTip)}"` : ''}
-          onchange="togglePin('${g.gig_id}',this.checked)"></td>
-      ${adminCells}
-    </tr>`
+function setView(v) {
+  view = v
+  $('gigsView').style.display = v === 'gigs' ? 'block' : 'none'
+  $('projectsView').style.display = v === 'projects' ? 'block' : 'none'
+  $(v === 'gigs' ? 'v-gigs' : 'v-projects').checked = true
+  render()
 }
-
-// ── PIN (auto-save, everyone) ──────────────────────────────────────────────
-
-window.togglePin = async function (gigId, checked) {
-  const { error } = checked ? await pinGig(db, userId, gigId) : await unpinGig(db, userId, gigId)
-  if (error) { showToast('Could not update: ' + error.message, 'err'); renderGigs(); return }
-  if (checked) pinnedIds.add(gigId); else pinnedIds.delete(gigId)
-  updateStatus()
-  showToast(checked ? 'Pinned' : 'Unpinned', 'ok')
-}
-
-// ── FREEZE / KILL (admin) ──────────────────────────────────────────────────
-
-window.toggleFreeze = async function (gigId, code, checked) {
-  if (!isAdmin) return
-  if (checked) { openLcModal({ kind: 'freeze', id: gigId, code }); return }
-  // Unfreeze needs no reason: fully reversible
-  const { error } = await unfreezeGig(db, gigId)
-  if (error) { showToast('Could not unfreeze: ' + error.message, 'err'); renderGigs(); return }
-  showToast(`${code} unfrozen`, 'ok')
-  await load()
-}
-
-window.toggleKill = function (gigId, code, checked) {
-  if (!isAdmin) return
-  if (!checked) { renderGigs(); return }   // a killed box is disabled, this is only a safety net
-  openLcModal({ kind: 'kill', id: gigId, code })
-}
-
-window.freezeProjectRow = (id, code, openCount) => openLcModal({ kind: 'freezeProject', id, code, openCount })
-window.killProjectRow   = (id, code, openCount) => openLcModal({ kind: 'killProject',   id, code, openCount })
+document.querySelectorAll('input[name="view"]').forEach(r => r.addEventListener('change', () => setView(r.value)))
 
 // ── REASON MODAL ──────────────────────────────────────────────────────────
-// One modal, four cases. The sub-text carries the confirmation context
-// (what will happen, how many gigs), so there is no second confirm().
 
-function openLcModal({ kind, id, code, openCount }) {
-  pendingAction = { kind, id, code }
-  const title = $id('lcModalTitle'), sub = $id('lcModalSub'), input = $id('lcModalReasonInput')
-  const err = $id('lcModalError'), btn = $id('lcModalConfirmBtn')
-
+function openModal(action) {
+  pending = action
+  const { kind, label, openCount, ids } = action
+  const title = $('lcModalTitle'), sub = $('lcModalSub'), input = $('lcModalReasonInput'), btn = $('lcModalConfirmBtn')
   input.value = ''
-  err.classList.remove('visible')
+  $('lcModalError').classList.remove('visible')
   sub.classList.remove('danger')
 
-  const n = openCount, plural = n !== 1 ? 's' : ''
-  if (kind === 'freeze') {
-    title.textContent = `Freeze ${code}`; sub.textContent = 'Fully reversible. Reason is optional.'; btn.textContent = 'Freeze'
-  } else if (kind === 'kill') {
-    title.textContent = `Kill ${code}`; sub.textContent = 'Sets this gig to Completed. No undo button. Reason is required.'; sub.classList.add('danger'); btn.textContent = 'Kill'
-  } else if (kind === 'freezeProject') {
-    title.textContent = `Freeze ${code}`; sub.textContent = `Freezes all ${n} open gig${plural} in this project. Reason is optional.`; btn.textContent = 'Freeze Project'
-  } else {
-    title.textContent = `Kill ${code}`; sub.textContent = `Sets all ${n} open gig${plural} in this project to Completed. No undo button. Reason is required.`; sub.classList.add('danger'); btn.textContent = 'Kill Project'
-  }
+  const n = openCount, pl = n !== 1 ? 's' : ''
+  const copy = {
+    freeze:        [`Freeze ${label}`, 'Fully reversible. Reason is optional.', 'Freeze', false],
+    kill:          [`Kill ${label}`, 'Sets this gig to Completed. No undo button. Reason is required.', 'Kill', true],
+    freezeBulk:    [`Freeze ${label}`, 'Fully reversible per gig. Reason is optional and applies to all of them.', 'Freeze', false],
+    killBulk:      [`Kill ${label}`, 'Sets every one to Completed. No undo button. Reason is required and applies to all of them.', 'Kill', true],
+    freezeProject: [`Freeze ${label}`, `Freezes all ${n} open gig${pl} in this project. Reason is optional.`, 'Freeze project', false],
+    killProject:   [`Kill ${label}`, `Sets all ${n} open gig${pl} in this project to Completed. No undo button. Reason is required.`, 'Kill project', true],
+  }[kind]
 
-  $id('lcModalOverlay').classList.add('open')
+  title.textContent = copy[0]; sub.textContent = copy[1]; btn.textContent = copy[2]
+  if (copy[3]) sub.classList.add('danger')
+  $('lcModalOverlay').classList.add('open')
   input.focus()
 }
 
 window.closeLcModal = function () {
-  $id('lcModalOverlay').classList.remove('open')
-  pendingAction = null
-  renderGigs()   // a cancelled check puts its checkbox back to the saved state
+  $('lcModalOverlay').classList.remove('open')
+  pending = null
+  render()   // a cancelled tick returns its checkbox to the saved state
 }
 
 window.confirmLcModal = async function () {
-  if (!pendingAction) return
-  const input = $id('lcModalReasonInput'), err = $id('lcModalError')
+  if (!pending) return
+  const input = $('lcModalReasonInput')
   const reason = input.value.trim()
-  const { kind, id, code } = pendingAction
-  const isKill = kind === 'kill' || kind === 'killProject'
+  const { kind, id, ids, label } = pending
+  const needsReason = kind === 'kill' || kind === 'killBulk' || kind === 'killProject'
+  if (needsReason && !reason) { $('lcModalError').classList.add('visible'); input.focus(); return }
 
-  if (isKill && !reason) { err.classList.add('visible'); input.focus(); return }
+  $('lcModalOverlay').classList.remove('open')
+  pending = null
 
-  $id('lcModalOverlay').classList.remove('open')
-  pendingAction = null
+  let res, msg
+  if (kind === 'freeze')            { res = await freezeGig(db, id, userId, reason); msg = `${label} frozen` }
+  else if (kind === 'kill')         { res = await killGig(db, id, userId, reason); msg = `${label} killed` }
+  else if (kind === 'freezeBulk')   { res = await bulkLifecycle(ids, 'frozen', reason); msg = `${ids.length} gigs frozen` }
+  else if (kind === 'killBulk')     { res = await bulkLifecycle(ids, 'killed', reason); msg = `${ids.length} gigs killed` }
+  else if (kind === 'freezeProject'){ res = await freezeProjectGigs(db, id, userId, reason); msg = `${res?.count ?? 0} gigs in ${label} frozen` }
+  else                              { res = await killProjectGigs(db, id, userId, reason); msg = `${res?.count ?? 0} gigs in ${label} killed` }
 
-  let res
-  if (kind === 'freeze')             res = await freezeGig(db, id, userId, reason)
-  else if (kind === 'kill')          res = await killGig(db, id, userId, reason)
-  else if (kind === 'freezeProject') res = await freezeProjectGigs(db, id, userId, reason)
-  else                               res = await killProjectGigs(db, id, userId, reason)
+  if (res?.error) showToast('Could not complete: ' + res.error.message, 'err')
+  else showToast(msg, 'ok')
 
-  if (res?.error) { showToast('Could not complete: ' + res.error.message, 'err'); await load(); return }
-
-  const n = res?.count
-  const msg = kind === 'freeze' ? `${code} frozen`
-            : kind === 'kill'   ? `${code} killed`
-            : kind === 'freezeProject' ? `${n} gig${n !== 1 ? 's' : ''} in ${code} frozen`
-            : `${n} gig${n !== 1 ? 's' : ''} in ${code} killed`
-  showToast(msg, 'ok')
+  selected.clear()
   await load()
 }
 
-$id('lcModalReasonInput').addEventListener('keydown', e => { if (e.key === 'Enter') window.confirmLcModal() })
-$id('lcModalOverlay').addEventListener('click', e => { if (e.target.id === 'lcModalOverlay') window.closeLcModal() })
-
-// ── TOOLBAR ───────────────────────────────────────────────────────────────
-
-$id('searchInput').addEventListener('input', e => { searchTerm = e.target.value; renderGigs() })
-$id('filterSelect').addEventListener('change', e => { filterId = e.target.value; renderGigs() })
-
-// ── HELPERS ───────────────────────────────────────────────────────────────
-
-function $id(id) { return document.getElementById(id) }
-function fmtStatus(s) { return (s || 'placed').replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase()) }
+$('lcModalReasonInput').addEventListener('keydown', e => { if (e.key === 'Enter') window.confirmLcModal() })
+$('lcModalOverlay').addEventListener('click', e => { if (e.target.id === 'lcModalOverlay') window.closeLcModal() })
 
 // ── INIT ──────────────────────────────────────────────────────────────────
 

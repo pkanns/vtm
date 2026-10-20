@@ -9,99 +9,121 @@
   <script src="assets/vtm.js"></script>
   <script src="assets/vtm_auth_guard.js"></script>
   <style>
-    .index-container { max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
+    .wrap { max-width: 1240px; margin: 0 auto; padding: 32px 24px 80px; }
 
-    .back-link { display: inline-block; margin-bottom: 16px; font-family: var(--font-mono); font-size: 11px; color: var(--stone); text-decoration: none; }
-    .back-link:hover { color: var(--black); }
-    .page-title { font-family: var(--font-display); font-size: 2rem; letter-spacing: 0.02em; color: var(--black); }
-    .page-subtitle { font-size: 12px; color: var(--stone); font-family: var(--font-mono); margin: 6px 0 22px; letter-spacing: 0.02em; line-height: 1.6; max-width: 72ch; }
-    .section-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--stone); margin: 28px 0 10px; }
+    .top { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+    .page-title { font-family: var(--font-display); font-size: 2.1rem; letter-spacing: 0.03em; line-height: 1; color: var(--black); }
+    .page-sub { font-family: var(--font-mono); font-size: 11px; color: var(--stone); letter-spacing: 0.03em; margin-top: 6px; max-width: 78ch; line-height: 1.6; }
+    body:not(.is-admin) .admin-only { display: none !important; }
 
-    /* projects (admin only) */
-    .project-row { display: flex; align-items: center; gap: 14px; justify-content: space-between; background: var(--white); border: 1px solid var(--hole); border-left: 4px solid var(--charcoal); padding: 10px 16px; margin-bottom: 8px; }
-    .project-row.has-frozen { border-left-color: #8a6200; }
-    .project-code { font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--black); }
-    .project-name { font-size: 12px; color: var(--stone); margin-top: 2px; }
-    .project-counts { font-family: var(--font-mono); font-size: 10px; color: var(--stone); margin-top: 3px; letter-spacing: 0.03em; }
-    .project-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    /* filter panel */
+    .panel { background: var(--white); border: 2px solid var(--black); border-top: 4px solid var(--charcoal); padding: 16px 18px 14px; margin-bottom: 14px; }
+    .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px 14px; align-items: end; }
+    .f { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+    .f > label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--stone); }
+    .f select, .f input[type="text"] { width: 100%; background: var(--light); border: none; border-bottom: 2px solid var(--hole); padding: 8px 10px; font-family: var(--font-body); font-size: 13px; color: var(--black); outline: none; }
+    .f select:focus, .f input:focus { border-bottom-color: var(--red); }
+    .f.active select, .f.active input { border-bottom-color: var(--red); background: #fceee8; }
+    .f.wide { grid-column: span 2; }
+    .period-row { display: flex; gap: 6px; }
+    .period-row select:first-child { flex: 1; }
+    .period-row select:last-child { width: 86px; flex: none; }
 
-    /* toolbar */
-    .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
-    .search-row { flex: 1; min-width: 220px; }
-    .search-row input { width: 100%; padding: 10px 16px; background: var(--white); border: 1px solid var(--hole); border-radius: 20px; font-family: var(--font-body); font-size: 13px; color: var(--black); outline: none; transition: border-color 0.15s; }
-    .search-row input:focus { border-color: var(--red); }
-    .filter-select { appearance: none; -webkit-appearance: none; background: var(--black); color: var(--white); border: 1px solid var(--black); border-radius: 20px; padding: 9px 30px 9px 16px; font-family: var(--font-body); font-size: 12px; cursor: pointer;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23f0ead8'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+    .stages { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--light); align-items: center; }
+    .stg { background: var(--light); border: 1px solid transparent; padding: 6px 12px; font-family: var(--font-body); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--charcoal); cursor: pointer; display: inline-flex; gap: 8px; align-items: center; transition: all 0.15s; }
+    .stg b { font-family: var(--font-mono); font-weight: 500; font-size: 10px; color: var(--stone); }
+    .stg:hover { border-color: var(--charcoal); }
+    .stg.on { background: var(--black); color: var(--white); } .stg.on b { color: rgba(240,234,216,0.7); }
+    .stg.s-placed { box-shadow: inset 0 -3px 0 #2a5a8a; } .stg.s-matched { box-shadow: inset 0 -3px 0 #7b3fa0; }
+    .stg.s-aligned { box-shadow: inset 0 -3px 0 #8a6200; } .stg.s-in_progress { box-shadow: inset 0 -3px 0 var(--red); }
+    .stg.s-delivered { box-shadow: inset 0 -3px 0 var(--green); } .stg.s-completed { box-shadow: inset 0 -3px 0 var(--stone); }
+    .clear-link { margin-left: auto; background: none; border: none; color: var(--red); font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; text-decoration: underline; }
 
-    .db-status { font-size: 11px; font-family: var(--font-mono); padding: 0 0 14px; color: var(--stone); letter-spacing: 0.04em; }
-    .db-status.ok { color: var(--green); } .db-status.err { color: var(--red); }
+    .summary { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--stone); letter-spacing: 0.03em; margin: 0 0 10px; }
+    .summary .ok { color: var(--green); } .summary .err { color: var(--red); }
+    .deadwood { background: #fdf5e0; border-left: 3px solid #8a6200; padding: 8px 14px; font-size: 12px; color: var(--charcoal); margin-bottom: 10px; display: none; }
+    .deadwood.show { display: block; }
+    .deadwood button { background: none; border: none; color: var(--red); font: inherit; text-decoration: underline; cursor: pointer; padding: 0; }
+
+    /* bulk bar */
+    .bulk { position: sticky; top: 64px; z-index: 50; display: none; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--black); color: var(--white); padding: 10px 16px; margin-bottom: 10px; box-shadow: 0 6px 16px rgba(0,0,0,0.25); }
+    .bulk.show { display: flex; }
+    .bulk .n { font-family: var(--font-display); font-size: 1.1rem; letter-spacing: 0.06em; margin-right: 6px; }
+    .bulk button { background: none; border: 1px solid rgba(240,234,216,0.35); color: var(--white); padding: 5px 12px; font-family: var(--font-body); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; transition: all 0.15s; }
+    .bulk button:hover { border-color: var(--white); background: rgba(240,234,216,0.12); }
+    .bulk button.danger { border-color: #e8a49c; color: #e8a49c; } .bulk button.danger:hover { background: var(--red); border-color: var(--red); color: var(--white); }
+    .bulk .sp { flex: 1; }
 
     /* the sheet */
-    .register-card { background: var(--white); padding: 8px 0; border-top: 4px solid var(--charcoal); overflow-x: auto; }
-    .register-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .register-table thead tr { background: var(--black); color: var(--white); }
-    .register-table th { padding: 10px 14px; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; text-align: left; white-space: nowrap; }
-    .register-table th.center, .register-table td.center { text-align: center; }
-    .register-table td { padding: 11px 14px; border-bottom: 1px solid var(--light); vertical-align: middle; color: var(--charcoal); }
-    .register-table tr:last-child td { border-bottom: none; }
-    .register-table tr:hover td { background: var(--light); }
-    .register-table tr.is-killed td.txt { color: var(--stone); text-decoration: line-through; }
-    .register-table tr.is-frozen td.code-cell { box-shadow: inset 4px 0 0 #8a6200; }
-    .register-table tr.is-killed td.code-cell { box-shadow: inset 4px 0 0 #2a2a2a; }
+    .sheet { background: var(--white); border-top: 4px solid var(--charcoal); overflow-x: auto; }
+    table.reg { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.reg thead tr { background: var(--black); color: var(--white); }
+    table.reg th { padding: 10px 12px; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; text-align: left; white-space: nowrap; }
+    table.reg th.c, table.reg td.c { text-align: center; }
+    table.reg td { padding: 10px 12px; border-bottom: 1px solid var(--light); vertical-align: middle; color: var(--charcoal); }
+    table.reg tbody tr:hover td { background: var(--light); }
+    table.reg tr.sel td { background: #fceee8; }
+    table.reg tr.is-frozen td.gig { box-shadow: inset 4px 0 0 #8a6200; }
+    table.reg tr.is-killed td.gig { box-shadow: inset 4px 0 0 #2a2a2a; }
+    table.reg th.col-pin { box-shadow: inset 0 -3px 0 var(--red); }
+    table.reg th.col-frz { box-shadow: inset 0 -3px 0 #8a6200; }
+    table.reg th.col-kill { box-shadow: inset 0 -3px 0 #8a8a8a; }
 
-    .code-cell { font-family: var(--font-mono); font-size: 12px; font-weight: 600; white-space: nowrap; }
-    .tag { display: inline-block; font-family: var(--font-mono); font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase; padding: 1px 6px; margin-left: 6px; background: var(--light); color: var(--stone); vertical-align: middle; font-weight: 600; }
-    .why { font-size: 11px; color: var(--stone); font-style: italic; }
-    .why .by { font-style: normal; color: var(--hole); }
+    .g-code { font-family: var(--font-mono); font-size: 11.5px; font-weight: 600; color: var(--black); white-space: nowrap; }
+    .g-title { font-size: 13.5px; color: var(--black); margin-top: 1px; }
+    tr.is-killed .g-title { color: var(--stone); text-decoration: line-through; }
+    .why { font-size: 11px; color: var(--stone); font-style: italic; margin-top: 3px; }
+    .why b { font-style: normal; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; margin-right: 6px; }
+    .tag { display: inline-block; font-family: var(--font-mono); font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase; padding: 1px 6px; margin-left: 6px; background: var(--light); color: var(--stone); font-weight: 600; vertical-align: middle; }
+    .tag.stale { background: #fdf5e0; color: #8a6200; }
+    .ppl { font-size: 11.5px; line-height: 1.5; white-space: nowrap; } .ppl span { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--stone); margin-right: 5px; }
+    .dates { font-family: var(--font-mono); font-size: 11px; white-space: nowrap; color: var(--charcoal); }
+    .dates small { display: block; font-size: 9.5px; color: var(--stone); margin-top: 1px; } .dates small.warn { color: var(--red); }
 
-    /* checkbox columns, one accent per category */
-    .chk { width: 17px; height: 17px; cursor: pointer; }
-    .chk:disabled { cursor: not-allowed; opacity: 0.35; }
-    .chk.pin   { accent-color: var(--red); }
-    .chk.frz   { accent-color: #8a6200; }
-    .chk.kill  { accent-color: #2a2a2a; }
-    th.col-pin   { box-shadow: inset 0 -3px 0 var(--red); }
-    th.col-frz   { box-shadow: inset 0 -3px 0 #8a6200; }
-    th.col-kill  { box-shadow: inset 0 -3px 0 #8a8a8a; }
-    body:not(.is-admin) .admin-only { display: none; }
-
-    .status-pill { display: inline-block; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; font-weight: 600; }
+    .status-pill { display: inline-block; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; font-weight: 600; white-space: nowrap; }
     .status-pill.placed { background: #e8eef5; color: #2a5a8a; } .status-pill.matched { background: #f5eef8; color: #7b3fa0; }
     .status-pill.aligned { background: #fdf5e0; color: #8a6200; } .status-pill.in_progress { background: #fceee8; color: var(--red); }
     .status-pill.delivered { background: #e8f5ee; color: var(--green); } .status-pill.completed { background: var(--light); color: var(--stone); }
 
-    .lc-btn { background: none; border: 1px solid var(--hole); color: var(--charcoal); padding: 3px 9px; font-size: 9.5px; cursor: pointer; font-family: var(--font-body); letter-spacing: 0.06em; transition: all 0.2s; white-space: nowrap; }
+    .chk { width: 17px; height: 17px; cursor: pointer; }
+    .chk:disabled { cursor: not-allowed; opacity: 0.3; }
+    .chk.pin { accent-color: var(--red); } .chk.frz { accent-color: #8a6200; } .chk.kill { accent-color: #2a2a2a; } .chk.sel { accent-color: var(--charcoal); }
+
+    .empty { text-align: center; padding: 48px 0; color: var(--stone); font-size: 13px; }
+    .hint { font-family: var(--font-mono); font-size: 10.5px; color: var(--stone); line-height: 1.7; margin-top: 14px; } .hint b { color: var(--charcoal); font-weight: 500; }
+
+    /* projects view */
+    .proj { display: flex; align-items: center; gap: 16px; justify-content: space-between; flex-wrap: wrap; background: var(--white); border: 1px solid var(--hole); border-left: 4px solid var(--charcoal); padding: 12px 18px; margin-bottom: 8px; }
+    .proj.has-frozen { border-left-color: #8a6200; }
+    .proj .pc { font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--black); }
+    .proj .pn { font-size: 12px; color: var(--stone); margin-top: 2px; }
+    .proj .pk { display: flex; gap: 18px; font-family: var(--font-mono); font-size: 10px; color: var(--stone); text-transform: uppercase; letter-spacing: 0.06em; }
+    .proj .pk b { display: block; font-family: var(--font-display); font-size: 1.4rem; font-weight: 400; color: var(--black); line-height: 1; letter-spacing: 0; }
+    .proj .pk b.warn { color: #8a6200; }
+    .proj .pa { display: flex; gap: 8px; }
+    .lc-btn { background: none; border: 1px solid var(--hole); color: var(--charcoal); padding: 5px 12px; font-size: 10px; cursor: pointer; font-family: var(--font-body); letter-spacing: 0.06em; text-transform: uppercase; transition: all 0.2s; white-space: nowrap; }
     .lc-btn:hover:not(:disabled) { border-color: var(--charcoal); color: var(--black); }
-    .lc-btn.danger { border-color: rgba(192,57,43,0.4); color: var(--red); }
-    .lc-btn.danger:hover:not(:disabled) { border-color: var(--red); background: #fceee8; }
+    .lc-btn.danger { border-color: rgba(192,57,43,0.4); color: var(--red); } .lc-btn.danger:hover:not(:disabled) { border-color: var(--red); background: #fceee8; }
+    .lc-btn.pri { background: var(--black); color: var(--white); border-color: var(--black); } .lc-btn.pri:hover { background: var(--charcoal); color: var(--white); }
     .lc-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    .empty-state { text-align: center; padding: 40px 0; color: var(--stone); font-size: 13px; }
-    .hint { font-family: var(--font-mono); font-size: 10.5px; color: var(--stone); line-height: 1.7; margin-top: 14px; }
-    .hint b { color: var(--charcoal); font-weight: 500; }
-
-    /* reason modal (same as the old Gig Lifecycle page) */
+    /* reason modal */
     .lc-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(26,20,16,0.55); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
     .lc-modal-overlay.open { display: flex; }
-    .lc-modal { background: var(--white); border: 2px solid var(--black); max-width: 420px; width: 100%; padding: 24px 28px 20px; }
+    .lc-modal { background: var(--white); border: 2px solid var(--black); max-width: 440px; width: 100%; padding: 24px 28px 20px; }
     .lc-modal-title { font-family: var(--font-display); font-size: 1.4rem; letter-spacing: 0.02em; color: var(--black); }
-    .lc-modal-sub { font-size: 12px; color: var(--stone); margin: 4px 0 18px; line-height: 1.5; }
-    .lc-modal-sub.danger { color: var(--red); }
+    .lc-modal-sub { font-size: 12px; color: var(--stone); margin: 4px 0 18px; line-height: 1.5; } .lc-modal-sub.danger { color: var(--red); }
     .lc-modal label { display: block; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--stone); margin-bottom: 6px; font-weight: 500; }
     .lc-modal input[type="text"] { width: 100%; padding: 10px 12px; background: var(--light); border: none; border-bottom: 2px solid #ccc; font-family: var(--font-body); font-size: 14px; color: var(--black); outline: none; }
     .lc-modal input[type="text"]:focus { border-bottom-color: var(--red); }
-    .lc-modal-error { font-size: 11px; color: var(--red); margin-top: 6px; display: none; }
-    .lc-modal-error.visible { display: block; }
+    .lc-modal-error { font-size: 11px; color: var(--red); margin-top: 6px; display: none; } .lc-modal-error.visible { display: block; }
     .lc-modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; }
-    .lc-modal-actions .btn-secondary { background: none; border: 1px solid var(--hole); color: var(--stone); padding: 9px 18px; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; font-family: var(--font-body); }
-    .lc-modal-actions .btn-secondary:hover { border-color: var(--charcoal); color: var(--black); }
-    .lc-modal-actions .btn-confirm { background: var(--red); color: var(--white); border: none; padding: 9px 20px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; font-family: var(--font-body); }
-    .lc-modal-actions .btn-confirm:hover { background: var(--red-dark); }
+    .btn-secondary { background: none; border: 1px solid var(--hole); color: var(--stone); padding: 9px 18px; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; font-family: var(--font-body); }
+    .btn-secondary:hover { border-color: var(--charcoal); color: var(--black); }
+    .btn-confirm { background: var(--red); color: var(--white); border: none; padding: 9px 20px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; font-family: var(--font-body); }
+    .btn-confirm:hover { background: var(--red-dark); }
 
-    @media (max-width: 700px) {
-      .project-row { flex-direction: column; align-items: flex-start; gap: 8px; }
-      .register-table .hide-sm { display: none; }
-    }
+    @media (max-width: 860px) { .hide-md { display: none; } .f.wide { grid-column: span 1; } .wrap { padding: 20px 14px 60px; } }
   </style>
 </head>
 <body data-page="gig_controls">
@@ -109,58 +131,88 @@
 <div id="vtmHeader"></div>
 <script src="assets/vtm_header.js"></script>
 
-<main class="index-container">
-  <a href="timesheet.html" class="back-link">&larr; Back to Timesheet</a>
-  <div class="page-title">Gig Controls</div>
-  <div class="page-subtitle">
-    One sheet for how a gig behaves. <b style="color:var(--charcoal)">Pinned</b> puts it first in your Timesheet (yours alone, nothing is hidden for good).
-    <span class="admin-only"><b style="color:var(--charcoal)">Frozen</b> pauses a gig and is fully reversible. <b style="color:var(--charcoal)">Killed</b> closes it for good with a reason on record.
-    Neither touches logged time, tasks or evaluations.</span>
+<main class="wrap">
+  <div class="top">
+    <div>
+      <div class="page-title">Gig Controls</div>
+      <div class="page-sub">Pin what you clock time to. <span class="admin-only">Freeze to pause, kill to close for good. Neither touches logged time, tasks or evaluations.</span></div>
+    </div>
+    <div class="toggle-pair admin-only" style="min-width:200px">
+      <input type="radio" name="view" id="v-gigs" value="gigs" checked><label for="v-gigs">Gigs</label>
+      <input type="radio" name="view" id="v-projects" value="projects"><label for="v-projects">Projects</label>
+    </div>
   </div>
 
-  <div class="admin-only">
-    <div class="section-label">Projects</div>
+  <!-- GIGS VIEW (default) -->
+  <section id="gigsView">
+    <div class="panel">
+      <div class="filters">
+        <div class="f wide"><label for="fSearch">Search</label><input type="text" id="fSearch" placeholder="Code or title…"></div>
+        <div class="f"><label for="fProject">Project</label><select id="fProject"><option value="">All projects</option></select></div>
+        <div class="f" id="fLeadWrap"><label for="fLead">Lead</label><select id="fLead"><option value="">All leads</option></select></div>
+        <div class="f" id="fDoerWrap"><label for="fDoer">Doer</label><select id="fDoer"><option value="">All doers</option></select></div>
+        <div class="f"><label for="fControl">Control state</label>
+          <select id="fControl">
+            <option value="live">Live</option>
+            <option value="all">Any</option>
+            <option value="pinned">Pinned</option>
+            <option value="unpinned">Not pinned</option>
+            <option value="frozen" class="admin-only">Frozen</option>
+            <option value="killed" class="admin-only">Killed</option>
+          </select></div>
+        <div class="f"><label for="fPeriod">Period</label>
+          <div class="period-row">
+            <select id="fPeriod"><option value="current">Current</option><option value="inactive">Inactive</option><option value="all">All</option></select>
+            <select id="fWindow" title="Window of interest around today"><option value="30">±30d</option><option value="60">±60d</option><option value="90">±90d</option><option value="180">±180d</option></select>
+          </div></div>
+        <div class="f admin-only"><label for="fType">Type</label>
+          <select id="fType"><option value="real">Real gigs</option><option value="masters">Masters</option><option value="both">Both</option></select></div>
+      </div>
+      <div class="stages" id="stages"></div>
+    </div>
+
+    <div class="deadwood" id="deadwood"></div>
+    <div class="summary"><span id="dbStatus">Loading…</span><span id="countLine"></span></div>
+
+    <div class="bulk" id="bulk">
+      <span class="n" id="bulkN">0 selected</span>
+      <button type="button" onclick="bulkPin(true)">Pin</button>
+      <button type="button" onclick="bulkPin(false)">Unpin</button>
+      <button type="button" class="admin-only" onclick="bulkFreeze()">Freeze</button>
+      <button type="button" class="admin-only danger" onclick="bulkKill()">Kill</button>
+      <span class="sp"></span>
+      <button type="button" onclick="clearSel()">Clear selection</button>
+    </div>
+
+    <div class="sheet">
+      <table class="reg">
+        <thead>
+          <tr>
+            <th class="c" style="width:34px"><input type="checkbox" class="chk sel" id="selAll" title="Select all shown"></th>
+            <th>Gig</th>
+            <th class="hide-md" style="width:80px">Project</th>
+            <th class="hide-md" style="width:150px">Lead / Doer</th>
+            <th style="width:110px">Stage</th>
+            <th style="width:150px">Dates</th>
+            <th class="c col-pin" style="width:66px">Pinned</th>
+            <th class="c col-frz admin-only" style="width:66px">Frozen</th>
+            <th class="c col-kill admin-only" style="width:66px">Killed</th>
+          </tr>
+        </thead>
+        <tbody id="gigsBody"><tr><td colspan="9"><div class="empty">Loading…</div></td></tr></tbody>
+      </table>
+    </div>
+    <div class="hint">
+      <b>Current</b> = dates overlap the window around today, or no dates set. <b>Inactive</b> = dates entirely outside it (dead wood). Filter to Inactive, tick the header box, then Freeze or Kill in one go.
+      Pin is for live gigs only: not a master, frozen or killed. <span class="admin-only">Kill has no undo here.</span>
+    </div>
+  </section>
+
+  <!-- PROJECTS VIEW (admin) -->
+  <section id="projectsView" style="display:none">
     <div id="projectsList"></div>
-  </div>
-
-  <div class="section-label">Gigs</div>
-  <div class="toolbar">
-    <div class="search-row"><input type="text" id="searchInput" placeholder="Search by code or title…"></div>
-    <select class="filter-select" id="filterSelect">
-      <option value="open">Show: Open</option>
-      <option value="all">Show: All</option>
-      <option value="pinned">Show: Pinned</option>
-      <option value="frozen" class="admin-only">Show: Frozen</option>
-      <option value="killed" class="admin-only">Show: Killed</option>
-      <option value="masters" class="admin-only">Show: Masters</option>
-    </select>
-  </div>
-  <div class="db-status" id="dbStatus">Loading…</div>
-
-  <div class="register-card">
-    <table class="register-table">
-      <thead>
-        <tr>
-          <th style="width:190px">Code</th>
-          <th>Title</th>
-          <th class="hide-sm" style="width:90px">Project</th>
-          <th style="width:110px">Stage</th>
-          <th class="center col-pin" style="width:72px">Pinned</th>
-          <th class="center col-frz admin-only" style="width:72px">Frozen</th>
-          <th class="center col-kill admin-only" style="width:72px">Killed</th>
-          <th class="admin-only hide-sm">Reason</th>
-        </tr>
-      </thead>
-      <tbody id="gigsTableBody">
-        <tr><td colspan="8"><div class="empty-state">Loading…</div></td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div class="hint">
-    <b>Pinned</b> is available on live gigs only. Masters (recurring templates), frozen and killed gigs are never clockable, so their pin box is off.
-    <span class="admin-only"><b>Killed</b> has no undo here. Reverting a kill is a deliberate manual SQL operation. Freezing a master stops it spawning new instances.</span>
-  </div>
+    <div class="hint">Project actions apply to every open gig in the project. Use "View gigs" to review them first.</div>
+  </section>
 </main>
 
 <div class="lc-modal-overlay" id="lcModalOverlay">
